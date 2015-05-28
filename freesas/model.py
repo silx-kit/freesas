@@ -47,7 +47,7 @@ class SASModel:
                 z = float(args[8])
                 atoms.append([x, y, z])
             header.append(line)
-        self.header = "".join(header) 
+        self.header = header
         self.atoms = numpy.array(atoms)
     
     def save(self, filename):
@@ -58,7 +58,10 @@ class SASModel:
         with open(filename, "w") as pdbout:
             for line in self.header:
                 if line.startswith("ATOM"):
-                    line = line[:30]+"%8.3f%8.3f%8.3f"%tuple(self.atoms[nr])+line[54:]
+                    if nr<self.atoms.shape[0]:
+                        line = line[:30]+"%8.3f%8.3f%8.3f"%tuple(self.atoms[nr])+line[54:]
+                    else:
+                        line = ""
                     nr += 1
                 pdbout.write(line)
     
@@ -66,30 +69,63 @@ class SASModel:
         """
         return the center of mass of the protein
         """
-        self.com = self.centroid()
-        return self.com
+        mol = self.atoms
+        self.com = mol.mean(axis=0)
     
     def inertiatensor(self):
         """
         calculate the inertia tensor of the protein
         """
-        mol = self.atoms - self.centroid()
+        mol = self.atoms - self.com
         self.inertensor = numpy.empty((3, 3), dtype = "float")
         delta_kron = lambda i, j : 1 if i==j else 0
         for i in range(3):
             for j in range(i,3):
                 self.inertensor[i,j]= self.inertensor[j,i] = (delta_kron(i,j)*(mol**2).sum(axis=1) - (mol[:,i]*mol[:,j])).sum()/mol.shape[0]
+    
+    def canonical_translate(self):
+        """
+        Calculate the translation matrix to translate the center of mass of the molecule on the origine of the base
+        """
+        trans = numpy.identity(4, dtype = "float")
+        trans[0:3,3] = -self.com
+        return trans
                 
+    def canonical_rotate(self):
+        """
+        Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.
+        Return a matrix with a determinant = 1
+        """
+        w, v = numpy.linalg.eigh(self.inertensor)
+        mat = v[:, w.argsort()]
+        
+        b = numpy.array([[0,0,0,1]])
+        b.shape = 4,1
+    
+        return numpy.append(numpy.append(mat.T,numpy.zeros((1,3)), axis=0), b, axis=1)
+    
+    def canonical_position(self):
+        """
+        Calculate coordinates of each dummy atoms with the molecule in its canonical position
+        The molecule is put on its canonical position
+        """
+        mol = self.atoms
+        mol = numpy.append(mol.T, numpy.ones((1,mol.shape[0])), axis=0)
+        
+        mol = numpy.dot(self.canonical_translate(), mol)
+        mol = numpy.dot(self.canonical_rotate(), mol)
+        molfinal = numpy.delete(mol, 3, axis=0)
+        
+        self.atoms = molfinal.T
+        
+    
     def _calc_fineness(self):
         """
         Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model
         """
-        x = self.atoms[:,0]
-        y = self.atoms[:,1]
-        z = self.atoms[:,2]
+        D = delta_expand(self.atoms[:,0], self.atoms[:,0])**2+delta_expand(self.atoms[:,1], self.atoms[:,1])**2+delta_expand(self.atoms[:,2], self.atoms[:,2])**2
         
-        D = delta_expand(x, x)**2+delta_expand(y, y)**2+delta_expand(z, z)**2
-        d12 = (D.max()*numpy.eye(x.size)+D).min(axis=0).mean()
+        d12 = (D.max()*numpy.eye(self.atoms[:,0].size)+D).min(axis=0).mean()
         fineness = numpy.sqrt(d12)
         return fineness
     
