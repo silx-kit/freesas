@@ -11,18 +11,41 @@ from utilstests import base, join
 from freesas.model import SASModel
 
 class TestDistance(unittest.TestCase):
-    testfile = join(base, "testdata", "model-01.pdb")
+    testfile1 = join(base, "testdata", "model-01.pdb")
+    testfile2 = join(base, "testdata", "dammif-01.pdb")
 
     def test_fineness(self):
         m = SASModel()
-        m.read(self.testfile)
+        m.read(self.testfile1)
         f_np = m._calc_fineness(False)
         f_cy = m._calc_fineness(True)
         self.assertEqual(f_np,f_cy,"fineness is the same %s!=%s"%(f_np, f_cy))
 
+    def test_distance(self):
+        m = SASModel()
+        n = SASModel()
+        m.read(self.testfile1)
+        n.read(self.testfile2)
+        f_np = m.dist(n, False)
+        f_cy = m.dist(n, True)
+        self.assertEqual(f_np,f_cy,"distance is the same %s!=%s"%(f_np, f_cy))
+
+    def test_same(self):
+        m = SASModel()
+        n = SASModel()
+        m.read(self.testfile1)
+        n.read(self.testfile1)
+        numpy.random.shuffle(n.atoms)
+        f_np = m.dist(n, False)
+        f_cy = m.dist(n, True)
+        self.assertEqual(f_np, 0, "NSD not nul with np")
+        self.assertEqual(f_cy, 0, "NSD not nul with cy")
+
 def test_suite_all_distance():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestDistance("test_fineness"))
+    testSuite.addTest(TestDistance("test_distance"))
+    testSuite.addTest(TestDistance("test_same"))
     return testSuite
 
 if __name__ == '__main__':

@@ -73,8 +73,8 @@ class SASModel:
         """
         return the center of mass of the protein
         """
-        self.com = self.centroid()
-        return self.com
+        mol = self.atoms
+        self.com = mol.mean(axis=0)
 
     def inertiatensor(self):
         """
@@ -123,21 +123,18 @@ class SASModel:
         self.atoms = molfinal.T
         
     
-    def _calc_fineness(self, use_cython=False):
+    def _calc_fineness(self, use_cython=True):
         """
         Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model
         """
         if _distance and use_cython:
             return _distance.calc_fineness(self.atoms)
 
-        x = self.atoms[:,0]
-        y = self.atoms[:,1]
-        z = self.atoms[:,2]
-
-        D = delta_expand(x, x)**2+delta_expand(y, y)**2+delta_expand(z, z)**2
-        d12 = (D.max()*numpy.eye(x.size)+D).min(axis=0).mean()
-        fineness = numpy.sqrt(d12)
-        return fineness
+        else:
+            D = delta_expand(self.atoms[:,0], self.atoms[:,0])**2+delta_expand(self.atoms[:,1], self.atoms[:,1])**2+delta_expand(self.atoms[:,2], self.atoms[:,2])**2
+            d12 = (D.max()*numpy.eye(self.atoms[:,0].size)+D).min(axis=0).mean()
+            fineness = numpy.sqrt(d12)
+            return fineness
 
     @property
     def fineness(self):
@@ -147,28 +144,32 @@ class SASModel:
                     self._fineness = self._calc_fineness()
         return self._fineness
 
-    def dist(self, other):
+    def dist(self, other, use_cython=True):
         """
         Calculate the distance with another model
         """
-        mol1 = self.atoms
-        mol2 = other.atoms
+        if _distance and use_cython:
+            return _distance.calc_distance(self.atoms, other.atoms, self.fineness, other.fineness)
+        
+        else:
+            mol1 = self.atoms
+            mol2 = other.atoms
 
-        mol1x = mol1[:,0]
-        mol1y = mol1[:,1]
-        mol1z = mol1[:,2]
-        mol1x.shape = mol1.shape[0],1
-        mol1y.shape = mol1.shape[0],1
-        mol1z.shape = mol1.shape[0],1
+            mol1x = mol1[:,0]
+            mol1y = mol1[:,1]
+            mol1z = mol1[:,2]
+            mol1x.shape = mol1.shape[0],1
+            mol1y.shape = mol1.shape[0],1
+            mol1z.shape = mol1.shape[0],1
 
-        mol2x = mol2[:,0]
-        mol2y = mol2[:,1]
-        mol2z = mol2[:,2]
-        mol2x.shape = mol2.shape[0],1
-        mol2y.shape = mol2.shape[0],1
-        mol2z.shape = mol2.shape[0],1
+            mol2x = mol2[:,0]
+            mol2y = mol2[:,1]
+            mol2z = mol2[:,2]
+            mol2x.shape = mol2.shape[0],1
+            mol2y.shape = mol2.shape[0],1
+            mol2z.shape = mol2.shape[0],1
 
-        d2=delta_expand(mol1x,mol2x)**2+delta_expand(mol1y,mol2y)**2+delta_expand(mol1z,mol2z)**2
+            d2=delta_expand(mol1x,mol2x)**2+delta_expand(mol1y,mol2y)**2+delta_expand(mol1z,mol2z)**2
 
-        D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
-        return D
+            D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
+            return D
