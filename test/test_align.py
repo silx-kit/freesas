@@ -72,7 +72,7 @@ class TestAlign(unittest.TestCase):
         n.centroid()
         n.inertiatensor()
         dist = alignment(m,n)
-        self.assertEqual(round(dist,12), 0.0, "bad alignment")
+        self.assertAlmostEqual(dist, 0, 12, "bad alignment")
 
     def test_chg_position(self):
         m = assign_model(self.testfile1)
@@ -81,10 +81,18 @@ class TestAlign(unittest.TestCase):
         dist_ext = m.dist(n)
         self.assertEqual(dist_align, dist_ext, "molecule 2 unaligned")
 
+    def test_usefull_alignment(self):
+        m = assign_model(self.testfile1)
+        n = assign_model(self.testfile2)
+        dist_before = m.dist(n)
+        dist_after = alignment(m,n)
+        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment")
+
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_chg_position"))
+    testSuite.addTest(TestAlign("test_usefull_alignment"))
     return testSuite
 
 if __name__ == '__main__':
