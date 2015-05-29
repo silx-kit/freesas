@@ -35,42 +35,44 @@ def alignment(model1, model2):
     combi = list(itertools.product((-1,1), repeat=3))
     combi = numpy.array(combi)
     
-    d = None
-    best = None
-    rot_can = model2.canonical_rotate()
-    mol = model2.atoms
-    for i in range(8):
-        rotation = rot_can
-        for j in range(3):
-            rotation[j] = rotation[j] * combi[i,j]
-        
-        model2.atoms = numpy.append(model2.atoms.T, numpy.ones((1,model2.atoms.shape[0])), axis=0)
-        model2.atoms = numpy.dot(rotation, model2.atoms)
-        model2.atoms = numpy.delete(model2.atoms, 3, axis=0)
-        model2.atoms = model2.atoms.T
-        
-        distance = model1.dist(model2)
-        
-        if d == None:
-            d = distance
-        if distance <= d:
-            d = distance
-            best = i
-        model2.atoms = mol
+    mol2 = model2.atoms
     
-    if best==None:
-        model1.save("model1.pdb")
-        model2.save("model2.pdb")
+    dist = model1.dist(model2)
+    npermut = None
+    
+    same = numpy.identity(4, dtype="float")
+    one = numpy.ones((1, mol2.shape[0]), dtype="float")
+    
+    for i in range(combi.shape[0]-1):
+        sym = same
+        sym[0,0] = combi[i,0]
+        sym[1,1] = combi[i,1]
+        sym[2,2] = combi[i,2]
+        
+        molsym = numpy.append(mol2.T, one, axis=0)
+        molsym = numpy.dot(sym, molsym)
+        molsym = numpy.delete(molsym, 3, axis=0)
+        molsym = molsym.T
+        model2.atoms = molsym
+        
+        d = model1.dist(model2)
+        
+        if d < dist:
+            dist = d
+            npermut = i
+    
+    if npermut != None:
+        sym = same
+        sym[0,0] = combi[npermut,0]
+        sym[1,1] = combi[npermut,1]
+        sym[2,2] = combi[npermut,2]
+        
+        molsym = numpy.append(mol2.T, one, axis=0)
+        molsym = numpy.dot(sym, molsym)
+        molsym = numpy.delete(molsym, 3, axis=0)
+        molsym = molsym.T
+        model2.atoms = molsym
     else:
-        for j in range(3):
-            rotation[j] = rotation[j] * combi[best,j]
-            
-        model2.atoms = numpy.append(model2.atoms.T, numpy.ones((1,model2.atoms.shape[0])), axis=0)
-        model2.atoms = numpy.dot(rotation, model2.atoms)
-        model2.atoms = numpy.delete(model2.atoms, 3, axis=0)
-        model2.atoms = model2.atoms.T
+        model2.atoms = mol2
     
-        model1.save("model1.pdb")
-        model2.save("model2.pdb")
-        
-    return d
+    return dist
