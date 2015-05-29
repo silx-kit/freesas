@@ -41,7 +41,6 @@ def alignment(model1, model2):
     npermut = None
     
     same = numpy.identity(4, dtype="float")
-    one = numpy.ones((1, mol2.shape[0]), dtype="float")
     
     for i in range(combi.shape[0]-1):
         sym = same
@@ -49,9 +48,8 @@ def alignment(model1, model2):
         sym[1,1] = combi[i,1]
         sym[2,2] = combi[i,2]
         
-        molsym = numpy.append(mol2.T, one, axis=0)
+        molsym = mol2.T
         molsym = numpy.dot(sym, molsym)
-        molsym = numpy.delete(molsym, 3, axis=0)
         molsym = molsym.T
         model2.atoms = molsym
         
@@ -67,9 +65,8 @@ def alignment(model1, model2):
         sym[1,1] = combi[npermut,1]
         sym[2,2] = combi[npermut,2]
         
-        molsym = numpy.append(mol2.T, one, axis=0)
+        molsym = mol2.T
         molsym = numpy.dot(sym, molsym)
-        molsym = numpy.delete(molsym, 3, axis=0)
         molsym = molsym.T
         model2.atoms = molsym
     else:

@@ -24,7 +24,7 @@ def move(model):
     mol: 2D array, coordinates of the molecule after a translation and a rotation
     """
     mol = model.atoms
-    mol = numpy.append(mol.T, numpy.ones((1,mol.shape[0])), axis=0)
+    mol = mol.T
     
     translation = numpy.identity(4, dtype="float")
     translation[0:3,3] = numpy.array([[uniform(-100,100),uniform(-100,100),uniform(-100,100)]], dtype="float")
@@ -54,7 +54,6 @@ def move(model):
     mol = numpy.dot(rotation, mol)
     mol = numpy.dot(translation, mol)
     
-    mol = numpy.delete(mol, 3, axis=0)
     mol = mol.T
     model.atoms = mol
 

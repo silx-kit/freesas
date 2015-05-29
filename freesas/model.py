@@ -25,7 +25,7 @@ def delta_expand(vec1, vec2):
 
 class SASModel:
     def __init__(self):
-        self.atoms = []
+        self.atoms = []# coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
         self.radius = 1.0
         self.header = "" # header of the PDB file
         self.com = []
@@ -52,13 +52,15 @@ class SASModel:
                 atoms.append([x, y, z])
             header.append(line)
         self.header = header
-        self.atoms = numpy.array(atoms)
+        atom3 = numpy.array(atoms)
+        self.atoms = numpy.append(atom3, numpy.ones((atom3.shape[0],1),dtype="float"), axis=1)
 
     def save(self, filename):
         """
         save the position of each dummy atom in a PDB file
         """
         nr = 0
+        self.atoms = numpy.delete(self.atoms, 3, 1)
         with open(filename, "w") as pdbout:
             for line in self.header:
                 if line.startswith("ATOM"):
@@ -73,14 +75,14 @@ class SASModel:
         """
         return the center of mass of the protein
         """
-        mol = self.atoms
+        mol = self.atoms[:,0:3]
         self.com = mol.mean(axis=0)
 
     def inertiatensor(self):
         """
         calculate the inertia tensor of the protein
         """
-        mol = self.atoms - self.com
+        mol = self.atoms[:,0:3] - self.com
         self.inertensor = numpy.empty((3, 3), dtype = "float")
         delta_kron = lambda i, j : 1 if i==j else 0
         for i in range(3):
@@ -114,13 +116,12 @@ class SASModel:
         The molecule is put on its canonical position
         """
         mol = self.atoms
-        mol = numpy.append(mol.T, numpy.ones((1,mol.shape[0])), axis=0)
+        mol = mol.T
         
         mol = numpy.dot(self.canonical_translate(), mol)
         mol = numpy.dot(self.canonical_rotate(), mol)
-        molfinal = numpy.delete(mol, 3, axis=0)
         
-        self.atoms = molfinal.T
+        self.atoms = mol.T
         
     
     def _calc_fineness(self, use_cython=True):
@@ -152,8 +153,8 @@ class SASModel:
             return _distance.calc_distance(self.atoms, other.atoms, self.fineness, other.fineness)
         
         else:
-            mol1 = self.atoms
-            mol2 = other.atoms
+            mol1 = self.atoms[:,0:3]
+            mol2 = other.atoms[:,0:3]
 
             mol1x = mol1[:,0]
             mol1y = mol1[:,1]
