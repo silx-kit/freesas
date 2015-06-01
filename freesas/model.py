@@ -8,6 +8,7 @@ try:
     from . import _distance
 except ImportError:
     _distance = None
+from . import transformations
 
 def delta_expand(vec1, vec2):
     """
@@ -25,12 +26,14 @@ def delta_expand(vec1, vec2):
 
 class SASModel:
     def __init__(self):
+        self.atoms_initial = []#coordinates of each dummy atoms of the molecule from the initial pdb file, fourth column full of one for the transformation matrix
         self.atoms = []# coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
         self.radius = 1.0
         self.header = "" # header of the PDB file
         self.com = []
         self._fineness = None
         self.inertensor = []
+        self.can_param = []
         self._sem = threading.Semaphore()
 
     def __repr__(self):
@@ -54,6 +57,7 @@ class SASModel:
         self.header = header
         atom3 = numpy.array(atoms)
         self.atoms = numpy.append(atom3, numpy.ones((atom3.shape[0],1),dtype="float"), axis=1)
+        self.atoms_initial = self.atoms
 
     def save(self, filename):
         """
@@ -122,7 +126,16 @@ class SASModel:
         mol = numpy.dot(self.canonical_rotate(), mol)
         
         self.atoms = mol.T
-        
+    
+    def canonical_parameters(self):
+        """
+        Save the 6 canonical parameters of the initial molecule:
+        x0, y0, z0, the position of the center of mass
+        alpha, beta, gamma, the three Euler angles of the canonical rotation
+        """
+        angles = transformations.euler_from_matrix(self.canonical_rotate())
+        com = self.com
+        self.can_param = [com[0], com[1], com[2], angles[0], angles[1], angles[2]]
     
     def _calc_fineness(self, use_cython=True):
         """
