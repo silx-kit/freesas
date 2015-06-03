@@ -34,10 +34,25 @@ class TesttParser(unittest.TestCase):
         infile = open(self.testfile).read()
         outfile = open(self.outfile).read()
         self.assertEqual(infile, outfile, msg="file content is the same")
+    
+    def test_transform(self):
+        molecule = numpy.random.randint(0,100, size=400).reshape(100,4).astype(float)
+        molecule[:,-1] = 1.0
+        m = SASModel(molecule*1.0)
+        m.centroid()
+        m.inertiatensor()
+        m.canonical_parameters()
+        p0 = m.can_param
+        print p0
+        mol1 = m.transform(p0)
+        print abs(mol1-molecule).max()
+        m.atoms = mol1*1.0
+        print m.centroid()
 
 def test_suite_all_model():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TesttParser("test_same"))
+    testSuite.addTest(TesttParser("test_transform"))
     return testSuite
 
 if __name__ == '__main__':

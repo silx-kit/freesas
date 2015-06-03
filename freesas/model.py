@@ -1,3 +1,4 @@
+from numpy import dtype
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -25,15 +26,15 @@ def delta_expand(vec1, vec2):
 
 
 class SASModel:
-    def __init__(self):
-        self.atoms_initial = []#coordinates of each dummy atoms of the molecule from the initial pdb file, fourth column full of one for the transformation matrix
-        self.atoms = []# coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
+    def __init__(self, molecule=None):
+        self.atoms =  molecule if molecule is not None else []# initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
         self.radius = 1.0
         self.header = "" # header of the PDB file
         self.com = []
         self._fineness = None
         self.inertensor = []
         self.can_param = []
+        self.enantiomer = None#True if the enantiomer of the initial molecule has been choose, False else
         self._sem = threading.Semaphore()
 
     def __repr__(self):
@@ -57,7 +58,6 @@ class SASModel:
         self.header = header
         atom3 = numpy.array(atoms)
         self.atoms = numpy.append(atom3, numpy.ones((atom3.shape[0],1),dtype="float"), axis=1)
-        self.atoms_initial = self.atoms
 
     def save(self, filename):
         """
@@ -81,39 +81,57 @@ class SASModel:
         """
         mol = self.atoms[:,0:3]
         self.com = mol.mean(axis=0)
+        return self.com
 
     def inertiatensor(self):
         """
         calculate the inertia tensor of the protein
         """
+        if len(self.com)==0:
+            self.com = self.centroid()
+        
         mol = self.atoms[:,0:3] - self.com
         self.inertensor = numpy.empty((3, 3), dtype = "float")
         delta_kron = lambda i, j : 1 if i==j else 0
         for i in range(3):
             for j in range(i,3):
                 self.inertensor[i,j]= self.inertensor[j,i] = (delta_kron(i,j)*(mol**2).sum(axis=1) - (mol[:,i]*mol[:,j])).sum()/mol.shape[0]
-    
+        return self.inertensor
+
     def canonical_translate(self):
         """
         Calculate the translation matrix to translate the center of mass of the molecule on the origine of the base
         """
+        if len(self.com)==0:
+            self.com = self.centroid()
+        
         trans = numpy.identity(4, dtype = "float")
         trans[0:3,3] = -self.com
         return trans
-                
+
     def canonical_rotate(self):
         """
         Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.
         Return a matrix with a determinant = 1
         """
+        if len(self.inertensor)==0:
+            self.inertensor = self.inertiatensor()
+        
         w, v = numpy.linalg.eigh(self.inertensor)
         mat = v[:, w.argsort()]
         
-        b = numpy.array([[0,0,0,1]])
-        b.shape = 4,1
-    
-        return numpy.append(numpy.append(mat.T,numpy.zeros((1,3)), axis=0), b, axis=1)
-    
+        det = numpy.linalg.det(mat)
+        if det>0:
+            self.enantiomer = [1,1,1]
+        else:
+            self.enantiomer = [-1,-1,-1]
+        
+        rot = numpy.zeros((4,4), dtype="float")
+        rot[3,3] = 1
+        rot[:3,:3] = mat.T
+        
+        return rot
+
     def canonical_position(self):
         """
         Calculate coordinates of each dummy atoms with the molecule in its canonical position
@@ -126,16 +144,24 @@ class SASModel:
         mol = numpy.dot(self.canonical_rotate(), mol)
         
         self.atoms = mol.T
-    
+
     def canonical_parameters(self):
         """
         Save the 6 canonical parameters of the initial molecule:
         x0, y0, z0, the position of the center of mass
-        alpha, beta, gamma, the three Euler angles of the canonical rotation
+        phi, theta, psi, the three Euler angles of the canonical rotation (axis:x,y',z'')
         """
-        angles = transformations.euler_from_matrix(self.canonical_rotate())
-        com = self.com
-        self.can_param = [com[0], com[1], com[2], angles[0], angles[1], angles[2]]
+        rot = self.canonical_rotate()
+        trans = self.canonical_translate()
+        
+        if self.enantiomer == [-1,-1,-1]:
+            mirror = numpy.array([[-1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]], dtype="float")
+            rot = numpy.dot(mirror, rot)
+        assert numpy.linalg.det(rot)>0, "determinant of rotation matrix is negative"
+        
+        angles = transformations.euler_from_matrix(rot)
+        shift = transformations.translation_from_matrix(trans)
+        self.can_param = [shift[0], shift[1], shift[2], angles[0], angles[1], angles[2]]
     
     def _calc_fineness(self, use_cython=True):
         """
@@ -187,3 +213,23 @@ class SASModel:
 
             D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
             return D
+
+    def transform(self, param):
+        """
+        Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by param
+        
+        @param param = 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)
+        @return mol = 2d array, coordinates after transformation
+        """
+        mol = self.atoms
+        vect = numpy.array([param[0:3]])
+        angles = (param[3:6])
+        
+        translat1 = transformations.translation_matrix(vect)
+        rotation = transformations.euler_matrix(*angles)
+        translat2 = numpy.dot(numpy.dot(rotation, translat1),rotation.T)
+        transformation = numpy.dot(translat2, rotation)
+        
+        mol = numpy.dot(transformation, mol.T).T
+        
+        return mol
