@@ -10,6 +10,7 @@ from utilstests import base, join
 from freesas.model import SASModel
 from freesas.align import alignment, assign_model
 from random import uniform
+from scipy.optimize import fmin
 
 def move(model):
     """
@@ -96,23 +97,39 @@ class TestAlign(unittest.TestCase):
         n.centroid()
         n.inertiatensor()
         n.canonical_parameters()
-        print m.enantiomer
-        print n.enantiomer
         mol1_can = m.transform(m.can_param,[1,1,1])
         mol2_can = n.transform(n.can_param,[1,1,1])
         dist_before = m.dist(n, mol1_can, mol2_can)
-        print dist_before
         symmetry = alignment(m,n)
-        print symmetry
         mol2_sym = n.transform(n.can_param, symmetry)
         dist_after = m.dist(n, mol1_can, mol2_sym)
-        print dist_after
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s with %s"%(dist_before, dist_after, symmetry))
 
+    def test_optimisation_align(self):
+        molecule1 = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
+        molecule1[:,-1] = 1.0
+        molecule2 = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
+        molecule2[:,-1] = 1.0
+        m = SASModel(molecule1*1.0)
+        n = SASModel(molecule2*1.0)
+        m.centroid()
+        m.inertiatensor()
+        m.canonical_parameters()
+        n.centroid()
+        n.inertiatensor()
+        n.canonical_parameters()
+        p0 = n.can_param
+        sym = alignment(m,n)
+        dist_before = m.dist_after_movement(p0, n, sym)
+        p = fmin(m.dist_after_movement, p0, args=(n, sym), maxiter=200)
+        dist_after = m.dist_after_movement(p, n, sym)
+        self.assertGreater(dist_before, dist_after, msg="distance is not optimised : %s<=%s"%(dist_before,dist_after))
+        
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
+    testSuite.addTest(TestAlign("test_optimisation_align"))
     return testSuite
 
 if __name__ == '__main__':

@@ -1,4 +1,3 @@
-from numpy import dtype
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -135,19 +134,6 @@ class SASModel:
         
         return rot
 
-    def canonical_position(self):
-        """
-        Calculate coordinates of each dummy atoms with the molecule in its canonical position
-        The molecule is put on its canonical position
-        """
-        mol = self.atoms
-        mol = mol.T
-        
-        mol = numpy.dot(self.canonical_translate(), mol)
-        mol = numpy.dot(self.canonical_rotate(), mol)
-        
-        self.atoms = mol.T
-
     def canonical_parameters(self):
         """
         Save the 6 canonical parameters of the initial molecule:
@@ -165,7 +151,7 @@ class SASModel:
         angles = transformations.euler_from_matrix(rot)
         shift = transformations.translation_from_matrix(trans)
         self.can_param = [shift[0], shift[1], shift[2], angles[0], angles[1], angles[2]]
-    
+
     def _calc_fineness(self, use_cython=True):
         """
         Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model
@@ -226,7 +212,7 @@ class SASModel:
         Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry
         
         @param param: 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)
-        @param symetry: list of three constants which define a symmetry to apply
+        @param symmetry: list of three constants which define a symmetry to apply
         @return mol: 2d array, coordinates after transformation
         """
         mol = self.atoms
@@ -243,3 +229,23 @@ class SASModel:
         mol = numpy.dot(transformation, mol.T)
         mol = numpy.dot(sym, mol).T
         return mol
+
+    def dist_after_movement(self, param, other, symmetry):
+        """
+        The first molecule, molref, is put on its canonical position.
+        The second one, mol2, is moved following the transformation selected
+        
+        @param param: list of 6 parameters for the transformation, 3 coordinates of translation and 3 Euler angles
+        @param symmetry: list of three constants which define a symmetry to apply
+        @return distance: the NSD between the first molecule and the second one after its movement
+        """
+        if not self.can_param:
+            self.canonical_parameters()
+        
+        can_param1 = self.can_param
+        molref_can = self.transform(can_param1, [1,1,1])#molecule reference put on its canonical position
+        
+        mol2_moved = other.transform(param, symmetry)#movement selected applied to mol2
+        distance = self.dist(other, molref_can, mol2_moved)
+        
+        return distance

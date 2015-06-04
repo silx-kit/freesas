@@ -76,7 +76,7 @@ class TesttParser(unittest.TestCase):
         n.canonical_parameters()
         assert abs(n.atoms-m.atoms).max()==0, "molecules are different"
         p0 = m.can_param
-        dist_after_mvt = m.dist_after_movement(n, p0, [1,1,1])
+        dist_after_mvt = m.dist_after_movement(p0, n, [1,1,1])
         self.assertEqual(dist_after_mvt, 0, msg="NSD different of 0: %s!=0"%(dist_after_mvt))
         
 def test_suite_all_model():
