@@ -34,7 +34,7 @@ class SASModel:
         self._fineness = None
         self.inertensor = []
         self.can_param = []
-        self.enantiomer = None#True if the enantiomer of the initial molecule has been choose, False else
+        self.enantiomer = None#symmetry used on the molecule
         self._sem = threading.Semaphore()
 
     def __repr__(self):
@@ -100,7 +100,7 @@ class SASModel:
 
     def canonical_translate(self):
         """
-        Calculate the translation matrix to translate the center of mass of the molecule on the origine of the base
+        Calculate the translation matrix to translate the center of mass of the molecule on the origin of the base
         """
         if len(self.com)==0:
             self.com = self.centroid()
@@ -184,16 +184,16 @@ class SASModel:
                     self._fineness = self._calc_fineness()
         return self._fineness
 
-    def dist(self, other, use_cython=True):
+    def dist(self, other, molecule1, molecule2, use_cython=True):
         """
         Calculate the distance with another model
         """
         if _distance and use_cython:
-            return _distance.calc_distance(self.atoms, other.atoms, self.fineness, other.fineness)
+            return _distance.calc_distance(molecule1, molecule2, self.fineness, other.fineness)
         
         else:
-            mol1 = self.atoms[:,0:3]
-            mol2 = other.atoms[:,0:3]
+            mol1 = molecule1[:,0:3]
+            mol2 = molecule2[:,0:3]
 
             mol1x = mol1[:,0]
             mol1y = mol1[:,1]
@@ -214,22 +214,27 @@ class SASModel:
             D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
             return D
 
-    def transform(self, param):
+    def transform(self, param, symmetry=None):
         """
-        Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by param
+        Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry
         
-        @param param = 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)
-        @return mol = 2d array, coordinates after transformation
+        @param param: 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)
+        @param symetry: list of three constants which define a symmetry to apply
+        @return mol: 2d array, coordinates after transformation
         """
+        if not symmetry:
+            symmetry = [1,1,1]
         mol = self.atoms
+        
         vect = numpy.array([param[0:3]])
         angles = (param[3:6])
         
         translat1 = transformations.translation_matrix(vect)
         rotation = transformations.euler_matrix(*angles)
+        sym = numpy.array([[symmetry[0],0,0,0], [0,symmetry[1],0,0], [0,0,symmetry[2],0], [0,0,0,1]], dtype="float")
         translat2 = numpy.dot(numpy.dot(rotation, translat1),rotation.T)
         transformation = numpy.dot(translat2, rotation)
         
-        mol = numpy.dot(transformation, mol.T).T
-        
+        mol = numpy.dot(transformation, mol.T)
+        mol = numpy.dot(sym, mol).T
         return mol
