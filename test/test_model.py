@@ -35,7 +35,7 @@ class TesttParser(unittest.TestCase):
         outfile = open(self.outfile).read()
         self.assertEqual(infile, outfile, msg="file content is the same")
     
-    def test_transform(self):
+    def test_can_transform(self):
         molecule = numpy.random.randint(0,100, size=400).reshape(100,4).astype(float)
         molecule[:,-1] = 1.0
         m = SASModel(molecule*1.0)
@@ -44,18 +44,22 @@ class TesttParser(unittest.TestCase):
         m.canonical_parameters()
         p0 = m.can_param
         sym = m.enantiomer
-        print p0
-        print sym
         mol1 = m.transform(p0,sym)
-        print abs(mol1-molecule).max()
-        m.canonical_position()
-        mol2 = m.atoms
-        print abs(mol2-mol1).max()
+        assert abs(mol1-molecule).max() != 0 ,"molecule did not move"
+        m.atoms = mol1
+        m.centroid()
+        m.inertiatensor()
+        com = m.com
+        tensor = m.inertensor
+        diag = numpy.eye(3)
+        matrix = tensor-tensor*diag
+        self.assertAlmostEqual(abs(com).sum(), 0, 10, msg="molecule not on its center of mass")
+        self.assertAlmostEqual(abs(matrix).sum(), 0, 10, "inertia moments unaligned ")
 
 def test_suite_all_model():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TesttParser("test_same"))
-    testSuite.addTest(TesttParser("test_transform"))
+    testSuite.addTest(TesttParser("test_can_transform"))
     return testSuite
 
 if __name__ == '__main__':

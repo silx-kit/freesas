@@ -55,30 +55,33 @@ def move(model):
     mol = numpy.dot(translation, mol)
     
     mol = mol.T
-    model.atoms = mol
+    return mol
 
 class TestAlign(unittest.TestCase):
     testfile1 = join(base, "testdata", "dammif-01.pdb")
     testfile2 = join(base, "testdata", "dammif-02.pdb")
     
     def test_alignment(self):
-        m = assign_model(self.testfile1)
-        n = assign_model(self.testfile1)
-        move(n)
+        molecule = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
+        molecule[:,-1] = 1.0
+        m = SASModel(molecule*1.0)
+        n = SASModel(molecule*1.0)
+        n.atoms = move(n)
+        m.centroid()
+        m.inertiatensor()
+        m.canonical_parameters()
+        param1 = m.can_param
+        mol1_can = m.transform(param1,[1,1,1])
         n.centroid()
         n.inertiatensor()
-        n.canonical_position()
-        n.centroid()
-        n.inertiatensor()
-        dist = alignment(m,n)
-        self.assertAlmostEqual(dist, 0, 12, "bad alignment")
-
-    def test_chg_position(self):
-        m = assign_model(self.testfile1)
-        n = assign_model(self.testfile2)
-        dist_align = alignment(m,n)
-        dist_ext = m.dist(n)
-        self.assertEqual(dist_align, dist_ext, "molecule 2 unaligned")
+        n.canonical_parameters()
+        param2 = n.can_param
+        mol2_can = n.transform(param2,[1,1,1])
+        assert m.dist(n, mol1_can, mol2_can) != 0, "pb of movement"
+        sym2 = alignment(m,n)
+        mol2_align = n.transform(param2, sym2)
+        dist = m.dist(n, mol1_can, mol2_align)
+        self.assertAlmostEqual(dist, 0, 12, "bad alignment %s!=0"%(dist))
 
     def test_usefull_alignment(self):
         molecule1 = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
@@ -93,9 +96,10 @@ class TestAlign(unittest.TestCase):
         n.centroid()
         n.inertiatensor()
         n.canonical_parameters()
+        print m.enantiomer
         print n.enantiomer
-        mol1_can = m.transform(m.can_param)
-        mol2_can = n.transform(n.can_param)
+        mol1_can = m.transform(m.can_param,[1,1,1])
+        mol2_can = n.transform(n.can_param,[1,1,1])
         dist_before = m.dist(n, mol1_can, mol2_can)
         print dist_before
         symmetry = alignment(m,n)
@@ -107,6 +111,7 @@ class TestAlign(unittest.TestCase):
 
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
+    testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
     return testSuite
 
