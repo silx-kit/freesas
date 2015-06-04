@@ -77,7 +77,8 @@ class SASModel:
 
     def centroid(self):
         """
-        return the center of mass of the protein
+        Calculate the position of the center of mass of the molecule
+        @return self.com: 1d array, coordinates of the center of mass of the molecule
         """
         mol = self.atoms[:,0:3]
         self.com = mol.mean(axis=0)
@@ -86,6 +87,7 @@ class SASModel:
     def inertiatensor(self):
         """
         calculate the inertia tensor of the protein
+        @return self.inertensor: inertia tensor of the molecule
         """
         if len(self.com)==0:
             self.com = self.centroid()
@@ -101,6 +103,7 @@ class SASModel:
     def canonical_translate(self):
         """
         Calculate the translation matrix to translate the center of mass of the molecule on the origin of the base
+        @return trans: translation matrix 
         """
         if len(self.com)==0:
             self.com = self.centroid()
@@ -112,7 +115,7 @@ class SASModel:
     def canonical_rotate(self):
         """
         Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.
-        Return a matrix with a determinant = 1
+        @return rot: rotation matrix (det(rot)=1)
         """
         if len(self.inertensor)==0:
             self.inertensor = self.inertiatensor()
@@ -187,6 +190,10 @@ class SASModel:
     def dist(self, other, molecule1, molecule2, use_cython=True):
         """
         Calculate the distance with another model
+        @param self,other: two SASModel
+        @param molecule1: 2d array of the position of each atom of the first molecule
+        @param molecule2: 2d array of the position of each atom of the second molecule
+        @return D: NSD between the 2 molecules, in their position molecule1 and molecule2
         """
         if _distance and use_cython:
             return _distance.calc_distance(molecule1, molecule2, self.fineness, other.fineness)
@@ -214,7 +221,7 @@ class SASModel:
             D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
             return D
 
-    def transform(self, param, symmetry=None):
+    def transform(self, param, symmetry):
         """
         Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry
         
@@ -222,16 +229,14 @@ class SASModel:
         @param symetry: list of three constants which define a symmetry to apply
         @return mol: 2d array, coordinates after transformation
         """
-        if not symmetry:
-            symmetry = [1,1,1]
         mol = self.atoms
         
         vect = numpy.array([param[0:3]])
         angles = (param[3:6])
+        sym = numpy.array([[symmetry[0],0,0,0], [0,symmetry[1],0,0], [0,0,symmetry[2],0], [0,0,0,1]], dtype="float")
         
         translat1 = transformations.translation_matrix(vect)
         rotation = transformations.euler_matrix(*angles)
-        sym = numpy.array([[symmetry[0],0,0,0], [0,symmetry[1],0,0], [0,0,symmetry[2],0], [0,0,0,1]], dtype="float")
         translat2 = numpy.dot(numpy.dot(rotation, translat1),rotation.T)
         transformation = numpy.dot(translat2, rotation)
         
