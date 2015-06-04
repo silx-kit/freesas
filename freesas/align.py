@@ -18,29 +18,33 @@ def assign_model(filename):
     model.read(filename)
     model.centroid()
     model.inertiatensor()
-    model.canonical_position()
-    model.centroid()
-    model.inertiatensor()
+    model.canonical_parameters()
     return model
 
 def alignment(model1, model2):
     """
     Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
-    The best position of the two models are save in two pdb files
+    The best position of the two models are save in two pdb files.
+    Save in model2.enantiomer the best combination
     
-    Parameters
-    ----------
-    model1 & model2: SASmodel, 2 molecules on their canonical position
+    @param model1, model2: SASmodel, 2 molecules on their canonical position
+    @return dist: distance between model1 and model2 after the alignment
     """
+    assert model1.can_param and model2.can_param, "canonical parameters not computed"
+    assert model1.enantiomer and model2.enantiomer, "symmetry constants not computed"
+    can_param1 = model1.can_param
+    can_param2 = model2.can_param
+    
     combi = list(itertools.product((-1,1), repeat=3))
     combi = numpy.array(combi)
     
-    mol2 = model2.atoms
+    mol1_can = model1.transform(can_param1)#molecule 1 (reference) put on its canonical position
+    mol2_can = model2.transform(can_param2)#molecule 2 put on its canonical position
     
-    dist = model1.dist(model2)
+    dist = model1.dist(model2, mol1_can, mol2_can)
     npermut = None
     
-    same = numpy.identity(4, dtype="float")
+    same = numpy.eye(4, dtype="float")
     
     for i in range(combi.shape[0]-1):
         sym = same
@@ -48,28 +52,17 @@ def alignment(model1, model2):
         sym[1,1] = combi[i,1]
         sym[2,2] = combi[i,2]
         
-        molsym = mol2.T
-        molsym = numpy.dot(sym, molsym)
-        molsym = molsym.T
-        model2.atoms = molsym
+        mol2_sym = numpy.dot(sym, mol2_can.T).T
         
-        d = model1.dist(model2)
+        d = model1.dist(model2, mol1_can, mol2_sym)
         
         if d < dist:
             dist = d
+            print dist
             npermut = i
-    
+            
     if npermut != None:
-        sym = same
-        sym[0,0] = combi[npermut,0]
-        sym[1,1] = combi[npermut,1]
-        sym[2,2] = combi[npermut,2]
-        
-        molsym = mol2.T
-        molsym = numpy.dot(sym, molsym)
-        molsym = molsym.T
-        model2.atoms = molsym
+        combinaison = [combi[npermut,0], combi[npermut,1], combi[npermut,2]]
     else:
-        model2.atoms = mol2
-    
-    return dist
+        combinaison = None
+    return combinaison
