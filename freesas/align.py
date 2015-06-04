@@ -8,11 +8,9 @@ import itertools
 
 def assign_model(filename):
     """
-    Create the molecule, on its canonical position
+    Create the molecule, calculate its center of mass, inertia tensor and canonical parameters
     
-    Parameters
-    ----------
-    filename: name of the pdb file of the molecule
+    @param filename: name of the pdb file of the molecule
     """
     model = SASModel()
     model.read(filename)
@@ -38,8 +36,8 @@ def alignment(model1, model2):
     combi = list(itertools.product((-1,1), repeat=3))
     combi = numpy.array(combi)
     
-    mol1_can = model1.transform(can_param1)#molecule 1 (reference) put on its canonical position
-    mol2_can = model2.transform(can_param2)#molecule 2 put on its canonical position
+    mol1_can = model1.transform(can_param1,[1,1,1])#molecule 1 (reference) put on its canonical position
+    mol2_can = model2.transform(can_param2,[1,1,1])#molecule 2 put on its canonical position
     
     dist = model1.dist(model2, mol1_can, mol2_can)
     npermut = None
@@ -58,11 +56,10 @@ def alignment(model1, model2):
         
         if d < dist:
             dist = d
-            print dist
             npermut = i
             
     if npermut != None:
         combinaison = [combi[npermut,0], combi[npermut,1], combi[npermut,2]]
     else:
-        combinaison = None
+        combinaison = [1,1,1]
     return combinaison
