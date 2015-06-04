@@ -43,11 +43,14 @@ class TesttParser(unittest.TestCase):
         m.inertiatensor()
         m.canonical_parameters()
         p0 = m.can_param
+        sym = m.enantiomer
         print p0
-        mol1 = m.transform(p0)
+        print sym
+        mol1 = m.transform(p0,sym)
         print abs(mol1-molecule).max()
-        m.atoms = mol1*1.0
-        print m.centroid()
+        m.canonical_position()
+        mol2 = m.atoms
+        print abs(mol2-mol1).max()
 
 def test_suite_all_model():
     testSuite = unittest.TestSuite()

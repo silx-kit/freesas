@@ -81,16 +81,32 @@ class TestAlign(unittest.TestCase):
         self.assertEqual(dist_align, dist_ext, "molecule 2 unaligned")
 
     def test_usefull_alignment(self):
-        m = assign_model(self.testfile1)
-        n = assign_model(self.testfile2)
-        dist_before = m.dist(n)
-        dist_after = alignment(m,n)
-        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment")
+        molecule1 = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
+        molecule1[:,-1] = 1.0
+        molecule2 = numpy.random.randint(-100,0, size=400).reshape(100,4).astype(float)
+        molecule2[:,-1] = 1.0
+        m = SASModel(molecule1*1.0)
+        n = SASModel(molecule2*1.0)
+        m.centroid()
+        m.inertiatensor()
+        m.canonical_parameters()
+        n.centroid()
+        n.inertiatensor()
+        n.canonical_parameters()
+        print n.enantiomer
+        mol1_can = m.transform(m.can_param)
+        mol2_can = n.transform(n.can_param)
+        dist_before = m.dist(n, mol1_can, mol2_can)
+        print dist_before
+        symmetry = alignment(m,n)
+        print symmetry
+        mol2_sym = n.transform(n.can_param, symmetry)
+        dist_after = m.dist(n, mol1_can, mol2_sym)
+        print dist_after
+        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s with %s"%(dist_before, dist_after, symmetry))
 
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
-    testSuite.addTest(TestAlign("test_alignment"))
-    testSuite.addTest(TestAlign("test_chg_position"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
     return testSuite
 
