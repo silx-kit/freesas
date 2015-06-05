@@ -26,8 +26,8 @@ class TestDistance(unittest.TestCase):
         n = SASModel()
         m.read(self.testfile1)
         n.read(self.testfile2)
-        f_np = m.dist(n, False)
-        f_cy = m.dist(n, True)
+        f_np = m.dist(n, m.atoms, n.atoms, False)
+        f_cy = m.dist(n, m.atoms, n.atoms, True)
         self.assertEqual(f_np,f_cy,"distance is the same %s!=%s"%(f_np, f_cy))
 
     def test_same(self):
@@ -36,8 +36,8 @@ class TestDistance(unittest.TestCase):
         m.read(self.testfile1)
         n.read(self.testfile1)
         numpy.random.shuffle(n.atoms)
-        f_np = m.dist(n, False)
-        f_cy = m.dist(n, True)
+        f_np = m.dist(n, m.atoms, n.atoms, False)
+        f_cy = m.dist(n, m.atoms, n.atoms, True)
         self.assertEqual(f_np, 0, "NSD not nul with np")
         self.assertEqual(f_cy, 0, "NSD not nul with cy")
 
