@@ -90,11 +90,42 @@ class TestAlign(unittest.TestCase):
         dist_after = m.dist_after_movement(p, n, sym)
         self.assertGreater(dist_before, dist_after, msg="distance is not optimised : %s<=%s"%(dist_before,dist_after))
 
+    def test_alignment_intruder(self):
+        m = assign_random_mol()
+        m.canonical_parameters()
+        names = "abcdefghijklmno"
+        series = [i for i in names]
+        intruder = numpy.random.randint(0, len(series))
+        
+        for i in range(len(series)):
+            if i==intruder:
+                series[i] = assign_random_mol()
+                while m.dist(series[i], m.atoms, series[i].atoms)==0:
+                    series[i] = assign_random_mol()
+            else:
+                series[i] = SASModel(m.atoms)
+            series[i].canonical_parameters()
+        
+        distance = []
+        for i in range(len(series)):
+            can_param = series[i].can_param
+            sym = alignment(m, series[i])
+            d = m.dist_after_movement(can_param, series[i], sym)
+            distance.append(d)
+        assert sum(distance)!=0, "there is no intruders"
+        num_intr = None
+        for i in range(len(distance)):
+            if distance[i] != 0.0:
+                num_intr = i
+            assert distance[i]==0 or distance[i]==max(distance), "there are several intruders"
+        self.assert_(num_intr is not None, msg="cannot find the intruder %s"%(distance))
+
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
     testSuite.addTest(TestAlign("test_optimisation_align"))
+    testSuite.addTest(TestAlign("test_alignment_intruder"))
     return testSuite
 
 if __name__ == '__main__':
