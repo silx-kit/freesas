@@ -113,12 +113,16 @@ class TestAlign(unittest.TestCase):
             d = m.dist_after_movement(can_param, series[i], sym)
             distance.append(d)
         assert sum(distance)!=0, "there is no intruders"
+        
         num_intr = None
+        num_same = 0
         for i in range(len(distance)):
             if distance[i] != 0.0:
                 num_intr = i
-            assert distance[i]==0 or distance[i]==max(distance), "there are several intruders"
+            if distance[i] == 0.0:
+                num_same += 1
         self.assert_(num_intr is not None, msg="cannot find the intruder %s"%(distance))
+        self.assertEqual(num_same, len(series)-1, msg="there are several intruders : %s"%(len(series)-num_same))
 
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
