@@ -114,7 +114,7 @@ class SASModel:
     def canonical_rotate(self):
         """
         Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.
-        @return rot: rotation matrix (det(rot)=1)
+        @return rot: rotation matrix det==1
         """
         if len(self.inertensor)==0:
             self.inertensor = self.inertiatensor()
@@ -122,15 +122,17 @@ class SASModel:
         w, v = numpy.linalg.eigh(self.inertensor)
         mat = v[:, w.argsort()]
         
-        det = numpy.linalg.det(mat)
+        rot = numpy.zeros((4,4), dtype="float")
+        rot[3,3] = 1
+        rot[:3,:3] = mat.T
+        
+        det = numpy.linalg.det(mat)     
         if det>0:
             self.enantiomer = [1,1,1]
         else:
             self.enantiomer = [-1,-1,-1]
-        
-        rot = numpy.zeros((4,4), dtype="float")
-        rot[3,3] = 1
-        rot[:3,:3] = mat.T
+            mirror = numpy.array([[-1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]], dtype="float")
+            rot = numpy.dot(mirror, rot)
         
         return rot
 
@@ -143,9 +145,6 @@ class SASModel:
         rot = self.canonical_rotate()
         trans = self.canonical_translate()
         
-        if self.enantiomer == [-1,-1,-1]:
-            mirror = numpy.array([[-1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]], dtype="float")
-            rot = numpy.dot(mirror, rot)
         assert numpy.linalg.det(rot)>0, "determinant of rotation matrix is negative"
         
         angles = transformations.euler_from_matrix(rot)
