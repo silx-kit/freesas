@@ -19,13 +19,13 @@ def assign_model(filename):
     model.canonical_parameters()
     return model
 
-def alignment(model1, model2):
+def alignment_sym(model1, model2):
     """
     Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
     The best position of the two models are save in two pdb files.
     Save in model2.enantiomer the best combination
     
-    @param model1, model2: SASmodel, 2 molecules on their canonical position
+    @param model1, model2: SASmodel, 2 molecules
     @return dist: distance between model1 and model2 after the alignment
     """
     assert model1.can_param and model2.can_param, "canonical parameters not computed"
