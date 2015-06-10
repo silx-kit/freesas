@@ -7,7 +7,7 @@ import numpy
 import unittest
 import os
 import tempfile
-from utilstests import base, join
+from test.utilstests import base, join
 from freesas.model import SASModel
 from freesas.transformations import translation_from_matrix, euler_from_matrix
 

@@ -6,9 +6,9 @@ __copyright__ = "2015, ESRF"
 import numpy
 import unittest
 import sys, os
-from utilstests import base, join
+from test.utilstests import base, join
 from freesas.model import SASModel
-from freesas.align import alignment
+from freesas.align import alignment_sym
 from freesas.transformations import translation_matrix, euler_matrix
 from scipy.optimize import fmin
 
@@ -60,7 +60,7 @@ class TestAlign(unittest.TestCase):
         mol1_can = m.transform(param1,[1,1,1])
         mol2_can = n.transform(param2,[1,1,1])
         assert m.dist(n, mol1_can, mol2_can) != 0, "pb of movement"
-        sym2 = alignment(m,n)
+        sym2 = alignment_sym(m,n)
         mol2_align = n.transform(param2, sym2)
         dist = m.dist(n, mol1_can, mol2_align)
         self.assertAlmostEqual(dist, 0, 12, "bad alignment %s!=0"%(dist))
@@ -73,7 +73,7 @@ class TestAlign(unittest.TestCase):
         mol1_can = m.transform(m.can_param,[1,1,1])
         mol2_can = n.transform(n.can_param,[1,1,1])
         dist_before = m.dist(n, mol1_can, mol2_can)
-        symmetry = alignment(m,n)
+        symmetry = alignment_sym(m,n)
         mol2_sym = n.transform(n.can_param, symmetry)
         dist_after = m.dist(n, mol1_can, mol2_sym)
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s"%(dist_before, dist_after))
@@ -84,7 +84,7 @@ class TestAlign(unittest.TestCase):
         m.canonical_parameters()
         n.canonical_parameters()
         p0 = n.can_param
-        sym = alignment(m,n)
+        sym = alignment_sym(m,n)
         dist_before = m.dist_after_movement(p0, n, sym)
         p = fmin(m.dist_after_movement, p0, args=(n, sym), maxiter=200)
         dist_after = m.dist_after_movement(p, n, sym)
@@ -109,7 +109,7 @@ class TestAlign(unittest.TestCase):
         distance = []
         for i in range(len(series)):
             can_param = series[i].can_param
-            sym = alignment(m, series[i])
+            sym = alignment_sym(m, series[i])
             d = m.dist_after_movement(can_param, series[i], sym)
             distance.append(d)
         assert sum(distance)!=0, "there is no intruders"
