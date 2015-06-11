@@ -25,63 +25,67 @@ def alignment_sym(model1, model2, enantiomorphs=True, slow=True):
     Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
     
     @param model1, model2: SASmodel, 2 molecules
+    @param enantiomorphs: check the two enantiomorphs if true
+    @param slow: optimize NSD for each symmetry if true
     @return combinaison: best symmetry to minimize NSD
     """
-    assert model1.can_param and model2.can_param, "canonical parameters not computed"
-    assert model1.enantiomer and model2.enantiomer, "symmetry constants not computed"
+    
+    def optimize(reference, molecule, symmetry):
+        """
+        @param reference: SASmodel
+        @param molecule: SASmodel
+        @param symmetry: 3-list of +/-1
+        @return
+        """
+        p, dist, niter, nfuncalls, warmflag = fmin(reference.dist_after_movement, molecule.can_param, args=(molecule, symmetry),ftol= 1e-4,  maxiter=200, full_output=True, disp=False)
+        if niter==200: print "convergence not reached"
+        else: print niter
+        #logger.debug()
+        return p, dist
+    
     can_param1 = model1.can_param
     can_param2 = model2.can_param
-    
-    combi = list(itertools.product((-1,1), repeat=3))
-    combi = numpy.array(combi)
     
     mol1_can = model1.transform(can_param1,[1,1,1])#molecule 1 (reference) put on its canonical position
     mol2_can = model2.transform(can_param2,[1,1,1])#molecule 2 put on its canonical position
     
+    combinaison = None
     if slow:
-        symmetry = [1,1,1]
-        arguments = (model2, symmetry)
-        p0 = can_param2
-        p = fmin(model1.dist_after_movement, p0, args=arguments,ftol= 1e-4,  maxiter=200)
-        dist = model1.dist_after_movement(p, model2, symmetry)
+        parameters, dist = optimize(model1, model2, [1,1,1])
     else:
+        parameters = can_param2
         dist = model1.dist(model2, mol1_can, mol2_can)
-    npermut = None
     
-    same = numpy.eye(4, dtype="float")
-    
-    for i in range(combi.shape[0]-1):
-        if not enantiomorphs:
-            det = combi[i,0]*combi[i,1]*combi[i,2]
-            if det==-1:
-                break
-        sym = same
-        sym[0,0] = combi[i,0]
-        sym[1,1] = combi[i,1]
-        sym[2,2] = combi[i,2]
+    for comb in itertools.product((-1,1), repeat=3):
+        if comb == (1,1,1):
+            continue
+
+        if not enantiomorphs and comb[0]*comb[1]*comb[2] == -1:
+            continue
+
+        sym = numpy.diag(comb+(1,))
         
         mol2_sym = numpy.dot(sym, mol2_can.T).T
         
         if slow:
             symmetry = [sym[0,0], sym[1,1], sym[2,2]]
-            arguments = (model2, symmetry)
-            p0 = can_param2
-            p = fmin(model1.dist_after_movement, p0, args=arguments,ftol= 1e-4,  maxiter=200)
-            d = model1.dist_after_movement(p, model2, symmetry)
+            p, d = optimize(model1, model2, symmetry)
         else:
+            p = can_param2
             d = model1.dist(model2, mol1_can, mol2_sym)
         
         if d < dist:
             dist = d
-            npermut = i
+            parameters = p
+            combinaison = comb
             
-    if npermut != None:
-        combinaison = [combi[npermut,0], combi[npermut,1], combi[npermut,2]]
+    if combinaison != None:
+        combinaison = list(combinaison)
     else:
         combinaison = [1,1,1]
-    return combinaison
+    return combinaison, parameters
 
-def alignment_2models(filename1, filename2, optimize=True):
+def alignment_2models(filename1, filename2, enantiomorphs=True, slow=True):
     """
     Align a SASModel with an other one and save the result in pdb files
     
@@ -91,16 +95,15 @@ def alignment_2models(filename1, filename2, optimize=True):
     mol_ref = assign_model(filename1)
     mol = assign_model(filename2)
     
-    symmetry = alignment_sym(mol_ref, mol)
-    p0 = mol.can_param
-    if optimize:
-        arguments = (mol, symmetry)
-        p = fmin(mol_ref.dist_after_movement, p0, args=arguments,ftol= 1e-4,  maxiter=200)
-    else: p = p0
+    symmetry, p = alignment_sym(mol_ref, mol, enantiomorphs=enantiomorphs, slow=slow)
+    
+    if not slow:
+        p, dist, niter, nfuncalls, warmflag = fmin(mol_ref.dist_after_movement, p, args=(mol, symmetry),ftol= 1e-4,  maxiter=200, full_output=True, disp=False)
     
     mol.atoms = mol.transform(p, symmetry)
     mol_ref.atoms = mol_ref.transform(mol_ref.can_param, [1,1,1])
-    dist = mol_ref.dist(mol, mol_ref.atoms, mol.atoms)
+    if slow:
+        dist = mol_ref.dist(mol, mol_ref.atoms, mol.atoms)
     mol.save("aligned-01.pdb")
     mol_ref.save("aligned-02.pdb")
     
