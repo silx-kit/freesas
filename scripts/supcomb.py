@@ -6,7 +6,7 @@ __copyright__ = "2015, ESRF"
 import argparse
 from os.path import dirname, abspath
 base = dirname(dirname(abspath(__file__)))
-from freesas.align import alignment_2models
+from freesas.align import AlignModels
 
 usage = "./supcomb file1.pdb file2.pdb [OPTIONS]"
 description = "align several models and calculate NSD"
@@ -16,14 +16,34 @@ parser.add_argument("-m", "--mode",dest="mode", type=str, choices=["SLOW", "FAST
 parser.add_argument("-e", "--enantiomorphs",type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
 
 args = parser.parse_args()
+
+align = AlignModels()
+
 if args.mode=="SLOW":
-    slow = True
+    align.slow = True
 else:
-    slow = False
+    align.slow = False
 if args.enantiomorphs=="YES":
-    enantiomorphs = True
+    align.enantiomorphs = True
 else:
-    enantiomorphs = False
-dist = alignment_2models(args.file[0], args.file[1], enantiomorphs=enantiomorphs, slow=slow)
-print "%s and %s aligned"%(args.file[0], args.file[1])
-print "NSD after optimized alignment = %s"%(dist)
+    align.enantiomorphs = False
+
+output = []
+for i in range(len(args.file)):
+    if i<9:
+        output.append("aligned-0%s.pdb"%(i+1))
+    else:
+        output.append("aligned-%s.pdb"%(i+1))
+print output
+align.inputfiles = args.file
+align.outputfiles = output
+align.assign_models()
+
+if len(args.file)==2:
+    dist = align.alignment_2models()
+    print "%s and %s aligned"%(args.file[0], args.file[1])
+    print "NSD after optimized alignment = %s"%(dist)
+else:
+    tableNSD = align.makeNSDarray()
+    align.alignment_reference()
+    print "%s models aligned on the model %s"%(len(args.file), align.reference)
