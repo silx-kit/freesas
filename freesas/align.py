@@ -119,6 +119,8 @@ class AlignModels:
             models = self.models
         size = len(models)
         self.arrayNSD = numpy.empty((size, size), dtype="float")
+        self.arrayparam = numpy.empty((size, size))
+        self.arraysym = numpy.empty((size, size))
         
         for i in range(size):
             reference = models[i]
@@ -127,9 +129,9 @@ class AlignModels:
                     self.arrayNSD[i,j] = 0.00
                 elif i<j:
                     molecule = models[j]
-                    symmetry, p0 = self.alignment_sym(reference, molecule)
+                    symmetry, p = self.alignment_sym(reference, molecule)
                     if self.slow:
-                        dist = reference.dist_after_movement(p0, molecule, symmetry)
+                        dist = reference.dist_after_movement(p, molecule, symmetry)
                     else:
                         p, dist = self.optimize(reference, molecule, symmetry)
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
@@ -143,7 +145,7 @@ class AlignModels:
         @return ref_number: position of the reference model in the list self.models
         """
         ref_number = None
-        if not self.arrayNSD:
+        if len(self.arrayNSD)==0:
             table = self.makeNSDarray()
         else:
             table = self.arrayNSD
@@ -160,12 +162,12 @@ class AlignModels:
         
         return ref_number
     
-    def alignment_reference(self):
+    def alignment_reference(self, ref_number=None):
         """
         Align all models in self.models with the reference one.
         The aligned models are saved in pdb files (names in list self.outputfiles)
         """
-        if not self.reference and self.reference!=0:
+        if not self.reference and not ref_number and self.reference!=0:
             ref_number = self.find_reference()
         else:
             ref_number = self.reference
@@ -184,5 +186,30 @@ class AlignModels:
                 molecule.save(self.outputfiles[i])
         reference.atoms = reference.transform(reference.can_param, [1,1,1])
         reference.save(self.outputfiles[ref_number])
-        
         return 0
+    
+    def alignment_2models(self):
+        """
+        Align two models using the first one as reference.
+        The aligned models are save in pdb files.
+        
+        @return dist: NSD after alignment
+        """
+        if not self.models:
+            models = self.assign_models()
+        else:
+            models = self.models
+        reference = models[0]
+        molecule = models[1]
+        
+        symmetry, p = self.alignment_sym(reference, molecule)
+        if not self.slow:
+            p, dist = self.optimize(reference, molecule, symmetry)
+        molecule.atoms = molecule.transform(p, symmetry)
+        reference.atoms = reference.transform(reference.can_param, [1,1,1])
+        if self.slow:
+            dist = reference.dist(molecule, reference.atoms, molecule.atoms)
+        reference.save(self.outputfiles[0])
+        molecule.save(self.outputfiles[1])
+        
+        return dist
