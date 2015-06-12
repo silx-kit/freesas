@@ -28,6 +28,7 @@ def alignment_sym(model1, model2, enantiomorphs=True, slow=True):
     @param enantiomorphs: check the two enantiomorphs if true
     @param slow: optimize NSD for each symmetry if true
     @return combinaison: best symmetry to minimize NSD
+    @return p: transformation parameters optimized if slow is true, unoptimized else
     """
     
     def optimize(reference, molecule, symmetry):
@@ -35,7 +36,8 @@ def alignment_sym(model1, model2, enantiomorphs=True, slow=True):
         @param reference: SASmodel
         @param molecule: SASmodel
         @param symmetry: 3-list of +/-1
-        @return
+        @return p: transformation parameters optimized
+        @return dist: NSD after optimization
         """
         p, dist, niter, nfuncalls, warmflag = fmin(reference.dist_after_movement, molecule.can_param, args=(molecule, symmetry),ftol= 1e-4,  maxiter=200, full_output=True, disp=False)
         if niter==200: print "convergence not reached"

@@ -145,8 +145,6 @@ class SASModel:
         rot = self.canonical_rotate()
         trans = self.canonical_translate()
         
-        assert numpy.linalg.det(rot)>0, "determinant of rotation matrix is negative"
-        
         angles = transformations.euler_from_matrix(rot)
         shift = transformations.translation_from_matrix(trans)
         self.can_param = [shift[0], shift[1], shift[2], angles[0], angles[1], angles[2]]

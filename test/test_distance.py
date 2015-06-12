@@ -6,8 +6,7 @@ __copyright__ = "2015, ESRF"
 
 import numpy
 import unittest
-import sys, os
-from test.utilstests import base, join
+from utilstests import base, join
 from freesas.model import SASModel
 
 class TestDistance(unittest.TestCase):
