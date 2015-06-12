@@ -7,34 +7,47 @@ from freesas.model import SASModel
 import itertools
 from scipy.optimize import fmin
 
-def assign_model(filename):
-    """
-    Create the molecule, calculate its center of mass, inertia tensor and canonical parameters
+class AlignModels:
+    def __init__(self):
+        self.slow = True
+        self.enantiomorphs = True
+        self.inputfiles = []
+        self.outputfiles = []
+        self.models = []
+        self.arrayNSD = None
+        self.reference = None
     
-    @param filename: name of the pdb file of the molecule
-    """
-    model = SASModel()
-    model.read(filename)
-    model.centroid()
-    model.inertiatensor()
-    model.canonical_parameters()
-    return model
-
-def alignment_sym(model1, model2, enantiomorphs=True, slow=True):
-    """
-    Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
+    def __repr__(self):
+        return "alignment process for %s models"%len(self.inputfiles)
     
-    @param model1, model2: SASmodel, 2 molecules
-    @param enantiomorphs: check the two enantiomorphs if true
-    @param slow: optimize NSD for each symmetry if true
-    @return combinaison: best symmetry to minimize NSD
-    @return p: transformation parameters optimized if slow is true, unoptimized else
-    """
-    
-    def optimize(reference, molecule, symmetry):
+    def assign_models(self):
         """
+        Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
+        Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
+        
+        @return self.models: list of SASModel
+        """
+        if not self.inputfiles:
+            print "No input files"
+        
+        for inputpdb in self.inputfiles:
+            model = SASModel()
+            model.read(inputpdb)
+            model.centroid()
+            model.inertiatensor()
+            model.canonical_parameters()
+            self.models.append(model)
+        if len(self.inputfiles) != len(self.models):
+            print "Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles))
+        
+        return self.models
+    
+    def optimize(self, reference, molecule, symmetry):
+        """
+        Use scipy.optimize to optimize transformation parameters to minimize NSD
+        
         @param reference: SASmodel
-        @param molecule: SASmodel
+        @param molecule: SASmodel        
         @param symmetry: 3-list of +/-1
         @return p: transformation parameters optimized
         @return dist: NSD after optimization
@@ -45,68 +58,131 @@ def alignment_sym(model1, model2, enantiomorphs=True, slow=True):
         #logger.debug()
         return p, dist
     
-    can_param1 = model1.can_param
-    can_param2 = model2.can_param
-    
-    mol1_can = model1.transform(can_param1,[1,1,1])#molecule 1 (reference) put on its canonical position
-    mol2_can = model2.transform(can_param2,[1,1,1])#molecule 2 put on its canonical position
-    
-    combinaison = None
-    if slow:
-        parameters, dist = optimize(model1, model2, [1,1,1])
-    else:
-        parameters = can_param2
-        dist = model1.dist(model2, mol1_can, mol2_can)
-    
-    for comb in itertools.product((-1,1), repeat=3):
-        if comb == (1,1,1):
-            continue
-
-        if not enantiomorphs and comb[0]*comb[1]*comb[2] == -1:
-            continue
-
-        sym = numpy.diag(comb+(1,))
+    def alignment_sym(self, reference, molecule):
+        """
+        Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
         
-        mol2_sym = numpy.dot(sym, mol2_can.T).T
+        @param model1, model2: SASmodel, 2 molecules
+        @param enantiomorphs: check the two enantiomorphs if true
+        @param slow: optimize NSD for each symmetry if true
+        @return combinaison: best symmetry to minimize NSD
+        @return p: transformation parameters optimized if slow is true, unoptimized else
+        """
+        can_paramref = reference.can_param
+        can_parammol = molecule.can_param
         
-        if slow:
-            symmetry = [sym[0,0], sym[1,1], sym[2,2]]
-            p, d = optimize(model1, model2, symmetry)
+        ref_can = reference.transform(can_paramref,[1,1,1])
+        mol_can = molecule.transform(can_parammol,[1,1,1])
+        
+        if self.slow:
+            parameters, dist = self.optimize(reference, molecule, [1,1,1])
         else:
-            p = can_param2
-            d = model1.dist(model2, mol1_can, mol2_sym)
+            parameters = can_parammol
+            dist = reference.dist(molecule, ref_can, mol_can)
+        combinaison = None
         
-        if d < dist:
-            dist = d
-            parameters = p
-            combinaison = comb
+        for comb in itertools.product((-1,1), repeat=3):
+            if comb == (1,1,1):
+                continue
+            if not self.enantiomorphs and comb[0]*comb[1]*comb[2] == -1:
+                continue
             
-    if combinaison != None:
-        combinaison = list(combinaison)
-    else:
-        combinaison = [1,1,1]
-    return combinaison, parameters
-
-def alignment_2models(filename1, filename2, enantiomorphs=True, slow=True):
-    """
-    Align a SASModel with an other one and save the result in pdb files
+            sym = numpy.diag(comb+(1,))
+            mol_sym = numpy.dot(sym, mol_can.T).T
+            
+            if self.slow:
+                symmetry = [sym[0,0], sym[1,1], sym[2,2]]
+                p, d = self.optimize(reference, molecule, symmetry)
+            else:
+                p = can_parammol
+                d = reference.dist(molecule, ref_can, mol_sym)
+            
+            if d < dist:
+                dist = d
+                parameters = p
+                combinaison = comb
+        if combinaison != None:
+            combinaison = list(combinaison)
+        else:
+            combinaison = [1,1,1]
+        return combinaison, parameters
     
-    @param filename1 & 2: pdb files of the models, the first one is the reference
-    @return dist: NSD after alignment
-    """
-    mol_ref = assign_model(filename1)
-    mol = assign_model(filename2)
+    def makeNSDarray(self):
+        """
+        Calculate the NSD correlation table and save it in self.arrayNSD
+        
+        @return self.arrayNSD: 2d array, NSD correlation table
+        """
+        if not self.models:
+            models = self.assign_models()
+        else:
+            models = self.models
+        size = len(models)
+        self.arrayNSD = numpy.empty((size, size), dtype="float")
+        
+        for i in range(size):
+            reference = models[i]
+            for j in range(size):
+                if i==j:
+                    self.arrayNSD[i,j] = 0.00
+                elif i<j:
+                    molecule = models[j]
+                    symmetry, p0 = self.alignment_sym(reference, molecule)
+                    if self.slow:
+                        dist = reference.dist_after_movement(p0, molecule, symmetry)
+                    else:
+                        p, dist = self.optimize(reference, molecule, symmetry)
+                    self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
+        return self.arrayNSD
     
-    symmetry, p = alignment_sym(mol_ref, mol, enantiomorphs=enantiomorphs, slow=slow)
+    def find_reference(self):
+        """
+        Find the reference model among the models aligned.
+        The reference model is the one with lower average NSD with other models.
+        
+        @return ref_number: position of the reference model in the list self.models
+        """
+        ref_number = None
+        if not self.arrayNSD:
+            table = self.makeNSDarray()
+        else:
+            table = self.arrayNSD
+        
+        averNSD = table.mean(axis=1)
+        miniNSD = averNSD.min()
+        for i in range(len(averNSD)):
+            if averNSD[i]==miniNSD:
+                ref_number = i
+                break
+        if not ref_number and ref_number!=0:
+            print "No reference model found"
+        self.reference = ref_number
+        
+        return ref_number
     
-    if not slow:
-        p, dist, niter, nfuncalls, warmflag = fmin(mol_ref.dist_after_movement, p, args=(mol, symmetry),ftol= 1e-4,  maxiter=200, full_output=True, disp=False)
-    
-    mol.atoms = mol.transform(p, symmetry)
-    mol_ref.atoms = mol_ref.transform(mol_ref.can_param, [1,1,1])
-    if slow:
-        dist = mol_ref.dist(mol, mol_ref.atoms, mol.atoms)
-    mol.save("aligned-01.pdb")
-    mol_ref.save("aligned-02.pdb")
-    
-    return dist
+    def alignment_reference(self):
+        """
+        Align all models in self.models with the reference one.
+        The aligned models are saved in pdb files (names in list self.outputfiles)
+        """
+        if not self.reference and self.reference!=0:
+            ref_number = self.find_reference()
+        else:
+            ref_number = self.reference
+        
+        models = self.models
+        reference = models[ref_number]
+        for i in range(len(models)):
+            if i==ref_number:
+                continue
+            else:
+                molecule = models[i]
+                symmetry, p = self.alignment_sym(reference, molecule)
+                if not self.slow:
+                    p, dist = self.optimize(reference, molecule, symmetry)
+                molecule.atoms = molecule.transform(p, symmetry)
+                molecule.save(self.outputfiles[i])
+        reference.atoms = reference.transform(reference.can_param, [1,1,1])
+        reference.save(self.outputfiles[ref_number])
+        
+        return 0
