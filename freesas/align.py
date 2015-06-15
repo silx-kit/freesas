@@ -6,6 +6,9 @@ import numpy
 from freesas.model import SASModel
 import itertools
 from scipy.optimize import fmin
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("log_freesas")
 
 class AlignModels:
     def __init__(self):
@@ -28,7 +31,7 @@ class AlignModels:
         @return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule)==0:
-            print "No input files"
+            logger.error("No input files")
         
         if self.inputfiles:
             for inputpdb in self.inputfiles:
@@ -39,7 +42,7 @@ class AlignModels:
                 model.canonical_parameters()
                 self.models.append(model)
             if len(self.inputfiles) != len(self.models):
-                print "Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles))
+                logger.error("Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles)))
         
         elif len(molecule)!=0:
             model = SASModel()
@@ -62,9 +65,8 @@ class AlignModels:
         @return dist: NSD after optimization
         """
         p, dist, niter, nfuncalls, warmflag = fmin(reference.dist_after_movement, molecule.can_param, args=(molecule, symmetry),ftol= 1e-4,  maxiter=200, full_output=True, disp=False)
-        if niter==200: print "convergence not reached"
-        else: print niter
-        #logger.debug()
+        if niter==200: logger.debug("convergence not reached")
+        else: logger.debug("convergence reach after %s iterations"%niter)
         return p, dist
     
     def alignment_sym(self, reference, molecule):
@@ -166,7 +168,7 @@ class AlignModels:
                 ref_number = i
                 break
         if not ref_number and ref_number!=0:
-            print "No reference model found"
+            logger.error("No reference model found")
         self.reference = ref_number
         
         return ref_number
