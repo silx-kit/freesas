@@ -69,7 +69,6 @@ class TestAlign(unittest.TestCase):
         dist_before = mol1.dist(mol2, mol1.atoms, mol2.atoms)
         symmetry, par = align.alignment_sym(mol1,mol2)
         dist_after = mol1.dist_after_movement(par, mol2, symmetry)
-        print dist_before, dist_after
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s"%(dist_before, dist_after))
 
     def test_optimisation_align(self):
@@ -86,7 +85,6 @@ class TestAlign(unittest.TestCase):
         align.slow = True
         sym, p = align.alignment_sym(mol1,mol2)
         dist_after = mol1.dist_after_movement(p, mol2, sym)
-        print dist_before, dist_after
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after optimized alignment %s<%s"%(dist_before, dist_after))
 
     def test_alignment_intruder(self):
@@ -94,9 +92,9 @@ class TestAlign(unittest.TestCase):
         align.slow = False
         align.enantiomorphs = False
         m = assign_random_mol()
-        intruder = numpy.random.randint(0, 16)
+        intruder = numpy.random.randint(0, 8)
         
-        for i in range(16):
+        for i in range(8):
             if i==intruder:
                 mol = assign_random_mol()
                 align.assign_models(mol)
@@ -113,16 +111,33 @@ class TestAlign(unittest.TestCase):
             if aver>=max_dist:
                 max_dist = aver
                 num_intr = i
-        if not num_intr:
+        if not num_intr and num_intr!=0:
             print "cannot find the intruder"
         self.assertEqual(num_intr, intruder, msg="not find the good intruder")
 
+    def test_reference(self):
+        align = AlignModels()
+        align.slow = False
+        align.enantiomorphs = False
+        for i in range(8):
+            mol = assign_random_mol()
+            align.assign_models(mol)
+        table = align.makeNSDarray()
+        ref = align.find_reference()
+        neg_dif = 0
+        for i in range(8):
+            dif = (table[i,:]-table[ref,:]).mean()
+            if dif<0:
+                neg_dif += 1
+        self.assertEqual(neg_dif, 0, msg="pb with reference choice")
+        
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
     testSuite.addTest(TestAlign("test_optimisation_align"))
     testSuite.addTest(TestAlign("test_alignment_intruder"))
+    testSuite.addTest(TestAlign("test_reference"))
     return testSuite
 
 if __name__ == '__main__':
