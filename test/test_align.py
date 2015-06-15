@@ -6,25 +6,16 @@ __copyright__ = "2015, ESRF"
 import numpy
 import unittest
 from utilstests import base, join
-from freesas.model import SASModel
-from freesas.align import alignment_sym
+from freesas.align import AlignModels
 from freesas.transformations import translation_matrix, euler_matrix
-from scipy.optimize import fmin
 
-def move(model):
+def move(mol):
     """
-    random movement of the molecule
+    Random movement of the molecule.
     
-    Parameters
-    ----------
-    model: SASModel
-    
-    Output
-    ----------
-    mol: 2D array, coordinates of the molecule after a translation and a rotation
+    @param mol: 2d array, coordinates of the molecule
+    @return mol:2D array, coordinates of the molecule after a translation and a rotation
     """
-    mol = model.atoms
-    
     vect = numpy.random.random(3)
     translation = translation_matrix(vect)
     
@@ -37,12 +28,18 @@ def move(model):
     return mol
 
 def assign_random_mol(inf=None, sup=None):
+    """
+    Create a random 2d array to create a molecule
+    
+    @param inf: inf limit of coordinates values
+    @param sup: sup limit of coordinates values
+    @return molecule: 2d array, random coordinates 
+    """
     if not inf: inf = 0
     if not sup: sup = 100
     molecule = numpy.random.randint(inf ,sup, size=400).reshape(100,4).astype(float)
     molecule[:,-1] = 1.0
-    m = SASModel(molecule)
-    return m
+    return molecule
 
 class TestAlign(unittest.TestCase):
     testfile1 = join(base, "testdata", "dammif-01.pdb")
@@ -50,78 +47,75 @@ class TestAlign(unittest.TestCase):
     
     def test_alignment(self):
         m = assign_random_mol()
-        n = SASModel(m.atoms)
-        n.atoms = move(n)
-        m.canonical_parameters()
-        n.canonical_parameters()
-        param1 = m.can_param
-        param2 = n.can_param
-        mol1_can = m.transform(param1,[1,1,1])
-        mol2_can = n.transform(param2,[1,1,1])
-        assert m.dist(n, mol1_can, mol2_can) != 0, "pb of movement"
-        sym2, par = alignment_sym(m,n)
-        mol2_align = n.transform(param2, sym2)
-        dist = m.dist(n, mol1_can, mol2_align)
-        self.assertAlmostEqual(dist, 0, 12, "bad alignment %s!=0"%(dist))
+        n = move(m*1.0)
+        align = AlignModels()
+        align.assign_models(m)
+        align.assign_models(n)
+        mol1 = align.models[0]
+        mol2 = align.models[1]
+        if mol1.dist(mol2, m, n)==0:
+            print "pb of movement"
+        dist = align.alignment_2models(save=False)
+        self.assertAlmostEqual(dist, 0, 12, msg="NSD unequal 0, %s!=0"%dist)
 
     def test_usefull_alignment(self):
         m = assign_random_mol()
         n = assign_random_mol()
-        m.canonical_parameters()
-        n.canonical_parameters()
-        mol1_can = m.transform(m.can_param,[1,1,1])
-        mol2_can = n.transform(n.can_param,[1,1,1])
-        dist_before = m.dist(n, mol1_can, mol2_can)
-        symmetry, par = alignment_sym(m,n)
-        mol2_sym = n.transform(n.can_param, symmetry)
-        dist_after = m.dist(n, mol1_can, mol2_sym)
+        align = AlignModels()
+        align.assign_models(m)
+        align.assign_models(n)
+        mol1 = align.models[0]
+        mol2 = align.models[1]
+        dist_before = mol1.dist(mol2, mol1.atoms, mol2.atoms)
+        symmetry, par = align.alignment_sym(mol1,mol2)
+        dist_after = mol1.dist_after_movement(par, mol2, symmetry)
+        print dist_before, dist_after
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s"%(dist_before, dist_after))
 
     def test_optimisation_align(self):
         m = assign_random_mol()
         n = assign_random_mol()
-        m.canonical_parameters()
-        n.canonical_parameters()
-        p0 = n.can_param
-        sym, par = alignment_sym(m,n)
-        dist_before = m.dist_after_movement(p0, n, sym)
-        p = fmin(m.dist_after_movement, p0, args=(n, sym), maxiter=200)
-        dist_after = m.dist_after_movement(p, n, sym)
-        self.assertGreater(dist_before, dist_after, msg="distance is not optimised : %s<=%s"%(dist_before,dist_after))
+        align = AlignModels()
+        align.assign_models(m)
+        align.assign_models(n)
+        mol1 = align.models[0]
+        mol2 = align.models[1]
+        align.slow = False
+        sym0, p0 = align.alignment_sym(mol1,mol2)
+        dist_before = mol1.dist_after_movement(p0, mol2, sym0)
+        align.slow = True
+        sym, p = align.alignment_sym(mol1,mol2)
+        dist_after = mol1.dist_after_movement(p, mol2, sym)
+        print dist_before, dist_after
+        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after optimized alignment %s<%s"%(dist_before, dist_after))
 
     def test_alignment_intruder(self):
+        align = AlignModels()
+        align.slow = False
+        align.enantiomorphs = False
         m = assign_random_mol()
-        m.canonical_parameters()
-        names = "abcdefghijklmno"
-        series = [i for i in names]
-        intruder = numpy.random.randint(0, len(series))
+        intruder = numpy.random.randint(0, 16)
         
-        for i in range(len(series)):
+        for i in range(16):
             if i==intruder:
-                series[i] = assign_random_mol()
-                while m.dist(series[i], m.atoms, series[i].atoms)==0:
-                    series[i] = assign_random_mol()
+                mol = assign_random_mol()
+                align.assign_models(mol)
             else:
-                series[i] = SASModel(m.atoms)
-            series[i].canonical_parameters()
-        
-        distance = []
-        for i in range(len(series)):
-            can_param = series[i].can_param
-            sym, par = alignment_sym(m, series[i])
-            d = m.dist_after_movement(can_param, series[i], sym)
-            distance.append(d)
-        assert sum(distance)!=0, "there is no intruders"
+                align.assign_models(m)
+        table = align.makeNSDarray()
+        if table.sum()==0:
+            print "there is no intruders"
         
         num_intr = None
-        num_same = 0
-        for i in range(len(distance)):
-            if distance[i] != 0.0:
+        max_dist = 0.00
+        for i in range(len(table)):
+            aver = table[i,:].mean()
+            if aver>=max_dist:
+                max_dist = aver
                 num_intr = i
-            if distance[i] == 0.0:
-                num_same += 1
-        self.assert_(num_intr is not None, msg="cannot find the intruder %s"%(distance))
-        self.assertEqual(num_same, len(series)-1, msg="there are several intruders : %s"%(len(series)-num_same))
+        if not num_intr:
+            print "cannot find the intruder"
+        self.assertEqual(num_intr, intruder, msg="not find the good intruder")
 
 def test_suite_all_alignment():
     testSuite = unittest.TestSuite()
