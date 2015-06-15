@@ -3,6 +3,8 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
 
 import numpy
+import matplotlib
+import matplotlib.pyplot as plot
 from freesas.model import SASModel
 import itertools
 from scipy.optimize import fmin
@@ -19,10 +21,10 @@ class AlignModels:
         self.models = []
         self.arrayNSD = None
         self.reference = None
-    
+
     def __repr__(self):
         return "alignment process for %s models"%len(self.inputfiles)
-    
+
     def assign_models(self, molecule=None):
         """
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
@@ -53,7 +55,7 @@ class AlignModels:
             self.models.append(model)
         
         return self.models
-    
+
     def optimize(self, reference, molecule, symmetry):
         """
         Use scipy.optimize to optimize transformation parameters to minimize NSD
@@ -68,7 +70,7 @@ class AlignModels:
         if niter==200: logger.debug("convergence not reached")
         else: logger.debug("convergence reach after %s iterations"%niter)
         return p, dist
-    
+
     def alignment_sym(self, reference, molecule):
         """
         Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
@@ -117,7 +119,7 @@ class AlignModels:
         else:
             combinaison = [1,1,1]
         return combinaison, parameters
-    
+
     def makeNSDarray(self):
         """
         Calculate the NSD correlation table and save it in self.arrayNSD
@@ -147,7 +149,48 @@ class AlignModels:
                         p, dist = self.optimize(reference, molecule, symmetry)
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
-    
+
+    def plotNSDarray(self):
+        """
+        """
+        if len(self.arrayNSD)==0:
+            self.arrayNSD = self.makeNSDarray()
+        dammif_files = len(self.inputfiles)
+        data = self.arrayNSD.sum(axis=-1)/dammif_files#average NSD for each model
+        fig = plot.figure(figsize=(15, 10))
+        
+        xticks = 1 + numpy.arange(dammif_files)
+        ax1 = fig.add_subplot(1, 2, 1)
+        ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
+        for i in range(dammif_files):
+            for j in range(dammif_files):
+                if i<j:
+                    continue
+                else:
+                    nsd = self.arrayNSD[i,j]
+                    ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                    ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+        ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
+        ax1.set_title(u"NSD correlation table")
+        ax1.set_xticks(range(dammif_files))
+        ax1.set_xticklabels([str(i) for i in range(1, 1 + dammif_files)])
+        ax1.set_xlim(-0.5, dammif_files - 0.5)
+        ax1.set_ylim(-0.5, dammif_files - 0.5)
+        ax1.set_yticks(range(dammif_files))
+        ax1.set_yticklabels([str(i) for i in range(1, 1 + dammif_files)])
+        ax1.set_xlabel(u"Model number")
+        ax1.set_ylabel(u"Model number")
+        
+        ax2 = fig.add_subplot(1, 2, 2)
+        ax2.bar(xticks - 0.5, data)
+        ax2.set_title(u"NSD between any model and all others")
+        ax2.set_ylabel("Normalized Spatial Discrepancy")
+        ax2.set_xlabel(u"Model number")
+        ax2.set_xticks(xticks)
+        
+        fig.savefig("nsd.png")
+        return fig
+
     def find_reference(self):
         """
         Find the reference model among the models aligned.
@@ -172,7 +215,7 @@ class AlignModels:
         self.reference = ref_number
         
         return ref_number
-    
+
     def alignment_reference(self, ref_number=None):
         """
         Align all models in self.models with the reference one.
@@ -198,7 +241,7 @@ class AlignModels:
         reference.atoms = reference.transform(reference.can_param, [1,1,1])
         reference.save(self.outputfiles[ref_number])
         return 0
-    
+
     def alignment_2models(self, save=True):
         """
         Align two models using the first one as reference.
