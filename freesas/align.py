@@ -20,25 +20,34 @@ class AlignModels:
     def __repr__(self):
         return "alignment process for %s models"%len(self.inputfiles)
     
-    def assign_models(self):
+    def assign_models(self, molecule=None):
         """
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
         
         @return self.models: list of SASModel
         """
-        if not self.inputfiles:
+        if not self.inputfiles and len(molecule)==0:
             print "No input files"
         
-        for inputpdb in self.inputfiles:
+        if self.inputfiles:
+            for inputpdb in self.inputfiles:
+                model = SASModel()
+                model.read(inputpdb)
+                model.centroid()
+                model.inertiatensor()
+                model.canonical_parameters()
+                self.models.append(model)
+            if len(self.inputfiles) != len(self.models):
+                print "Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles))
+        
+        elif len(molecule)!=0:
             model = SASModel()
-            model.read(inputpdb)
+            model.atoms = molecule
             model.centroid()
             model.inertiatensor()
             model.canonical_parameters()
             self.models.append(model)
-        if len(self.inputfiles) != len(self.models):
-            print "Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles))
         
         return self.models
     
@@ -188,7 +197,7 @@ class AlignModels:
         reference.save(self.outputfiles[ref_number])
         return 0
     
-    def alignment_2models(self):
+    def alignment_2models(self, save=True):
         """
         Align two models using the first one as reference.
         The aligned models are save in pdb files.
@@ -209,7 +218,8 @@ class AlignModels:
         reference.atoms = reference.transform(reference.can_param, [1,1,1])
         if self.slow:
             dist = reference.dist(molecule, reference.atoms, molecule.atoms)
-        reference.save(self.outputfiles[0])
-        molecule.save(self.outputfiles[1])
+        if save:
+            reference.save(self.outputfiles[0])
+            molecule.save(self.outputfiles[1])
         
         return dist
