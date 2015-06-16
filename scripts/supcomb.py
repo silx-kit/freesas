@@ -20,25 +20,29 @@ parser.add_argument("-e", "--enantiomorphs",type=str, choices=["YES", "NO"], def
 parser.add_argument("-q", "--quiet", type=str, choices=["ON", "OFF"], default="ON", help="Hide log or not, default: %(default)s")
 
 args = parser.parse_args()
-
+input_len = len(args.file)
+logger.info("%s input files"%input_len)
 align = AlignModels()
 
 if args.mode=="SLOW":
     align.slow = True
+    logger.info("SLOW mode")
 else:
     align.slow = False
+    logger.info("FAST mode")
 
 if args.enantiomorphs=="YES":
     align.enantiomorphs = True
 else:
     align.enantiomorphs = False
+    logger.info("NO enantiomorphs")
 
 if args.quiet=="OFF":
-    logger.info("setLevel: Debug")
     logger.setLevel(logging.DEBUG)
+    logger.info("setLevel: Debug")
 
 output = []
-for i in range(len(args.file)):
+for i in range(input_len):
     if i<9:
         output.append("aligned-0%s.pdb"%(i+1))
     else:
@@ -47,11 +51,12 @@ align.inputfiles = args.file
 align.outputfiles = output
 align.assign_models()
 
-if len(args.file)==2:
+if input_len==2:
     dist = align.alignment_2models()
-    print "%s and %s aligned"%(args.file[0], args.file[1])
-    print "NSD after optimized alignment = %s"%(dist)
+    logger.info("%s and %s aligned"%(args.file[0], args.file[1]))
+    logger.info("NSD after optimized alignment = %s"%(dist))
 else:
     align.makeNSDarray()
     align.alignment_reference()
-    print "%s models aligned on the model %s"%(len(args.file), align.reference)
+    logger.info("%s models aligned on the model %s"%(input_len, align.reference+1))
+    align.plotNSDarray()
