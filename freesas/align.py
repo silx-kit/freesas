@@ -1,4 +1,4 @@
-__author__ = "Guillaume"
+__author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
 
@@ -30,6 +30,7 @@ class AlignModels:
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
         
+        @param molecule: optional 2d array, coordinates of the atoms for the model to create
         @return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule)==0:
@@ -73,11 +74,10 @@ class AlignModels:
 
     def alignment_sym(self, reference, molecule):
         """
-        Apply 8 combinations to model2 and select the one which minimize the distance between model1 and model2.
+        Apply 8 combinations to the molecule and select the one which minimize the distance between it and the reference.
         
-        @param model1, model2: SASmodel, 2 molecules
-        @param enantiomorphs: check the two enantiomorphs if true
-        @param slow: optimize NSD for each symmetry if true
+        @param reference: SASModel, the one which do not move
+        @param molecule: SASModel, the one wich has to be aligned
         @return combinaison: best symmetry to minimize NSD
         @return p: transformation parameters optimized if slow is true, unoptimized else
         """
@@ -155,6 +155,7 @@ class AlignModels:
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
         
+        @return fig: the wanted figures
         """
         if len(self.arrayNSD)==0:
             self.arrayNSD = self.makeNSDarray()
