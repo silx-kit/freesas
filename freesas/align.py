@@ -152,24 +152,33 @@ class AlignModels:
 
     def plotNSDarray(self):
         """
+        Create a png file with the table of NSD and the average NSD for each model.
+        A threshold is computed to segregate good models and the ones to exclude.
+        
         """
         if len(self.arrayNSD)==0:
             self.arrayNSD = self.makeNSDarray()
+        if not self.reference:
+            self.reference = self.find_reference()
+        
         dammif_files = len(self.inputfiles)
-        data = self.arrayNSD.sum(axis=-1)/dammif_files#average NSD for each model
+        data = self.arrayNSD.sum(axis=-1)/(dammif_files-1)#average NSD for each model with others(exclude itself)
         fig = plot.figure(figsize=(15, 10))
         
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
         ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
+        lnsd = []
         for i in range(dammif_files):
             for j in range(dammif_files):
-                if i<j:
-                    continue
-                else:
-                    nsd = self.arrayNSD[i,j]
-                    ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
-                    ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                nsd = self.arrayNSD[i,j]
+                if round(nsd, 9)!=0:
+                    lnsd.append(nsd)
+                ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+        lnsd = numpy.array(lnsd)
+        nsd_max = lnsd.mean() + lnsd.std()
+        
         ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
@@ -183,11 +192,24 @@ class AlignModels:
         
         ax2 = fig.add_subplot(1, 2, 2)
         ax2.bar(xticks - 0.5, data)
+        ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
         ax2.set_title(u"NSD between any model and all others")
         ax2.set_ylabel("Normalized Spatial Discrepancy")
         ax2.set_xlabel(u"Model number")
         ax2.set_xticks(xticks)
+        bbox_props = dict(fc="cyan", ec="b", lw=1)
+        ax2.text(self.reference + 0.95, data[self.reference] / 2, "Reference", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+        ax2.legend(loc=8)
         
+        bbox_props = dict(fc="pink", ec="r", lw=1)
+        valid_models = 0
+        for i in range(dammif_files):
+            if data[i]>nsd_max:
+                ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+            else:
+                valid_models += 1
+        
+        logger.info("%s valid models" % valid_models)
         fig.savefig("nsd.png")
         return fig
 
