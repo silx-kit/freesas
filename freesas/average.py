@@ -1,3 +1,7 @@
+__author__ = "Guillaume"
+__license__ = "MIT"
+__copyright__ = "2015, ESRF"
+
 import numpy
 from freesas.model import SASModel
 
