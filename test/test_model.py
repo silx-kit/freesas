@@ -10,6 +10,9 @@ import tempfile
 from utilstests import base, join
 from freesas.model import SASModel
 from freesas.transformations import translation_from_matrix, euler_from_matrix
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("SASModel_test")
 
 def assign_random_mol(inf=None, sup=None):
     if not inf: inf = 0
@@ -47,7 +50,8 @@ class TesttParser(unittest.TestCase):
     def test_centroid(self):
         m = assign_random_mol()
         m.centroid()
-        assert len(m.com)==3, "center of mass has not been saved correctly : length of COM position vector = %s!=3"%(len(m.com))
+        if len(m.com)!=3:
+            logger.error("center of mass has not been saved correctly : length of COM position vector = %s!=3"%(len(m.com)))
         mol_centered = m.atoms[:,0:3]-m.com
         center = mol_centered.mean(axis=0)
         norm = (center*center).sum()
@@ -62,7 +66,8 @@ class TesttParser(unittest.TestCase):
     def test_canonical_translate(self):
         m = assign_random_mol()
         trans = m.canonical_translate()
-        assert trans.shape==(4,4), "pb with translation matrix shape: shape=%s"%(trans.shape)
+        if trans.shape!=(4,4):
+            logger.error("pb with translation matrix shape: shape=%s"%(trans.shape))
         com = m.com
         com_componants = [com[0], com[1], com[2]]
         trans_vect = [-trans[0,-1], -trans[1,-1], -trans[2,-1]]
@@ -71,8 +76,10 @@ class TesttParser(unittest.TestCase):
     def test_canonical_rotate(self):
         m = assign_random_mol()
         rot = m.canonical_rotate()
-        assert rot.shape==(4,4), "pb with rotation matrix shape"
-        assert m.enantiomer, "enantiomer has not been selected"
+        if rot.shape!=(4,4):
+            logger.error("pb with rotation matrix shape")
+        if not m.enantiomer:
+            logger.error("enantiomer has not been selected")
         det = numpy.linalg.det(rot)
         self.assertAlmostEqual(det, 1, 10, msg="rotation matrix determinant is not 1: %s"%(det))
 
@@ -80,7 +87,8 @@ class TesttParser(unittest.TestCase):
         m = assign_random_mol()
         m.canonical_parameters()
         can_param = m.can_param
-        assert len(can_param)==6, "canonical parameters has not been saved properly"
+        if len(can_param)!=6:
+            logger.error("canonical parameters has not been saved properly")
         com_trans = translation_from_matrix(m.canonical_translate())
         euler_rot = euler_from_matrix(m.canonical_rotate())
         out_param = [com_trans[0], com_trans[1], com_trans[2], euler_rot[0], euler_rot[1], euler_rot[2]]
@@ -97,7 +105,8 @@ class TesttParser(unittest.TestCase):
         m.canonical_parameters()
         p0 = m.can_param
         mol1 = m.transform(p0,[1,1,1])
-        assert abs(mol1-m.atoms).max() != 0 ,"molecule did not move"
+        if abs(mol1-m.atoms).max() == 0:
+            logger.error("molecule did not move")
         m.atoms = mol1
         m.centroid()
         m.inertiatensor()
@@ -113,7 +122,8 @@ class TesttParser(unittest.TestCase):
         n = SASModel(m.atoms)
         m.canonical_parameters()
         n.canonical_parameters()
-        assert abs(n.atoms-m.atoms).max()==0, "molecules are different"
+        if abs(n.atoms-m.atoms).max()!=0:
+            logger.error("molecules are different")
         p0 = m.can_param
         dist_after_mvt = m.dist_after_movement(p0, n, [1,1,1])
         self.assertEqual(dist_after_mvt, 0, msg="NSD different of 0: %s!=0"%(dist_after_mvt))

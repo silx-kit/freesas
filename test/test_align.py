@@ -8,6 +8,9 @@ import unittest
 from utilstests import base, join
 from freesas.align import AlignModels
 from freesas.transformations import translation_matrix, euler_matrix
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AlignModels_test")
 
 def move(mol):
     """
@@ -54,7 +57,7 @@ class TestAlign(unittest.TestCase):
         mol1 = align.models[0]
         mol2 = align.models[1]
         if mol1.dist(mol2, m, n)==0:
-            print "pb of movement"
+            logger.error("pb of movement")
         dist = align.alignment_2models(save=False)
         self.assertAlmostEqual(dist, 0, 12, msg="NSD unequal 0, %s!=0"%dist)
 
@@ -102,7 +105,7 @@ class TestAlign(unittest.TestCase):
                 align.assign_models(m)
         table = align.makeNSDarray()
         if table.sum()==0:
-            print "there is no intruders"
+            logger.error("there is no intruders")
         
         num_intr = None
         max_dist = 0.00
@@ -112,7 +115,7 @@ class TestAlign(unittest.TestCase):
                 max_dist = aver
                 num_intr = i
         if not num_intr and num_intr!=0:
-            print "cannot find the intruder"
+            logger.error("cannot find the intruder")
         self.assertEqual(num_intr, intruder, msg="not find the good intruder")
 
     def test_reference(self):

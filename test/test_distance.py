@@ -8,6 +8,9 @@ import numpy
 import unittest
 from utilstests import base, join
 from freesas.model import SASModel
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("cdistance_test")
 
 class TestDistance(unittest.TestCase):
     testfile1 = join(base, "testdata", "model-01.pdb")
