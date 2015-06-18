@@ -64,12 +64,6 @@ class AverModels():
         if not self.size:
             self.size = self.gridsize()
         size = self.size
-        xmax = size[0]
-        ymax = size[1]
-        zmax = size[2]
-        xmin = size[3]
-        ymin = size[4]
-        zmin = size[5]
         radius = self.radius
         
         x = 0.0
@@ -78,15 +72,15 @@ class AverModels():
         xlist = []
         ylist = []
         zlist = []
-        while (xmin+x)<=xmax:
-            xlist.append(xmin+x)
-            x += radius
-        while (ymin+y)<=ymax:
-            ylist.append(ymin+y)
-            y += radius
-        while (zmin+z)<=zmax:
-            zlist.append(zmin+z)
-            z += radius
+        while (size[3]+x)<=size[0]:
+            xlist.append(size[3]+x)
+            x += 2*radius
+        while (size[4]+y)<=size[1]:
+            ylist.append(size[4]+y)
+            y += 2*radius
+        while (size[5]+z)<=size[2]:
+            zlist.append(size[5]+z)
+            z += 2*radius
         knots = len(xlist)*len(ylist)*len(zlist)
         
         for i in range(len(xlist)):
@@ -127,12 +121,13 @@ class AverModels():
                 h = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)
                 if h<=radius:
                     num = j
-                    print j
                     continue
                 elif not d or h<=d:
                     d = h
                     num = j
             grid[num, 3] += 1
+        grid[:,3] = grid[:,3]/(len(self.inputfiles))#normalized occupancy
+        
         self.grid = grid
         return grid
     
@@ -142,7 +137,7 @@ class AverModels():
         grid = self.grid
         averdam = None
         for i in range(grid.shape[0]):
-            if grid[i,3]>=5:
+            if grid[i,3]>=0.44:
                 if averdam is None:
                     averdam = grid[i,:]
                     averdam.shape = (1, 4)
