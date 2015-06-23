@@ -10,6 +10,8 @@ cimport numpy
 import numpy
 from cython cimport floating
 from libc.math cimport sqrt
+from cython import parallel
+cimport openmp 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -52,29 +54,35 @@ def calc_distance(floating[:,:] atoms1, floating[:,:] atoms2, floating fineness1
     @param fineness1, fineness2: fineness of each molecule
     @return: NSD atoms1-atoms2
     """
+    
+    
     cdef:
         int i, j, size1=atoms1.shape[0], size2=atoms2.shape[0]
+        int threadid, numthreads = openmp.omp_get_max_threads() 
         double d, d2, dx, dy, dz, x1, y1, z1
         double s1=0.0, s2=0.0, big = sys.maxsize
-        double[:] min_col = numpy.zeros(size2, numpy.float64) + big
+        double[:,:] min_col = numpy.zeros((numthreads, size2), numpy.float64) + big
     assert atoms1.shape[1] >= 3
     assert atoms2.shape[1] >= 3
     
-    for i in range(size1):
+    for i in parallel.prange(size1, nogil=True):
+        threadid = parallel.threadid()
         x1 = atoms1[i,0]
         y1 = atoms1[i,1]
         z1 = atoms1[i,2]
         d = big
-        
         for j in range(size2):            
             dx = atoms2[j,0] - x1
             dy = atoms2[j,1] - y1
             dz = atoms2[j,2] - z1
             d2 = dx*dx + dy*dy + dz*dz
             d = min(d, d2)
-            min_col[j] = min(min_col[j], d2) 
+            min_col[threadid, j] = min(min_col[threadid, j], d2) 
         s1 += d
-    for j in range(size2):
-        s2 += min_col[j]
-    
+    for j in parallel.prange(size2, nogil=True):
+        d = big
+        for i in range(numthreads):
+            d = min(d, min_col[i, j])
+        s2 += d
+
     return sqrt(0.5*((1./(size1*fineness2*fineness2))*s1 + (1./(size2*fineness1*fineness1))*s2))

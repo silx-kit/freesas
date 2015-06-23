@@ -6,7 +6,9 @@ import glob
 
 cy_mod = Extension("freesas._distance",
     sources=["freesas/_distance.pyx"],
-    language="c")
+    language="c",
+    extra_compile_args=["-fopenmp"],
+    extra_link_args=["-fopenmp"])
 
 setup(name="freesas",
       version = "0.1",
