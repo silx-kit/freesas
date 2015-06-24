@@ -1,3 +1,4 @@
+from Bio.Blast.Record import Header
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -169,6 +170,24 @@ class AverModels():
     def makeheader(self):
         """
         """
+        header = self.header
+        
+        header.append("number of models averaged : %s"%len(self.inputfiles))
+        header.append("filenames :")
+        for i in self.inputfiles:
+            header.append("--- %s"%i)
+        header.append("total number of atoms : %s \n"%self.atoms.shape[0])
+        
+        for i in range(self.grid.shape[0]):
+            x = round(self.grid[i, 0], 3)
+            y = round(self.grid[i, 1], 3)
+            z = round(self.grid[i, 2], 3)
+            occ = round(self.grid[i, 3], 2)
+            header.append("ATOM      1  CA  ASP    1       %s  %s  %s  %s 20.0 0 2 201    "%(x, y, z, occ))
+            
+        for i in range(len(header)):
+            print header[i]
+        
 
 if __name__ == "__main__":
     aver = AverModels()
@@ -180,11 +199,6 @@ if __name__ == "__main__":
     aver.makegrid()
     print "%s points in the grid"%aver.grid.shape[0]
     aver.assign_occupancy()
-    nb = 0
-    for i in range(aver.grid.shape[0]):
-        if aver.grid[i,-1]>2:
-            nb += 1
-            print aver.grid[i,-1]
-    print nb
-    
+    print "\nTry for header :"
+    aver.makeheader()
     print "DONE"
