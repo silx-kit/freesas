@@ -145,7 +145,6 @@ class AverModels():
     def assign_occupancy(self):
         """
         Assign an occupancy for each point of the grid.
-        Occupancy is the number of atoms closer to a point of the grid
         
         @return grid: 2d array, fourth column is occupancy of the point
         """
@@ -155,17 +154,17 @@ class AverModels():
         grid = self.grid
         
         for i in range(atoms.shape[0]):
-            total = 0
             for j in range(grid.shape[0]):
-                fact = self.trilin_interp(atoms[i], grid[j])
+                fact = self.trilin_interp(atoms[i], grid[j])/len(self.inputfiles)
                 grid[j, 3] += fact
-                total += fact
-            if round(total,9)!=1.0 : print total, atoms[i,:]
         
-        self.grid = grid
-        return grid
-
-
+        order = numpy.argsort(grid, axis=0)[:,-1]
+        sortedgrid = numpy.empty_like(grid)
+        for i in range(grid.shape[0]):
+            sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
+        
+        self.grid = sortedgrid
+        return sortedgrid
 
     def makeheader(self):
         """
@@ -181,6 +180,11 @@ if __name__ == "__main__":
     aver.makegrid()
     print "%s points in the grid"%aver.grid.shape[0]
     aver.assign_occupancy()
-    print aver.grid[:,3].max()
-    print aver.grid[:,3].sum()
+    nb = 0
+    for i in range(aver.grid.shape[0]):
+        if aver.grid[i,-1]>2:
+            nb += 1
+            print aver.grid[i,-1]
+    print nb
+    
     print "DONE"
