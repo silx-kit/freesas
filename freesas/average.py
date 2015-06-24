@@ -46,9 +46,10 @@ class AverModels():
         if len(self.atoms)==0:
             self.atoms = self.models_pooling()
         atoms = self.atoms
+        radius = self.radius
         
-        coordmin = atoms.min(axis=0)
-        coordmax = atoms.max(axis=0)
+        coordmin = atoms.min(axis=0) - 3*radius
+        coordmax = atoms.max(axis=0) + 3*radius
         self.size = [coordmax[0],coordmax[1],coordmax[2],coordmin[0],coordmin[1],coordmin[2]]
         
         return self.size
@@ -95,6 +96,52 @@ class AverModels():
         self.grid = grid
         return grid
 
+    def trilin_interp(self, atom, gridpoint):
+        """
+        """
+        radius = self.radius
+        
+        x = atom[0]
+        y = atom[1]
+        z = atom[2]
+        x0 = gridpoint[0]
+        y0 = gridpoint[1]
+        z0 = gridpoint[2]
+
+        xd = abs(x-x0)
+        yd = abs(y-y0)
+        zd = abs(z-z0)
+
+        if xd>=2*radius or yd>=2*radius or zd>=2*radius:
+            fact = 0.0
+        
+        elif xd==0 or yd==0 or zd==0:
+            if xd==yd==zd==0:
+                fact = 1.0
+            
+            elif xd==yd==0 or yd==zd==0 or xd==zd==0:
+                if xd != 0:
+                    dist = xd
+                elif yd != 0:
+                    dist = yd
+                else:
+                    dist = zd
+                fact = dist/(2*radius)
+            
+            else:
+                if xd == 0:
+                    surf = yd * zd
+                elif yd == 0:
+                    surf = xd * zd
+                else:
+                    surf = xd * yd
+                fact = surf/(4*radius*radius)
+        else:
+            vol = xd*yd*zd
+            fact = vol/(8*radius*radius*radius)
+        return fact
+
+
     def assign_occupancy(self):
         """
         Assign an occupancy for each point of the grid.
@@ -106,59 +153,34 @@ class AverModels():
             self.grid = self.makegrid()
         atoms = self.atoms
         grid = self.grid
-        radius = self.radius
         
         for i in range(atoms.shape[0]):
-            d = None
-            num = None
-            x1 = atoms[i, 0]
-            y1 = atoms[i, 1]
-            z1 = atoms[i, 2]
+            total = 0
             for j in range(grid.shape[0]):
-                x2 = grid[j, 0]
-                y2 = grid[j, 1]
-                z2 = grid[j, 2]
-                h = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)
-                if h<=radius:
-                    num = j
-                    continue
-                elif not d or h<=d:
-                    d = h
-                    num = j
-            grid[num, 3] += 1
-        grid[:,3] = grid[:,3]/(len(self.inputfiles))#normalized occupancy
+                fact = self.trilin_interp(atoms[i], grid[j])
+                grid[j, 3] += fact
+                total += fact
+            if round(total,9)!=1.0 : print total, atoms[i,:]
         
         self.grid = grid
         return grid
-    
-    def keepcore(self, filename):
+
+
+
+    def makeheader(self):
         """
         """
-        grid = self.grid
-        averdam = None
-        for i in range(grid.shape[0]):
-            if grid[i,3]>=0.44:
-                if averdam is None:
-                    averdam = grid[i,:]
-                    averdam.shape = (1, 4)
-                else:
-                    coord = numpy.array([[grid[i,0], grid[i,1], grid[i,2], grid[i,3]]])
-                    averdam = numpy.append(averdam, coord, axis=0)
-        print averdam.shape
-        avermodel = SASModel()
-        avermodel.read(filename)
-        avermodel.atoms = averdam
-        avermodel.save(self.outputfile)
 
 if __name__ == "__main__":
     aver = AverModels()
-    aver.inputfiles = ["aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-05.pdb", "aligned-06.pdb", "aligned-07.pdb", "aligned-08.pdb", "aligned-10.pdb", "aligned-11.pdb", "aligned-12.pdb", "aligned-13.pdb", "aligned-14.pdb", "aligned-15.pdb", "aligned-16.pdb"]
+    aver.inputfiles = ["aligned-02.pdb", "aligned-03.pdb"]
     aver.models_pooling()
-    print aver.atoms.shape[0]
-    print aver.radius
+    print "%s atoms"%aver.atoms.shape[0]
+    print "radius = %s"%aver.radius
     aver.gridsize()
     aver.makegrid()
-    print aver.grid.shape[0]
+    print "%s points in the grid"%aver.grid.shape[0]
     aver.assign_occupancy()
-    aver.keepcore("aligned-02.pdb")
+    print aver.grid[:,3].max()
+    print aver.grid[:,3].sum()
     print "DONE"
