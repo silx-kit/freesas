@@ -204,7 +204,7 @@ class SASModel:
             D = (0.5*((1./((mol1.shape[0])*other.fineness*other.fineness))*(d2.min(axis=1).sum())+(1./((mol2.shape[0])*self.fineness*self.fineness))*(d2.min(axis=0)).sum()))**0.5
             return D
 
-    def transform(self, param, symmetry):
+    def transform(self, param, symmetry, reverse=None):
         """
         Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry
         
@@ -214,14 +214,23 @@ class SASModel:
         """
         mol = self.atoms
         
-        vect = numpy.array([param[0:3]])
-        angles = (param[3:6])
         sym = numpy.array([[symmetry[0],0,0,0], [0,symmetry[1],0,0], [0,0,symmetry[2],0], [0,0,0,1]], dtype="float")
-        
-        translat1 = transformations.translation_matrix(vect)
-        rotation = transformations.euler_matrix(*angles)
-        translat2 = numpy.dot(numpy.dot(rotation, translat1),rotation.T)
-        transformation = numpy.dot(translat2, rotation)
+        if not reverse:
+            vect = numpy.array([param[0:3]])
+            angles = (param[3:6])
+            
+            translat1 = transformations.translation_matrix(vect)
+            rotation = transformations.euler_matrix(*angles)
+            translat2 = numpy.dot(numpy.dot(rotation, translat1),rotation.T)
+            transformation = numpy.dot(translat2, rotation)
+            
+        else:
+            vect = - numpy.array([param[0:3]])
+            angles = (-param[5], -param[4], -param[3])
+            
+            translat = transformations.translation_matrix(vect)
+            rotation = transformations.euler_matrix(*angles, axes="szyx")
+            transformation = numpy.dot(translat, rotation)
         
         mol = numpy.dot(transformation, mol.T)
         mol = numpy.dot(sym, mol).T

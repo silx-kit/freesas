@@ -127,6 +127,15 @@ class TesttParser(unittest.TestCase):
         p0 = m.can_param
         dist_after_mvt = m.dist_after_movement(p0, n, [1,1,1])
         self.assertEqual(dist_after_mvt, 0, msg="NSD different of 0: %s!=0"%(dist_after_mvt))
+
+    def test_reverse_transform(self):
+        m = assign_random_mol()
+        n = SASModel(m.atoms)
+        m.canonical_parameters()
+        m.atoms = m.transform(m.can_param, [1,1,1], reverse=None)
+        m.atoms = m.transform(m.can_param, [1,1,1], reverse=True)
+        dist = m.dist(n, m.atoms, n.atoms)
+        self.assertAlmostEqual(dist, 0.0, 10, msg="pb with reverse transformation : %s != 0.0"%dist)
         
 def test_suite_all_model():
     testSuite = unittest.TestSuite()
@@ -139,6 +148,7 @@ def test_suite_all_model():
     testSuite.addTest(TesttParser("test_dist"))
     testSuite.addTest(TesttParser("test_can_transform"))
     testSuite.addTest(TesttParser("test_dist_move"))
+    testSuite.addTest(TesttParser("test_reverse_transform"))
     return testSuite
 
 if __name__ == '__main__':
