@@ -259,9 +259,9 @@ class AlignModels:
                 symmetry, p = self.alignment_sym(reference, molecule)
                 if not self.slow:
                     p, dist = self.optimize(reference, molecule, symmetry)
-                molecule.atoms = molecule.transform(p, symmetry)
+                molecule.atoms = molecule.transform(p, symmetry)#molecule sent on its canonical position
+                molecule.atoms = molecule.transform(reference.can_param, [1,1,1], reverse=True)#molecule sent on reference position
                 molecule.save(self.outputfiles[i])
-        reference.atoms = reference.transform(reference.can_param, [1,1,1])
         reference.save(self.outputfiles[ref_number])
         return 0
 
@@ -282,8 +282,9 @@ class AlignModels:
         symmetry, p = self.alignment_sym(reference, molecule)
         if not self.slow:
             p, dist = self.optimize(reference, molecule, symmetry)
+        
         molecule.atoms = molecule.transform(p, symmetry)
-        reference.atoms = reference.transform(reference.can_param, [1,1,1])
+        molecule.atoms = molecule.transform(reference.can_param, [1,1,1], reverse=True)
         if self.slow:
             dist = reference.dist(molecule, reference.atoms, molecule.atoms)
         if save:
