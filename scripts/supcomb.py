@@ -18,6 +18,7 @@ parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align"
 parser.add_argument("-m", "--mode",dest="mode", type=str, choices=["SLOW", "FAST"], default="SLOW", help="Either SLOW or FAST, default: %(default)s)")
 parser.add_argument("-e", "--enantiomorphs",type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
 parser.add_argument("-q", "--quiet", type=str, choices=["ON", "OFF"], default="ON", help="Hide log or not, default: %(default)s")
+parser.add_argument("-o", "--output", type=str, default="aligned.pdb", help="output filename, default: %(default)s")
 
 args = parser.parse_args()
 input_len = len(args.file)
@@ -41,14 +42,18 @@ if args.quiet=="OFF":
     logger.setLevel(logging.DEBUG)
     logger.info("setLevel: Debug")
 
-output = []
-for i in range(input_len):
-    if i<9:
-        output.append("aligned-0%s.pdb"%(i+1))
-    else:
-        output.append("aligned-%s.pdb"%(i+1))
+if input_len==2:
+    align.outputfiles = args.output
+else:
+    output = []
+    for i in range(input_len):
+        if i<9:
+            output.append("aligned-0%s.pdb"%(i+1))
+        else:
+            output.append("aligned-%s.pdb"%(i+1))
+    align.outputfiles = output
+
 align.inputfiles = args.file
-align.outputfiles = output
 align.assign_models()
 
 if input_len==2:
