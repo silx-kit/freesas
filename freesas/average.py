@@ -1,4 +1,3 @@
-from Bio.Blast.Record import Header
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -7,8 +6,9 @@ import numpy
 from freesas.model import SASModel
 
 class AverModels():
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, reference=None):
         self.inputfiles = []
+        self.reference = reference if reference is not None else 0#position of reference model in the list of pdb files
         self.outputfile = filename if filename is not None else "aver-model.pdb"
         self.header = []
         self.atoms = []
@@ -25,18 +25,27 @@ class AverModels():
         
         @return self.atoms: coordinates of each atom considerated
         """
-        radius = []
         for files in self.inputfiles:
             m = SASModel()
             m.read(files)
-            m._calc_fineness()
             if len(self.atoms)==0:
                 self.atoms = m.atoms
             else:
                 self.atoms = numpy.append(self.atoms, m.atoms, axis=0)
-            radius.append(0.5*m.fineness)
-        self.radius = min(radius)
         return self.atoms
+
+    def calc_radius(self):
+        """
+        Select the fineness of the reference model and set this value as 2 times self.radius
+        
+        @return self.radius: radius of an atom in the new grid
+        """
+        reference = SASModel()
+        reference.read(self.inputfiles[self.reference])
+        reference._calc_fineness()
+        self.radius = 0.5*reference.fineness
+        
+        return self.radius
 
     def gridsize(self):
         """
@@ -62,7 +71,7 @@ class AverModels():
         @return grid: 2d array, coordinates of each point of the grid, fourth column for the occupancy.
         """
         if not self.radius:
-            self.models_pooling()
+            self.calc_radius()
         if not self.size:
             self.size = self.gridsize()
         size = self.size
@@ -74,15 +83,28 @@ class AverModels():
         xlist = []
         ylist = []
         zlist = []
-        while (size[3]+x)<=size[0]:
-            xlist.append(size[3]+x)
+        while x<=size[0]:
+            xlist.append(x)
             x += 2*radius
-        while (size[4]+y)<=size[1]:
-            ylist.append(size[4]+y)
+        while y<=size[1]:
+            ylist.append(y)
             y += 2*radius
-        while (size[5]+z)<=size[2]:
-            zlist.append(size[5]+z)
+        while z<=size[2]:
+            zlist.append(z)
             z += 2*radius
+        
+        x = - 2*radius
+        y = - 2*radius
+        z = - 2*radius
+        while x>=size[3]:
+            xlist.append(x)
+            x -= 2*radius
+        while y>=size[4]:
+            ylist.append(y)
+            y -= 2*radius
+        while z>=size[5]:
+            zlist.append(z)
+            z -= 2*radius
         knots = len(xlist)*len(ylist)*len(zlist)
         
         for i in range(len(xlist)):
@@ -101,6 +123,9 @@ class AverModels():
         """
         """
         radius = self.radius
+        lattice_len = 2*radius
+        lattice_surf = 2*radius*lattice_len
+        lattice_vol = 2*radius*lattice_surf
         
         x = atom[0]
         y = atom[1]
@@ -127,7 +152,7 @@ class AverModels():
                     dist = yd
                 else:
                     dist = zd
-                fact = dist/(2*radius)
+                fact = dist/(lattice_len)
             
             else:
                 if xd == 0:
@@ -136,10 +161,10 @@ class AverModels():
                     surf = xd * zd
                 else:
                     surf = xd * yd
-                fact = surf/(4*radius*radius)
+                fact = surf/(lattice_surf)
         else:
             vol = xd*yd*zd
-            fact = vol/(8*radius*radius*radius)
+            fact = vol/(lattice_vol)
         return fact
 
 
@@ -191,14 +216,15 @@ class AverModels():
 
 if __name__ == "__main__":
     aver = AverModels()
-    aver.inputfiles = ["aligned-02.pdb", "aligned-03.pdb"]
+    aver.inputfiles = ["aligned-11.pdb"]
     aver.models_pooling()
+    aver.calc_radius()
     print "%s atoms"%aver.atoms.shape[0]
     print "radius = %s"%aver.radius
     aver.gridsize()
+    print "grid size : ", aver.size
     aver.makegrid()
     print "%s points in the grid"%aver.grid.shape[0]
     aver.assign_occupancy()
-    print "\nTry for header :"
-    aver.makeheader()
+    print aver.grid
     print "DONE"
