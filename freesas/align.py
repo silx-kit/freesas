@@ -288,7 +288,6 @@ class AlignModels:
         if self.slow:
             dist = reference.dist(molecule, reference.atoms, molecule.atoms)
         if save:
-            reference.save(self.outputfiles[0])
-            molecule.save(self.outputfiles[1])
+            molecule.save(self.outputfiles[0])
         
         return dist
