@@ -61,6 +61,17 @@ class Grid():
     def make_grid(self):
         """
         """
+        if len(self.size)==0:
+            self.spatial_extent()
+        if self.radius is None:
+            self.calc_radius()
+        
+        xmax = self.size[0]
+        xmin = self.size[3]
+        ymax = self.size[1]
+        ymin = self.size[4]
+        zmax = self.size[2]
+        zmin = self.size[5]
 
 class AverModels():
     def __init__(self, filename=None, reference=None):
@@ -109,7 +120,7 @@ class AverModels():
         xd = abs(x-x0)
         yd = abs(y-y0)
         zd = abs(z-z0)
-
+        
         if xd>=2*radius or yd>=2*radius or zd>=2*radius:
             fact = 0.0
         
@@ -138,7 +149,6 @@ class AverModels():
             vol = xd*yd*zd
             fact = vol/(lattice_vol)
         return fact
-
 
     def assign_occupancy(self):
         """
@@ -185,5 +195,4 @@ if __name__ == "__main__":
     q._calc_fineness()
     print "fineness damstart.pdb = ", q.fineness
     
-            
     print "DONE"
