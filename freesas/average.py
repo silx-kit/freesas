@@ -66,12 +66,49 @@ class Grid():
         if self.radius is None:
             self.calc_radius()
         
+        radius = self.radius
+        a = 2*radius
+        h = (3**0.5/2)*a
+        c = (8.0/3)**(1.0/3)*a
+        
         xmax = self.size[0]
         xmin = self.size[3]
         ymax = self.size[1]
         ymin = self.size[4]
         zmax = self.size[2]
         zmin = self.size[5]
+        
+        x = 0.0
+        y = 0.0
+        z = 0.0
+        
+        xlist = []
+        ylist = []
+        zlist = []
+        knots = numpy.empty((1,4), dtype="float")
+        
+        while (zmin + z) <= zmax + a:
+            zlist.append(z)
+            z += 0.5*c
+        while (ymin + y) <= ymax + a:
+            ylist.append(y)
+            y += h
+        while (xmin + x) <= xmax + a:
+            xlist.append(x)
+            x += 0.5*a
+        
+        for z in zlist:
+            for j in range(len(xlist)):
+                x = xlist[j]
+                if j % 2 == 0:
+                    for y in ylist[0:-1:2]:
+                        knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                else:
+                    for y in ylist[1:-1:2]:
+                        knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+        
+        knots = numpy.delete(knots, 0, axis=0)
+        return knots
 
 class AverModels():
     def __init__(self, filename=None, reference=None):
@@ -79,9 +116,8 @@ class AverModels():
         self.reference = reference if reference is not None else 0#position of reference model in the list of pdb files
         self.outputfile = filename if filename is not None else "aver-model.pdb"
         self.header = []
-        self.atoms = []
         self.radius = None
-        self.size = []
+        self.atoms = []
         self.grid = None
 
     def __repr__(self):
@@ -175,24 +211,27 @@ class AverModels():
         return sortedgrid
 
 if __name__ == "__main__":
-    n = SASModel()
-    n.read("aligned-11.pdb")
-    n._calc_fineness()
-    print "fineness aligned-11.pdb = ", n.fineness
+    grid = Grid()
+    grid.inputs = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    grid.spatial_extent()
+    grid.calc_radius()
+    lattice = grid.make_grid()
+    
+    aver = AverModels()
+    aver.inputfiles = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    aver.models_pooling()
+    aver.radius = grid.radius
+    aver.grid = lattice
+    print aver.atoms.shape[0]
+    print aver.grid.shape[0]
+    aver.assign_occupancy()
+    print aver.grid
+    
     
     m = SASModel()
-    m.read("damaver.pdb")
-    m._calc_fineness()
-    print "fineness damaver.pdb = ", m.fineness
+    m.read("filegrid.pdb")
+    m.atoms = lattice
+    m.save("filegrid.pdb")
     
-    p = SASModel()
-    p.read("damfilt.pdb")
-    p._calc_fineness()
-    print "fineness damfilt.pdb = ", p.fineness
-    
-    q = SASModel()
-    q.read("damstart.pdb")
-    q._calc_fineness()
-    print "fineness damstart.pdb = ", q.fineness
     
     print "DONE"
