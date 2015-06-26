@@ -226,12 +226,26 @@ if __name__ == "__main__":
     print aver.grid.shape[0]
     aver.assign_occupancy()
     print aver.grid
+    nb = 0
     
+    avermodel = numpy.empty((1,4), dtype="float")
+    for i in range(aver.grid.shape[0]):
+        if aver.grid[i,-1]>0:
+            nb += 1
+            atom = aver.grid[i,:].reshape((1,4))
+            avermodel = numpy.append(avermodel, atom, axis=0)
+    print nb
+    avermodel = numpy.delete(avermodel, 0, axis=0)
     
     m = SASModel()
     m.read("filegrid.pdb")
     m.atoms = lattice
     m.save("filegrid.pdb")
+    
+    n = SASModel()
+    n.read("filegrid.pdb")
+    n.atoms = avermodel
+    n.save("avermodel.pdb")
     
     
     print "DONE"
