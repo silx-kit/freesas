@@ -17,7 +17,10 @@ cimport openmp
 @cython.boundscheck(False)
 def calc_fineness(floating[:,:] atoms):
     """
-    Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model
+    Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model.
+    nota: to economize size*numpy.sqrt, the sqrt is taken at the end of the calculation. We should have done
+    s += sqrt(d) and then s/size, but we do s+= d and then sqrt(s/size).
+    You can check that the result is the same.
 
     @param atoms: 2d-array with atom coordinates:[[x,y,z],...]
     @return: average distance between an atoms and its nearest neighbor
