@@ -48,10 +48,9 @@ class SASModel:
         atoms = []
         for line in open(filename):
             if line.startswith("ATOM"):
-                args = line.split()
-                x = float(args[6])
-                y = float(args[7])
-                z = float(args[8])
+                x = float(line[30:38])
+                y = float(line[38:46])
+                z = float(line[46:54])
                 atoms.append([x, y, z])
             header.append(line)
         self.header = header
