@@ -2,8 +2,10 @@ __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
 
+import os
 import numpy
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plot
 from freesas.model import SASModel
 import itertools
@@ -180,24 +182,26 @@ class AlignModels:
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()
         
+        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
         ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
-        ax1.set_xticklabels([str(i) for i in range(1, 1 + dammif_files)])
+        ax1.set_xticklabels(labels, rotation=90)
         ax1.set_xlim(-0.5, dammif_files - 0.5)
         ax1.set_ylim(-0.5, dammif_files - 0.5)
         ax1.set_yticks(range(dammif_files))
-        ax1.set_yticklabels([str(i) for i in range(1, 1 + dammif_files)])
-        ax1.set_xlabel(u"Model number")
-        ax1.set_ylabel(u"Model number")
+        ax1.set_yticklabels(labels)
+        ax1.set_xlabel("Models")
+        ax1.set_ylabel("Models")
         
         ax2 = fig.add_subplot(1, 2, 2)
         ax2.bar(xticks - 0.5, data)
         ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
         ax2.set_title(u"NSD between any model and all others")
         ax2.set_ylabel("Normalized Spatial Discrepancy")
-        ax2.set_xlabel(u"Model number")
+        ax2.set_xlabel("Models")
         ax2.set_xticks(xticks)
+        ax2.set_xticklabels(labels, rotation=90)
         bbox_props = dict(fc="cyan", ec="b", lw=1)
         ax2.text(self.reference + 0.95, data[self.reference] / 2, "Reference", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
         ax2.legend(loc=8)
