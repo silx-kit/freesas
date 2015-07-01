@@ -3,6 +3,7 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
 
 import os
+import sys
 import numpy
 import matplotlib
 matplotlib.use('Agg')
@@ -14,6 +15,90 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
 
+class InputModels:
+    def __init__(self):
+        self.inputfiles = []
+        self.sasmodels = []
+        self.rmax = None
+        self.validmodels = []
+
+    def __repr_(self):
+        return "Preparation of %s models for alignment"%len(self.inputfiles)
+
+    def assign_models(self, molecule=None):
+        """
+        Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
+        Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
+        
+        @param molecule: optional 2d array, coordinates of the atoms for the model to create
+        @return self.models: list of SASModel
+        """
+        if not self.inputfiles and len(molecule)==0:
+            logger.error("No input files")
+        
+        if self.inputfiles:
+            for inputpdb in self.inputfiles:
+                model = SASModel()
+                model.read(inputpdb)
+                model.centroid()
+                model.inertiatensor()
+                model.canonical_parameters()
+                self.sasmodels.append(model)
+            if len(self.inputfiles) != len(self.sasmodels):
+                logger.error("Problem of assignment\n%s models for %s files"%(len(self.sasmodels), len(self.inputfiles)))
+        
+        elif len(molecule)!=0:
+            model = SASModel()
+            model.atoms = molecule
+            model.centroid()
+            model.inertiatensor()
+            model.canonical_parameters()
+            self.sasmodels.append(model)
+        
+        return self.sasmodels
+
+    def rcalculation(self):
+        """
+        Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
+        inputs plus 2 times the standard deviation.
+        
+        @return rmax: maximal value for the R-factor 
+        """
+        if len(self.sasmodels)==0:
+            self.assign_models()
+        models = self.sasmodels
+        
+        rfactors = numpy.empty(len(models), dtype="float")
+        for i in range(len(models)):
+            rfactors[i] = models[i].rfactor
+        
+        rmax = rfactors.mean() + 2 * rfactors.std()
+        self.rmax = rmax
+        
+        return rmax
+
+    def models_selection(self):
+        """
+        Check if each model respect the limit for the R-factor
+        
+        @return self.validmodels: 1d array, 0 for a non valid model, else 1
+        """
+        if self.rmax is None:
+            self.rcalculation()
+        rmax = self.rmax
+        
+        validmodels = []
+        for i in range(len(self.sasmodels)):
+            rfactor = self.sasmodels[i].rfactor
+            if rfactor <= rmax:
+                validmodels.append(1.0)
+            else:
+                validmodels.append(0.0)
+        
+        self.validmodels = numpy.array(validmodels, dtype="float")
+        
+        return self.validmodels
+
 class AlignModels:
     def __init__(self):
         self.slow = True
@@ -22,10 +107,11 @@ class AlignModels:
         self.outputfiles = []
         self.models = []
         self.arrayNSD = None
+        self.validmodels = []
         self.reference = None
 
     def __repr__(self):
-        return "alignment process for %s models"%len(self.inputfiles)
+        return "alignment process for %s models"%len(self.models)
 
     def assign_models(self, molecule=None):
         """
@@ -128,27 +214,30 @@ class AlignModels:
         
         @return self.arrayNSD: 2d array, NSD correlation table
         """
-        if not self.models:
-            models = self.assign_models()
-        else:
-            models = self.models
+        models = self.models
         size = len(models)
+        valid = self.validmodels
         self.arrayNSD = numpy.empty((size, size), dtype="float")
-        self.arrayparam = numpy.empty((size, size))
-        self.arraysym = numpy.empty((size, size))
         
         for i in range(size):
-            reference = models[i]
+            if valid[i] == 1.0:
+                reference = models[i]
+            else:
+                self.arrayNSD[i,:] = 0.00
+                continue
             for j in range(size):
                 if i==j:
                     self.arrayNSD[i,j] = 0.00
                 elif i<j:
-                    molecule = models[j]
-                    symmetry, p = self.alignment_sym(reference, molecule)
-                    if self.slow:
-                        dist = reference.dist_after_movement(p, molecule, symmetry)
+                    if valid[j] == 1.0:
+                        molecule = models[j]
+                        symmetry, p = self.alignment_sym(reference, molecule)
+                        if self.slow:
+                            dist = reference.dist_after_movement(p, molecule, symmetry)
+                        else:
+                            p, dist = self.optimize(reference, molecule, symmetry)
                     else:
-                        p, dist = self.optimize(reference, molecule, symmetry)
+                        dist = 0.00
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
 
@@ -165,20 +254,23 @@ class AlignModels:
             self.reference = self.find_reference()
         
         dammif_files = len(self.inputfiles)
-        data = self.arrayNSD.sum(axis=-1)/(dammif_files-1)#average NSD for each model with others(exclude itself)
+        mask2d = (1.0 - numpy.identity(dammif_files, dtype="float")) * numpy.outer(self.validmodels, self.validmodels)
+        data = self.arrayNSD.sum(axis=-1) / (self.validmodels.sum(axis=-1) - 1)#mean for the valid models, excluding itself
         fig = plot.figure(figsize=(15, 10))
         
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
         ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
         lnsd = []
+        maskedNSD = numpy.ma.masked_array(self.arrayNSD, mask=1-mask2d)
         for i in range(dammif_files):
             for j in range(dammif_files):
-                nsd = self.arrayNSD[i,j]
-                if round(nsd, 9)!=0:
+                nsd = maskedNSD[i,j]
+                if not maskedNSD.mask[i,j]:
                     lnsd.append(nsd)
-                ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
-                ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                    ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                    ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()
         
@@ -212,7 +304,8 @@ class AlignModels:
             if data[i]>nsd_max:
                 ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
             else:
-                valid_models += 1
+                if self.validmodels[i] == 1.0:
+                    valid_models += 1
         
         logger.info("%s valid models" % valid_models)
         fig.savefig("nsd.png")
@@ -227,16 +320,20 @@ class AlignModels:
         """
         ref_number = None
         if len(self.arrayNSD)==0:
-            table = self.makeNSDarray()
-        else:
-            table = self.arrayNSD
+            self.makeNSDarray()
+        if len(self.validmodels)==0:
+            logger.error("Validity of models is not computed")
+        table = self.arrayNSD
+        valid = self.validmodels
         
-        averNSD = table.mean(axis=1)
-        miniNSD = averNSD.min()
+        averNSD = table.sum(axis=-1) / valid.sum()
+        miniNSD = sys.maxsize
         for i in range(len(averNSD)):
-            if averNSD[i]==miniNSD:
+            if valid[i]==0.0:
+                continue
+            if averNSD[i] <= miniNSD:
                 ref_number = i
-                break
+                miniNSD = averNSD[i]
         if not ref_number and ref_number!=0:
             logger.error("No reference model found")
         self.reference = ref_number
@@ -276,10 +373,7 @@ class AlignModels:
         
         @return dist: NSD after alignment
         """
-        if not self.models:
-            models = self.assign_models()
-        else:
-            models = self.models
+        models = self.models
         reference = models[0]
         molecule = models[1]
         

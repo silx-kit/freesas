@@ -103,6 +103,7 @@ class TestAlign(unittest.TestCase):
                 align.assign_models(mol)
             else:
                 align.assign_models(m)
+        align.validmodels = numpy.ones(8)
         table = align.makeNSDarray()
         if table.sum()==0:
             logger.error("there is no intruders")
@@ -125,6 +126,7 @@ class TestAlign(unittest.TestCase):
         for i in range(8):
             mol = assign_random_mol()
             align.assign_models(mol)
+            align.validmodels = numpy.ones(8)
         table = align.makeNSDarray()
         ref = align.find_reference()
         neg_dif = 0

@@ -6,7 +6,7 @@ __copyright__ = "2015, ESRF"
 import argparse
 from os.path import dirname, abspath
 base = dirname(dirname(abspath(__file__)))
-from freesas.align import AlignModels
+from freesas.align import InputModels, AlignModels
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
@@ -23,6 +23,7 @@ parser.add_argument("-o", "--output", type=str, default="aligned.pdb", help="out
 args = parser.parse_args()
 input_len = len(args.file)
 logger.info("%s input files"%input_len)
+selection = InputModels()
 align = AlignModels()
 
 if args.mode=="SLOW":
@@ -53,8 +54,11 @@ else:
             output.append("aligned-%s.pdb"%(i+1))
     align.outputfiles = output
 
+selection.inputfiles = args.file
+selection.models_selection()
+align.models = selection.sasmodels
 align.inputfiles = args.file
-align.assign_models()
+align.validmodels = selection.validmodels
 
 if input_len==2:
     dist = align.alignment_2models()
@@ -63,5 +67,5 @@ if input_len==2:
 else:
     align.makeNSDarray()
     align.alignment_reference()
-    logger.info("%s models aligned on the model %s"%(input_len, align.reference+1))
+    logger.info("valid models aligned on the model %s"%(align.reference+1))
     align.plotNSDarray()
