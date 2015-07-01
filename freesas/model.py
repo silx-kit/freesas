@@ -29,6 +29,7 @@ class SASModel:
         self.atoms =  molecule if molecule is not None else []# initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
         self.radius = 1.0
         self.header = "" # header of the PDB file
+        self.rfactor = None
         self.com = []
         self._fineness = None
         self.inertensor = []
@@ -42,11 +43,13 @@ class SASModel:
     def read(self, filename):
         """
         read the PDB file
-        extract coordinates of each dummy atom
+        extract the R-factor of the model, coordinates of each dummy atom and pdb file header
         """
         header = []
         atoms = []
         for line in open(filename):
+            if line.startswith("REMARK 265  Final R-factor"):
+                self.rfactor = float(line[43:56])
             if line.startswith("ATOM"):
                 x = float(line[30:38])
                 y = float(line[38:46])
