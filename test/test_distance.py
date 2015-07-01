@@ -21,7 +21,7 @@ class TestDistance(unittest.TestCase):
         m.read(self.testfile1)
         f_np = m._calc_fineness(False)
         f_cy = m._calc_fineness(True)
-        self.assertEqual(f_np,f_cy,"fineness is the same %s!=%s"%(f_np, f_cy))
+        self.assertAlmostEqual(f_np,f_cy, 10,"fineness is the same %s!=%s"%(f_np, f_cy))
 
     def test_distance(self):
         m = SASModel()
@@ -30,7 +30,7 @@ class TestDistance(unittest.TestCase):
         n.read(self.testfile2)
         f_np = m.dist(n, m.atoms, n.atoms, False)
         f_cy = m.dist(n, m.atoms, n.atoms, True)
-        self.assertEqual(f_np,f_cy,"distance is the same %s!=%s"%(f_np, f_cy))
+        self.assertAlmostEqual(f_np,f_cy, 10,"distance is the same %s!=%s"%(f_np, f_cy))
 
     def test_same(self):
         m = SASModel()
@@ -40,8 +40,8 @@ class TestDistance(unittest.TestCase):
         numpy.random.shuffle(n.atoms)
         f_np = m.dist(n, m.atoms, n.atoms, False)
         f_cy = m.dist(n, m.atoms, n.atoms, True)
-        self.assertEqual(f_np, 0, "NSD not nul with np")
-        self.assertEqual(f_cy, 0, "NSD not nul with cy")
+        self.assertAlmostEqual(f_np, 0, 10, "NSD not nul with np")
+        self.assertAlmostEqual(f_cy, 0, 10, "NSD not nul with cy")
 
 def test_suite_all_distance():
     testSuite = unittest.TestSuite()
