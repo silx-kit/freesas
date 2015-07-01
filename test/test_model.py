@@ -47,6 +47,13 @@ class TesttParser(unittest.TestCase):
         outfile = open(self.outfile).read()
         self.assertEqual(infile, outfile, msg="file content is the same")
 
+    def test_rfactor(self):
+        m = SASModel()
+        m.read(self.testfile)
+        n = SASModel()
+        n.read(self.testfile)
+        self.assertEqual(m.rfactor, n.rfactor, msg="R-factor is not the same %s != %s"%(m.rfactor, n.rfactor))
+
     def test_centroid(self):
         m = assign_random_mol()
         m.centroid()
@@ -140,6 +147,7 @@ class TesttParser(unittest.TestCase):
 def test_suite_all_model():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TesttParser("test_same"))
+    testSuite.addTest(TesttParser("test_rfactor"))
     testSuite.addTest(TesttParser("test_centroid"))
     testSuite.addTest(TesttParser("test_inertia_tensor"))
     testSuite.addTest(TesttParser("test_canonical_translate"))
