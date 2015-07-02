@@ -56,6 +56,7 @@ else:
 
 selection.inputfiles = args.file
 selection.models_selection()
+selection.rfactorplot()
 align.models = selection.sasmodels
 align.inputfiles = args.file
 align.validmodels = selection.validmodels
