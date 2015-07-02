@@ -67,16 +67,15 @@ class Grid():
             self.calc_radius()
         
         radius = self.radius
-        a = 2*radius
-        h = (3**0.5/2)*a
-        c = (8.0/3)**(1.0/3)*a
+        a = numpy.sqrt(2.0)*radius
+        b = 2.0*radius
         
-        xmax = self.size[0]
-        xmin = self.size[3]
-        ymax = self.size[1]
-        ymin = self.size[4]
-        zmax = self.size[2]
-        zmin = self.size[5]
+        xmax = self.size[0] + b
+        xmin = self.size[3] - b
+        ymax = self.size[1] + b
+        ymin = self.size[4] - b
+        zmax = self.size[2] + b
+        zmin = self.size[5] - b
         
         x = 0.0
         y = 0.0
@@ -86,26 +85,37 @@ class Grid():
         ylist = []
         zlist = []
         knots = numpy.empty((1,4), dtype="float")
-        
-        while (zmin + z) <= zmax + a:
+        #attention ici on etend le volume uniquement selon les axes croissants !
+        while (zmin + z) <= zmax:
             zlist.append(z)
-            z += 0.5*c
-        while (ymin + y) <= ymax + a:
+            z += a
+        while (ymin + y) <= ymax:
             ylist.append(y)
-            y += h
-        while (xmin + x) <= xmax + a:
+            y += a
+        while (xmin + x) <= xmax:
             xlist.append(x)
-            x += 0.5*a
+            x += a
         
-        for z in zlist:
-            for j in range(len(xlist)):
-                x = xlist[j]
-                if j % 2 == 0:
-                    for y in ylist[0:-1:2]:
-                        knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
-                else:
-                    for y in ylist[1:-1:2]:
-                        knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+        for i in range(len(zlist)):
+            z = zlist[i]
+            if i % 2 ==0:
+                for j in range(len(xlist)):
+                    x = xlist[j]
+                    if j % 2 == 0:
+                        for y in ylist[0:-1:2]:
+                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                    else:
+                        for y in ylist[1:-1:2]:
+                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+            else:
+                for j in range(len(xlist)):
+                    x = xlist[j]
+                    if j % 2 == 0:
+                        for y in ylist[1:-1:2]:
+                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                    else:
+                        for y in ylist[0:-1:2]:
+                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
         
         knots = numpy.delete(knots, 0, axis=0)
         return knots
@@ -212,13 +222,16 @@ class AverModels():
 
 if __name__ == "__main__":
     grid = Grid()
-    grid.inputs = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    #grid.inputs = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    grid.inputs = ["damaver.pdb"]
     grid.spatial_extent()
     grid.calc_radius()
+    print grid.radius
     lattice = grid.make_grid()
     
     aver = AverModels()
-    aver.inputfiles = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    #aver.inputfiles = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
+    aver.inputfiles = ["damaver.pdb"]
     aver.models_pooling()
     aver.radius = grid.radius
     aver.grid = lattice

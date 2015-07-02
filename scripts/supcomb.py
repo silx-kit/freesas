@@ -69,4 +69,4 @@ else:
     align.makeNSDarray()
     align.alignment_reference()
     logger.info("valid models aligned on the model %s"%(align.reference+1))
-    align.plotNSDarray()
+    align.plotNSDarray(rmax=round(selection.rmax, 4))
