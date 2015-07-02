@@ -1,3 +1,4 @@
+from matplotlib.pyplot import set_cmap
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
@@ -62,7 +63,7 @@ class InputModels:
         """
         Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
         inputs plus 2 times the standard deviation.
-        R-factors are saved in the attribute self.rfactors, 1d array.
+        R-factors are saved in the attribute self.rfactors, 1d array, and in percentage.
         
         @return rmax: maximal value for the R-factor 
         """
@@ -73,9 +74,9 @@ class InputModels:
         rfactors = numpy.empty(len(models), dtype="float")
         for i in range(len(models)):
             rfactors[i] = models[i].rfactor
-        self.rfactors = rfactors
+        self.rfactors = 100.0 * rfactors
         
-        rmax = rfactors.mean() + 2 * rfactors.std()
+        rmax = self.rfactors.mean() + 2 * self.rfactors.std()
         self.rmax = rmax
         
         return rmax
@@ -92,7 +93,7 @@ class InputModels:
         
         validmodels = []
         for i in range(len(self.sasmodels)):
-            rfactor = self.sasmodels[i].rfactor
+            rfactor = self.rfactors[i]
             if rfactor <= rmax:
                 validmodels.append(1.0)
             else:
@@ -127,7 +128,7 @@ class InputModels:
         ax2.set_title("Selection of dammif models based on R factor")
         ax2.bar(xticks - 0.5, R)
         ax2.plot([0.5, dammif_files + 0.5], [Rmax, Rmax], "-r", label="R$_{max}$ = %.3f" % Rmax)
-        ax2.set_ylabel("R factor")
+        ax2.set_ylabel("R factor in percent")
         ax2.set_xlabel("Model")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
@@ -137,7 +138,7 @@ class InputModels:
         for i in range(dammif_files):
             if not self.validmodels[i]:
                 ax2.text(i + 0.95, Rmax / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
-                logger.debug("model %s discarded, Rfactor > Rmax"%self.inputfiles[i])
+                logger.info("model %s discarded, Rfactor > Rmax"%self.inputfiles[i])
         fig.savefig(filename)
 
         return fig
@@ -284,11 +285,12 @@ class AlignModels:
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
 
-    def plotNSDarray(self, filename=None):
+    def plotNSDarray(self, rmax,filename=None):
         """
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
         
+        @param rmax: threshold of R factor for the validity of a model
         @param filename: filename for the figure, default to nsd.png
         @return fig: the wanted figures
         """
@@ -300,28 +302,33 @@ class AlignModels:
             filename = "nsd.png"
         
         dammif_files = len(self.inputfiles)
-        mask2d = (1.0 - numpy.identity(dammif_files, dtype="float")) * numpy.outer(self.validmodels, self.validmodels)
-        data = self.arrayNSD.sum(axis=-1) / (self.validmodels.sum(axis=-1) - 1)#mean for the valid models, excluding itself
-        fig = plot.figure(figsize=(15, 10))
+        valid_models = self.validmodels
+        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
+        tableNSD = self.arrayNSD
+        mask2d = numpy.outer(valid_models, valid_models)
+        maskedNSD = numpy.ma.masked_array(tableNSD, mask=1-mask2d)
+        data = tableNSD.sum(axis=-1) / (valid_models.sum(axis=-1) - 1)#mean for the valid models, excluding itself
         
+        fig = plot.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
-        ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
+        ax2 = fig.add_subplot(1, 2, 2)
+        
+        #first subplot : the NSD table
         lnsd = []
-        maskedNSD = numpy.ma.masked_array(self.arrayNSD, mask=1-mask2d)
         for i in range(dammif_files):
             for j in range(dammif_files):
                 nsd = maskedNSD[i,j]
                 if not maskedNSD.mask[i,j]:
-                    lnsd.append(nsd)
                     ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
                     ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                    if i != j:
+                        lnsd.append(nsd)
 
         lnsd = numpy.array(lnsd)
-        nsd_max = lnsd.mean() + lnsd.std()
+        nsd_max = lnsd.mean() + lnsd.std()#threshold for nsd mean
         
-        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
-        ax1.imshow(self.arrayNSD, interpolation="nearest", origin="upper")
+        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap=set_cmap("YlOrRd"), norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
         ax1.set_xticklabels(labels, rotation=90)
@@ -332,7 +339,7 @@ class AlignModels:
         ax1.set_xlabel("Models")
         ax1.set_ylabel("Models")
         
-        ax2 = fig.add_subplot(1, 2, 2)
+        #second subplot : the NSD mean for each model
         ax2.bar(xticks - 0.5, data)
         ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
         ax2.set_title(u"NSD between any model and all others")
@@ -345,15 +352,18 @@ class AlignModels:
         ax2.legend(loc=8)
         
         bbox_props = dict(fc="pink", ec="r", lw=1)
-        valid_models = 0
+        valid_number = 0
         for i in range(dammif_files):
             if data[i]>nsd_max:
                 ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                logger.info("model %s discarded, nsd > nsd_max"%self.inputfiles[i])
+            elif not valid_models[i]:
+                ax2.text(i + 0.95, data[self.reference] / 2, "Discarded, Rfactor = %s > Rmax = %s"%(100.0*self.models[i].rfactor, rmax), ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
             else:
-                if self.validmodels[i] == 1.0:
-                    valid_models += 1
+                if valid_models[i] == 1.0:
+                    valid_number += 1
         
-        logger.info("%s valid models" % valid_models)
+        logger.info("%s valid models" % valid_number)
         fig.savefig(filename)
         return fig
 
