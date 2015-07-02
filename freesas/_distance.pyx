@@ -105,9 +105,13 @@ def calc_distance(floating[:, :] atoms1, floating[:, :] atoms2, floating finenes
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 def calc_density(floating[:, :] atoms, floating dmax, int npt):
     """
     Calculate the density rho(r)
+    
+    #TODO: formula for rigid sphere:
+    A = (4*R+d)*(2*R-d))**2/16.0/R**3
     
     @param atoms: 2d-array with atom coordinates[[x,y,z],...]
     @param dmax: Diameter of the model
@@ -121,11 +125,12 @@ def calc_density(floating[:, :] atoms, floating dmax, int npt):
         int threadid, numthreads = openmp.omp_get_max_threads() 
         floating d, dmax_plus, dx, dy, dz, x1, y1, z1
         floating s1 = 0.0, s2 = 0.0, big = sys.maxsize
-        numpy.uint32_t[:, ::1] tmp = numpy.zeros((numthreads, npt), numpy.int64)
-        numpy.uint32_t[::1] out = numpy.zeros(npt, numpy.int64)
+        numpy.uint32_t[:, ::1] tmp = numpy.zeros((numthreads, npt), numpy.uint32)
+        numpy.uint32_t[::1] out = numpy.zeros(npt, numpy.uint32)
         
     assert atoms.shape[1] >= 3
     assert size > 0
+    assert dmax > 0
     dmax_plus = dmax * (1.0 + numpy.finfo(numpy.float32).eps)
     for i in parallel.prange(size, nogil=True):
         threadid = parallel.threadid()
@@ -143,7 +148,7 @@ def calc_density(floating[:, :] atoms, floating dmax, int npt):
             tmp[threadid, k] += 2 
         tmp[threadid, 0] += 1
 
-    for j in parallel.prange(size, nogil=True):
+    for j in parallel.prange(npt, nogil=True):
         s = 0
         for i in range(numthreads):
             s = s + tmp[i, j]

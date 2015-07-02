@@ -3,6 +3,7 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
 import numpy
+import os
 from math import sqrt
 import threading
 try:
@@ -10,6 +11,7 @@ try:
 except ImportError:
     _distance = None
 from . import transformations
+
 
 def delta_expand(vec1, vec2):
     """
@@ -27,9 +29,13 @@ def delta_expand(vec1, vec2):
 
 class SASModel:
     def __init__(self, molecule=None):
-        self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
+        if isinstance(molecule, (str, unicode)) and os.path.exists(molecule):
+            self.read(molecule)
+        else:
+            self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
+            self.header = ""  # header of the PDB file
         self.radius = 1.0
-        self.header = ""  # header of the PDB file
+
         self.com = []
         self._fineness = None
         self._Rg = None
