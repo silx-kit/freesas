@@ -1,4 +1,3 @@
-from matplotlib.pyplot import set_cmap
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF" 
@@ -7,8 +6,8 @@ import os
 import sys
 import numpy
 import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plot
+#matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from freesas.model import SASModel
 import itertools
 from scipy.optimize import fmin
@@ -103,12 +102,13 @@ class InputModels:
         
         return self.validmodels
 
-    def rfactorplot(self, filename=None):
+    def rfactorplot(self, filename=None, save=False):
         """
         Create a png file with the table of R factor for each model.
         A threshold is computed to discarded models with Rfactor>Rmax.
         
         @param filename: filename for the figure, default to Rfactor.png
+        @param save: save automatically the figure if True, else show it
         @return fig: the wanted figures
         """
         if filename is None:
@@ -121,7 +121,7 @@ class InputModels:
         Rmax = self.rmax
         
         xticks = 1 + numpy.arange(dammif_files)
-        fig = plot.figure(figsize=(7.5, 10))
+        fig = plt.figure(figsize=(7.5, 10))
         labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
 
         ax2 = fig.add_subplot(1, 1, 1)
@@ -139,7 +139,11 @@ class InputModels:
             if not self.validmodels[i]:
                 ax2.text(i + 0.95, Rmax / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
                 logger.info("model %s discarded, Rfactor > Rmax"%self.inputfiles[i])
-        fig.savefig(filename)
+        
+        if save:
+            fig.savefig(filename)
+        else:
+            fig.show()
 
         return fig
 
@@ -285,13 +289,14 @@ class AlignModels:
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
 
-    def plotNSDarray(self, rmax,filename=None):
+    def plotNSDarray(self, rmax,filename=None, save=False):
         """
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
         
         @param rmax: threshold of R factor for the validity of a model
         @param filename: filename for the figure, default to nsd.png
+        @param save: save automatically the figure if True, else show it
         @return fig: the wanted figures
         """
         if len(self.arrayNSD)==0:
@@ -309,7 +314,7 @@ class AlignModels:
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=1-mask2d)
         data = tableNSD.sum(axis=-1) / (valid_models.sum(axis=-1) - 1)#mean for the valid models, excluding itself
         
-        fig = plot.figure(figsize=(15, 10))
+        fig = plt.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
         ax2 = fig.add_subplot(1, 2, 2)
@@ -328,7 +333,7 @@ class AlignModels:
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()#threshold for nsd mean
         
-        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap=set_cmap("YlOrRd"), norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
+        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap=plt.set_cmap("YlOrRd"), norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
         ax1.set_xticklabels(labels, rotation=90)
@@ -364,7 +369,11 @@ class AlignModels:
                     valid_number += 1
         
         logger.info("%s valid models" % valid_number)
-        fig.savefig(filename)
+        
+        if save:
+            fig.savefig(filename)
+        else:
+            fig.show()
         return fig
 
     def find_reference(self):
