@@ -17,12 +17,14 @@ class TestDistance(unittest.TestCase):
     testfile1 = join(base, "testdata", "model-01.pdb")
     testfile2 = join(base, "testdata", "dammif-01.pdb")
 
-    def test_fineness(self):
+    def test_invariants(self):
         m = SASModel()
         m.read(self.testfile1)
-        f_np = m._calc_fineness(False)
-        f_cy = m._calc_fineness(True)
+        f_np, r_np, d_np = m.calc_invariants(False)
+        f_cy, r_cy, d_cy = m.calc_invariants(True)
         self.assertAlmostEqual(f_np, f_cy, 10, "fineness is the same %s!=%s" % (f_np, f_cy))
+        self.assertAlmostEqual(r_np, r_cy, 10, "Rg is the same %s!=%s" % (r_np, r_cy))
+        self.assertAlmostEqual(d_np, d_cy, 10, "Dmax is the same %s!=%s" % (d_np, d_cy))
 
     def test_distance(self):
         m = SASModel()
@@ -47,7 +49,7 @@ class TestDistance(unittest.TestCase):
 
 def test_suite_all_distance():
     testSuite = unittest.TestSuite()
-    testSuite.addTest(TestDistance("test_fineness"))
+    testSuite.addTest(TestDistance("test_invariants"))
     testSuite.addTest(TestDistance("test_distance"))
     testSuite.addTest(TestDistance("test_same"))
     return testSuite
