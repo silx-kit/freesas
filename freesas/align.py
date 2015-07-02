@@ -19,6 +19,7 @@ class InputModels:
     def __init__(self):
         self.inputfiles = []
         self.sasmodels = []
+        self.rfactors = []
         self.rmax = None
         self.validmodels = []
 
@@ -61,6 +62,7 @@ class InputModels:
         """
         Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
         inputs plus 2 times the standard deviation.
+        R-factors are saved in the attribute self.rfactors, 1d array.
         
         @return rmax: maximal value for the R-factor 
         """
@@ -71,6 +73,7 @@ class InputModels:
         rfactors = numpy.empty(len(models), dtype="float")
         for i in range(len(models)):
             rfactors[i] = models[i].rfactor
+        self.rfactors = rfactors
         
         rmax = rfactors.mean() + 2 * rfactors.std()
         self.rmax = rmax
@@ -98,6 +101,46 @@ class InputModels:
         self.validmodels = numpy.array(validmodels, dtype="float")
         
         return self.validmodels
+
+    def rfactorplot(self, filename=None):
+        """
+        Create a png file with the table of R factor for each model.
+        A threshold is computed to discarded models with Rfactor>Rmax.
+        
+        @param filename: filename for the figure, default to Rfactor.png
+        @return fig: the wanted figures
+        """
+        if filename is None:
+            filename = "Rfactor.png"
+        if len(self.validmodels)==0:
+            self.models_selection()
+        
+        dammif_files = len(self.inputfiles)
+        R = self.rfactors
+        Rmax = self.rmax
+        
+        xticks = 1 + numpy.arange(dammif_files)
+        fig = plot.figure(figsize=(7.5, 10))
+        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
+
+        ax2 = fig.add_subplot(1, 1, 1)
+        ax2.set_title("Selection of dammif models based on R factor")
+        ax2.bar(xticks - 0.5, R)
+        ax2.plot([0.5, dammif_files + 0.5], [Rmax, Rmax], "-r", label="R$_{max}$ = %.3f" % Rmax)
+        ax2.set_ylabel("R factor")
+        ax2.set_xlabel("Model")
+        ax2.set_xticks(xticks)
+        ax2.set_xticklabels(labels, rotation=90)
+        ax2.legend(loc=8)
+
+        bbox_props = dict(fc="pink", ec="r", lw=1)
+        for i in range(dammif_files):
+            if not self.validmodels[i]:
+                ax2.text(i + 0.95, Rmax / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                logger.debug("model %s discarded, Rfactor > Rmax"%self.inputfiles[i])
+        fig.savefig(filename)
+
+        return fig
 
 class AlignModels:
     def __init__(self):
@@ -241,17 +284,20 @@ class AlignModels:
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
 
-    def plotNSDarray(self):
+    def plotNSDarray(self, filename=None):
         """
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
         
+        @param filename: filename for the figure, default to nsd.png
         @return fig: the wanted figures
         """
         if len(self.arrayNSD)==0:
             self.arrayNSD = self.makeNSDarray()
         if not self.reference:
             self.reference = self.find_reference()
+        if filename is None:
+            filename = "nsd.png"
         
         dammif_files = len(self.inputfiles)
         mask2d = (1.0 - numpy.identity(dammif_files, dtype="float")) * numpy.outer(self.validmodels, self.validmodels)
@@ -308,7 +354,7 @@ class AlignModels:
                     valid_models += 1
         
         logger.info("%s valid models" % valid_models)
-        fig.savefig("nsd.png")
+        fig.savefig(filename)
         return fig
 
     def find_reference(self):
