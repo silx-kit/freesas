@@ -9,7 +9,7 @@ import cython
 cimport numpy
 import numpy
 from cython cimport floating
-from libc.math cimport sqrt
+from libc.math cimport sqrt, fabs, exp
 from cython import parallel
 cimport openmp 
 
@@ -102,56 +102,78 @@ def calc_distance(floating[:, :] atoms1, floating[:, :] atoms2, floating finenes
 
     return sqrt(0.5 * ((1.0 / (size1 * fineness2 * fineness2)) * s1 + (1.0 / (size2 * fineness1 * fineness1)) * s2))
 
+cdef inline floating hard_sphere(floating pos, floating radius)nogil:
+    """Density using hard spheres
+    @param pos: fabs(d1-d)
+    """
+    if pos > 2.0 * radius:
+        return 0.0 
+    return (4 * radius + pos) * (2 * radius - pos) ** 2 / (16.0 * radius ** 3)
+
+cdef inline floating soft_sphere(floating pos, floating radius)nogil:
+    """Density using soft spheres (gaussian density)
+    @param pos: fabs(d1-d)
+    @param radius: radius of the equivalent hard sphere
+    """
+    cdef floating sigma = 0.40567 * radius
+    return exp(- pos * pos / (2.0 * sigma * sigma)) * 0.3989422804014327 / sigma
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def calc_density(floating[:, :] atoms, floating dmax, int npt):
+def calc_density(floating[:, :] atoms, floating dmax, int npt, floating r=0.0, bint hard=True):
     """
     Calculate the density rho(r)
     
     #TODO: formula for rigid sphere:
-    A = (4*R+d)*(2*R-d))**2/16.0/R**3
+    A = (4*R+d)*(2*R-d)**2/16.0/R**3
     
     @param atoms: 2d-array with atom coordinates[[x,y,z],...]
     @param dmax: Diameter of the model
     @param npt: number of point in the density
+    @param r: radius of an atom
+    @param hard: use hard spheres model
     @return: 1d-array of 
     """
     
     cdef:
-        int i, j, k, size = atoms.shape[0]
-        numpy.uint32_t s
-        int threadid, numthreads = openmp.omp_get_max_threads() 
+        int i, j, k, size = atoms.shape[0]        
+        int threadid, numthreads = openmp.omp_get_max_threads()
+        int width = 1 if hard else 2 
         floating d, dmax_plus, dx, dy, dz, x1, y1, z1
-        floating s1 = 0.0, s2 = 0.0, big = sys.maxsize
-        numpy.uint32_t[:, ::1] tmp = numpy.zeros((numthreads, npt), numpy.uint32)
-        numpy.uint32_t[::1] out = numpy.zeros(npt, numpy.uint32)
+        floating delta, d_min, d_max, d1, den 
+        double[:, ::1] tmp = numpy.zeros((numthreads, npt), numpy.float64)
+        double[::1] out = numpy.zeros(npt, numpy.float64)
+        double s
         
     assert atoms.shape[1] >= 3
     assert size > 0
     assert dmax > 0
     dmax_plus = dmax * (1.0 + numpy.finfo(numpy.float32).eps)
+    delta = dmax_plus / npt
+    
     for i in parallel.prange(size, nogil=True):
         threadid = parallel.threadid()
         x1 = atoms[i, 0]
         y1 = atoms[i, 1]
         z1 = atoms[i, 2]
-        for j in range(i):
+        for j in range(size):
             dx = atoms[j, 0] - x1
             dy = atoms[j, 1] - y1
             dz = atoms[j, 2] - z1
             d = sqrt(dx * dx + dy * dy + dz * dz)
-            k = <int> (npt * d / dmax_plus)
-            if k >= npt: 
-                continue
-            tmp[threadid, k] += 2 
-        tmp[threadid, 0] += 1
-
+            d_min = max(0.0, d - width * r)
+            d_max = min(dmax, d + width * r)
+            for k in range(<int>(d_min / delta), <int>(d_max / delta)+1):
+                if hard:
+                    tmp[threadid, k] += hard_sphere(fabs(k * delta - d), r)
+                else:
+                    tmp[threadid, k] += soft_sphere(fabs(k * delta - d), r)
     for j in parallel.prange(npt, nogil=True):
         s = 0
         for i in range(numthreads):
             s = s + tmp[i, j]
         out[j] += s
 
-    return out
+    return numpy.asarray(out)
