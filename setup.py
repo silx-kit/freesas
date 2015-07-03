@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
 from setuptools import setup
 from Cython.Distutils import build_ext
 from distutils.extension import Extension
@@ -17,7 +17,7 @@ script_files = glob.glob("scripts/*.py")
 
 setup(name="freesas",
       version="0.2",
-      author="Guillaume Bonamis, Jérôme Kieffer",
+      author="Guillaume Bonamis, Jerome Kieffer",
       author_email="jerome.kieffer@esrf.fr",
       description="Free tools to analyze Small angle scattering data",
       packages=["freesas"],

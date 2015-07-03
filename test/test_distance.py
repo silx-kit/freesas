@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#coding: utf-8
+# -*- coding: utf-8 -*-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
