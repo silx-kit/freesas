@@ -35,7 +35,7 @@ class SASModel:
             self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
             self.header = ""  # header of the PDB file
             self.rfactor = None
-        self.radius = 1.0
+        self.radius = 1.0 #unused at the moment
         self.com = []
         self._fineness = None
         self._Rg = None

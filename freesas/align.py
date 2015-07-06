@@ -30,13 +30,13 @@ class InputModels:
         """
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
-        
+
         @param molecule: optional 2d array, coordinates of the atoms for the model to create
         @return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule)==0:
             logger.error("No input files")
-        
+
         if self.inputfiles:
             for inputpdb in self.inputfiles:
                 model = SASModel()
@@ -47,7 +47,7 @@ class InputModels:
                 self.sasmodels.append(model)
             if len(self.inputfiles) != len(self.sasmodels):
                 logger.error("Problem of assignment\n%s models for %s files"%(len(self.sasmodels), len(self.inputfiles)))
-        
+
         elif len(molecule)!=0:
             model = SASModel()
             model.atoms = molecule
@@ -55,7 +55,7 @@ class InputModels:
             model.inertiatensor()
             model.canonical_parameters()
             self.sasmodels.append(model)
-        
+
         return self.sasmodels
 
     def rcalculation(self):
@@ -63,33 +63,33 @@ class InputModels:
         Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
         inputs plus 2 times the standard deviation.
         R-factors are saved in the attribute self.rfactors, 1d array, and in percentage.
-        
+
         @return rmax: maximal value for the R-factor 
         """
         if len(self.sasmodels)==0:
             self.assign_models()
         models = self.sasmodels
-        
+
         rfactors = numpy.empty(len(models), dtype="float")
         for i in range(len(models)):
             rfactors[i] = models[i].rfactor
         self.rfactors = 100.0 * rfactors
-        
+
         rmax = self.rfactors.mean() + 2 * self.rfactors.std()
         self.rmax = rmax
-        
+
         return rmax
 
     def models_selection(self):
         """
         Check if each model respect the limit for the R-factor
-        
+
         @return self.validmodels: 1d array, 0 for a non valid model, else 1
         """
         if self.rmax is None:
             self.rcalculation()
         rmax = self.rmax
-        
+
         validmodels = []
         for i in range(len(self.sasmodels)):
             rfactor = self.rfactors[i]
@@ -97,16 +97,16 @@ class InputModels:
                 validmodels.append(1.0)
             else:
                 validmodels.append(0.0)
-        
+
         self.validmodels = numpy.array(validmodels, dtype="float")
-        
+
         return self.validmodels
 
     def rfactorplot(self, filename=None, save=False):
         """
         Create a png file with the table of R factor for each model.
         A threshold is computed to discarded models with Rfactor>Rmax.
-        
+
         @param filename: filename for the figure, default to Rfactor.png
         @param save: save automatically the figure if True, else show it
         @return fig: the wanted figures
@@ -115,11 +115,11 @@ class InputModels:
             filename = "Rfactor.png"
         if len(self.validmodels)==0:
             self.models_selection()
-        
+
         dammif_files = len(self.inputfiles)
         R = self.rfactors
         Rmax = self.rmax
-        
+
         xticks = 1 + numpy.arange(dammif_files)
         fig = plt.figure(figsize=(7.5, 10))
         labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
@@ -139,7 +139,7 @@ class InputModels:
             if not self.validmodels[i]:
                 ax2.text(i + 0.95, Rmax / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
                 logger.info("model %s discarded, Rfactor > Rmax"%self.inputfiles[i])
-        
+
         if save:
             fig.savefig(filename)
         else:
@@ -165,13 +165,13 @@ class AlignModels:
         """
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
-        
+
         @param molecule: optional 2d array, coordinates of the atoms for the model to create
         @return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule)==0:
             logger.error("No input files")
-        
+
         if self.inputfiles:
             for inputpdb in self.inputfiles:
                 model = SASModel()
@@ -182,7 +182,7 @@ class AlignModels:
                 self.models.append(model)
             if len(self.inputfiles) != len(self.models):
                 logger.error("Problem of assignment\n%s models for %s files"%(len(self.models), len(self.inputfiles)))
-        
+
         elif len(molecule)!=0:
             model = SASModel()
             model.atoms = molecule
@@ -190,13 +190,13 @@ class AlignModels:
             model.inertiatensor()
             model.canonical_parameters()
             self.models.append(model)
-        
+
         return self.models
 
     def optimize(self, reference, molecule, symmetry):
         """
         Use scipy.optimize to optimize transformation parameters to minimize NSD
-        
+
         @param reference: SASmodel
         @param molecule: SASmodel        
         @param symmetry: 3-list of +/-1
@@ -211,7 +211,7 @@ class AlignModels:
     def alignment_sym(self, reference, molecule):
         """
         Apply 8 combinations to the molecule and select the one which minimize the distance between it and the reference.
-        
+
         @param reference: SASModel, the one which do not move
         @param molecule: SASModel, the one wich has to be aligned
         @return combinaison: best symmetry to minimize NSD
@@ -219,33 +219,33 @@ class AlignModels:
         """
         can_paramref = reference.can_param
         can_parammol = molecule.can_param
-        
+
         ref_can = reference.transform(can_paramref,[1,1,1])
         mol_can = molecule.transform(can_parammol,[1,1,1])
-        
+
         if self.slow:
             parameters, dist = self.optimize(reference, molecule, [1,1,1])
         else:
             parameters = can_parammol
             dist = reference.dist(molecule, ref_can, mol_can)
         combinaison = None
-        
+
         for comb in itertools.product((-1,1), repeat=3):
             if comb == (1,1,1):
                 continue
             if not self.enantiomorphs and comb[0]*comb[1]*comb[2] == -1:
                 continue
-            
+
             sym = numpy.diag(comb+(1,))
             mol_sym = numpy.dot(sym, mol_can.T).T
-            
+
             if self.slow:
                 symmetry = [sym[0,0], sym[1,1], sym[2,2]]
                 p, d = self.optimize(reference, molecule, symmetry)
             else:
                 p = can_parammol
                 d = reference.dist(molecule, ref_can, mol_sym)
-            
+
             if d < dist:
                 dist = d
                 parameters = p
@@ -259,14 +259,14 @@ class AlignModels:
     def makeNSDarray(self):
         """
         Calculate the NSD correlation table and save it in self.arrayNSD
-        
+
         @return self.arrayNSD: 2d array, NSD correlation table
         """
         models = self.models
         size = len(models)
         valid = self.validmodels
         self.arrayNSD = numpy.empty((size, size), dtype="float")
-        
+
         for i in range(size):
             if valid[i] == 1.0:
                 reference = models[i]
@@ -293,7 +293,7 @@ class AlignModels:
         """
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
-        
+
         @param rmax: threshold of R factor for the validity of a model
         @param filename: filename for the figure, default to nsd.png
         @param save: save automatically the figure if True, else show it
@@ -305,7 +305,7 @@ class AlignModels:
             self.reference = self.find_reference()
         if filename is None:
             filename = "nsd.png"
-        
+
         dammif_files = len(self.inputfiles)
         valid_models = self.validmodels
         labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
@@ -313,12 +313,12 @@ class AlignModels:
         mask2d = numpy.outer(valid_models, valid_models)
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=1-mask2d)
         data = tableNSD.sum(axis=-1) / (valid_models.sum(axis=-1) - 1)#mean for the valid models, excluding itself
-        
+
         fig = plt.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
         ax2 = fig.add_subplot(1, 2, 2)
-        
+
         #first subplot : the NSD table
         lnsd = []
         for i in range(dammif_files):
@@ -332,7 +332,7 @@ class AlignModels:
 
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()#threshold for nsd mean
-        
+
         ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap=plt.set_cmap("YlOrRd"), norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
@@ -343,7 +343,7 @@ class AlignModels:
         ax1.set_yticklabels(labels)
         ax1.set_xlabel("Models")
         ax1.set_ylabel("Models")
-        
+
         #second subplot : the NSD mean for each model
         ax2.bar(xticks - 0.5, data)
         ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
@@ -355,7 +355,7 @@ class AlignModels:
         bbox_props = dict(fc="cyan", ec="b", lw=1)
         ax2.text(self.reference + 0.95, data[self.reference] / 2, "Reference", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
         ax2.legend(loc=8)
-        
+
         bbox_props = dict(fc="pink", ec="r", lw=1)
         valid_number = 0
         for i in range(dammif_files):
@@ -367,9 +367,9 @@ class AlignModels:
             else:
                 if valid_models[i] == 1.0:
                     valid_number += 1
-        
+
         logger.info("%s valid models" % valid_number)
-        
+
         if save:
             fig.savefig(filename)
         else:
@@ -390,7 +390,7 @@ class AlignModels:
             logger.error("Validity of models is not computed")
         table = self.arrayNSD
         valid = self.validmodels
-        
+
         averNSD = table.sum(axis=-1) / valid.sum()
         miniNSD = sys.maxsize
         for i in range(len(averNSD)):
@@ -402,7 +402,7 @@ class AlignModels:
         if not ref_number and ref_number!=0:
             logger.error("No reference model found")
         self.reference = ref_number
-        
+
         return ref_number
 
     def alignment_reference(self, ref_number=None):
@@ -414,7 +414,7 @@ class AlignModels:
             ref_number = self.find_reference()
         else:
             ref_number = self.reference
-        
+
         models = self.models
         reference = models[ref_number]
         for i in range(len(models)):
@@ -435,22 +435,22 @@ class AlignModels:
         """
         Align two models using the first one as reference.
         The aligned models are save in pdb files.
-        
+
         @return dist: NSD after alignment
         """
         models = self.models
         reference = models[0]
         molecule = models[1]
-        
+
         symmetry, p = self.alignment_sym(reference, molecule)
         if not self.slow:
             p, dist = self.optimize(reference, molecule, symmetry)
-        
+
         molecule.atoms = molecule.transform(p, symmetry)
         molecule.atoms = molecule.transform(reference.can_param, [1,1,1], reverse=True)
         if self.slow:
             dist = reference.dist(molecule, reference.atoms, molecule.atoms)
         if save:
             molecule.save(self.outputfiles)
-        
+
         return dist
