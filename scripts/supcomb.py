@@ -61,22 +61,24 @@ else:
             output.append("aligned-%s.pdb"%(i+1))
     align.outputfiles = output
 
-selection.inputfiles = args.file
-selection.models_selection()
-selection.rfactorplot(save=save)
-align.models = selection.sasmodels
-align.inputfiles = args.file
-align.validmodels = selection.validmodels
-
 if input_len==2:
+    align.inputfiles = args.file
+    align.assign_models()
     dist = align.alignment_2models()
     logger.info("%s and %s aligned"%(args.file[0], args.file[1]))
     logger.info("NSD after optimized alignment = %s"%(dist))
 else:
+    selection.inputfiles = args.file
+    selection.models_selection()
+    selection.rfactorplot(save=save)
+    align.models = selection.sasmodels
+    align.inputfiles = args.file
+    align.validmodels = selection.validmodels
+
     align.makeNSDarray()
     align.alignment_reference()
     logger.info("valid models aligned on the model %s"%(align.reference+1))
     align.plotNSDarray(rmax=round(selection.rmax, 4), save=save)
 
-if not save:
+if not save and input_len > 2:
     raw_input("Press any key to exit")
