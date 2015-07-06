@@ -34,8 +34,8 @@ class SASModel:
         else:
             self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
             self.header = ""  # header of the PDB file
+            self.rfactor = None
         self.radius = 1.0
-        self.rfactor = None
         self.com = []
         self._fineness = None
         self._Rg = None
@@ -62,7 +62,7 @@ class SASModel:
                 y = float(line[38:46])
                 z = float(line[46:54])
                 atoms.append([x, y, z])
-            if line.startswith("REMARK 265 Final R-factor"):
+            if line.startswith("REMARK 265  Final R-factor"):#very dependent of the pdb file format !
                 self.rfactor = float(line[43:56])
             header.append(line)
         self.header = header
