@@ -332,7 +332,7 @@ class AlignModels:
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()#threshold for nsd mean
 
-        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap=plt.set_cmap("YlOrRd"), norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
+        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap="YlOrRd", norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
         ax1.set_title(u"NSD correlation table")
         ax1.set_xticks(range(dammif_files))
         ax1.set_xticklabels(labels, rotation=90)
