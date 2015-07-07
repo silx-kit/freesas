@@ -357,7 +357,7 @@ class AlignModels:
         for i in range(dammif_files):
             if data[i]>nsd_max:
                 ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
-                logger.info("model %s discarded, nsd > nsd_max"%self.inputfiles[i])
+                logger.debug("model %s discarded, nsd > nsd_max"%self.inputfiles[i])
             elif not valid_models[i]:
                 if rmax:
                     ax2.text(i + 0.95, data[self.reference] / 2, "Discarded, Rfactor = %s > Rmax = %s"%(100.0*self.models[i].rfactor, rmax), ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
