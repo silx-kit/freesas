@@ -53,13 +53,8 @@ else:
 if input_len==2:
     align.outputfiles = args.output
 else:
-    output = []
     for i in range(input_len):
-        if i<9:
-            output.append("aligned-0%s.pdb"%(i+1))
-        else:
-            output.append("aligned-%s.pdb"%(i+1))
-    align.outputfiles = output
+        align.outputfiles.append("aligned-%02i.pdb" % (i+1))
 
 if input_len==2:
     align.inputfiles = args.file

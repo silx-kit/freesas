@@ -289,7 +289,7 @@ class AlignModels:
                     self.arrayNSD[i,j] = self.arrayNSD[j,i] = dist
         return self.arrayNSD
 
-    def plotNSDarray(self, rmax,filename=None, save=False):
+    def plotNSDarray(self, rmax=None,filename=None, save=False):
         """
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
@@ -363,7 +363,10 @@ class AlignModels:
                 ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
                 logger.info("model %s discarded, nsd > nsd_max"%self.inputfiles[i])
             elif not valid_models[i]:
-                ax2.text(i + 0.95, data[self.reference] / 2, "Discarded, Rfactor = %s > Rmax = %s"%(100.0*self.models[i].rfactor, rmax), ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                if rmax:
+                    ax2.text(i + 0.95, data[self.reference] / 2, "Discarded, Rfactor = %s > Rmax = %s"%(100.0*self.models[i].rfactor, rmax), ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                else:
+                    ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
             else:
                 if valid_models[i] == 1.0:
                     valid_number += 1
