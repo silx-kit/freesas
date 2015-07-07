@@ -129,7 +129,6 @@ class InputModels:
         ax2.bar(xticks - 0.5, R)
         ax2.plot([0.5, dammif_files + 0.5], [Rmax, Rmax], "-r", label="R$_{max}$ = %.3f" % Rmax)
         ax2.set_ylabel("R factor in percent")
-        ax2.set_xlabel("Model")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
         ax2.legend(loc=8)
@@ -308,7 +307,7 @@ class AlignModels:
 
         dammif_files = len(self.inputfiles)
         valid_models = self.validmodels
-        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
+        labels = [os.path.splitext(os.path.basename(self.outputfiles[i]))[0] for i in range(dammif_files)]
         tableNSD = self.arrayNSD
         mask2d = numpy.outer(valid_models, valid_models)
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=1-mask2d)
@@ -341,15 +340,12 @@ class AlignModels:
         ax1.set_ylim(-0.5, dammif_files - 0.5)
         ax1.set_yticks(range(dammif_files))
         ax1.set_yticklabels(labels)
-        ax1.set_xlabel("Models")
-        ax1.set_ylabel("Models")
 
         #second subplot : the NSD mean for each model
         ax2.bar(xticks - 0.5, data)
         ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
         ax2.set_title(u"NSD between any model and all others")
         ax2.set_ylabel("Normalized Spatial Discrepancy")
-        ax2.set_xlabel("Models")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
         bbox_props = dict(fc="cyan", ec="b", lw=1)
@@ -371,7 +367,7 @@ class AlignModels:
                 if valid_models[i] == 1.0:
                     valid_number += 1
 
-        logger.info("%s valid models" % valid_number)
+        logger.debug("%s valid models" % valid_number)
 
         if save:
             fig.savefig(filename)

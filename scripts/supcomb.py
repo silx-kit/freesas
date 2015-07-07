@@ -53,7 +53,7 @@ else:
 if input_len==2:
     align.outputfiles = args.output
 else:
-    align.outputfiles = ["aligned-%02i.pdb" % (i+1) for i in range(input_len)]
+    align.outputfiles = ["model-%02i.pdb" % (i+1) for i in range(input_len)]
 
 if input_len==2:
     align.inputfiles = args.file
