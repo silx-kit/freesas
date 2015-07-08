@@ -319,7 +319,7 @@ class AlignModels:
         mask2d = (numpy.outer(valid_models, valid_models))
         tableNSD = self.arrayNSD * mask2d
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=numpy.logical_not(mask2d))
-        data = valid_models * (tableNSD.sum(axis=-1) / (valid_models.sum(axis=-1) - 1))  # mean for the valid models, excluding itself
+        data = valid_models * (tableNSD.sum(axis=-1) / (valid_models.sum() - 1))  # mean for the valid models, excluding itself
         
         fig = plt.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
@@ -390,26 +390,20 @@ class AlignModels:
         
         @return ref_number: position of the reference model in the list self.models
         """
-        ref_number = None
         if self.arrayNSD is None:
             self.makeNSDarray()
         if len(self.validmodels) == 0:
             logger.error("Validity of models is not computed")
         valid = self.validmodels
+        valid = valid.astype(bool)
 
-        averNSD = valid * (self.arrayNSD.sum(axis=-1) / (valid.sum(axis=-1) - 1))
-        miniNSD = sys.maxsize
-        for i in range(len(averNSD)):
-            if valid[i] == 0.0:
-                continue
-            if averNSD[i] <= miniNSD:
-                ref_number = i
-                miniNSD = averNSD[i]
-        if not ref_number and ref_number != 0:
-            logger.error("No reference model found")
-        self.reference = ref_number
+        averNSD = numpy.zeros(len(self.models))
+        averNSD += sys.maxsize
+        averNSD[valid] = ((self.arrayNSD.sum(axis=-1)) / (valid.sum() - 1))[valid]
 
-        return ref_number
+        self.reference = averNSD.argmin()
+
+        return self.reference
 
     def alignment_reference(self, ref_number=None):
         """
