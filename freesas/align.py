@@ -273,8 +273,6 @@ class AlignModels:
         size = len(models)
         valid = self.validmodels
         self.arrayNSD = numpy.zeros((size, size), dtype="float")
-        self.arrayNSD += 1e120
-        #TODO: initialize to 0 !!!
 
         for i in range(size):
             if valid[i] == 1.0:
@@ -320,11 +318,9 @@ class AlignModels:
         labels = [os.path.splitext(os.path.basename(self.outputfiles[i]))[0] for i in range(dammif_files)]
         mask2d = (numpy.outer(valid_models, valid_models))
         tableNSD = self.arrayNSD * mask2d
-        print(tableNSD)
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=numpy.logical_not(mask2d))
-        print((valid_models.sum(axis=-1) - 1))
         data = valid_models * (tableNSD.sum(axis=-1) / (valid_models.sum(axis=-1) - 1))  # mean for the valid models, excluding itself
-        print (data)
+        
         fig = plt.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
@@ -399,10 +395,9 @@ class AlignModels:
             self.makeNSDarray()
         if len(self.validmodels) == 0:
             logger.error("Validity of models is not computed")
-        table = self.arrayNSD
         valid = self.validmodels
 
-        averNSD = table.sum(axis=-1) / valid.sum()
+        averNSD = valid * (self.arrayNSD.sum(axis=-1) / (valid.sum(axis=-1) - 1))
         miniNSD = sys.maxsize
         for i in range(len(averNSD)):
             if valid[i] == 0.0:
@@ -421,11 +416,10 @@ class AlignModels:
         Align all models in self.models with the reference one.
         The aligned models are saved in pdb files (names in list self.outputfiles)
         """
-        if not self.reference and not ref_number and self.reference != 0:
-            ref_number = self.find_reference()
-        else:
-            ref_number = self.reference
-
+        if self.reference is None and ref_number is None:
+            self.find_reference()
+        
+        ref_number = self.reference
         models = self.models
         reference = models[ref_number]
         for i in range(len(models)):
