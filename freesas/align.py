@@ -153,9 +153,9 @@ class AlignModels:
     Docstring ?
     """
 
-    def __init__(self):
-        self.slow = True
-        self.enantiomorphs = True
+    def __init__(self, slow=True, enantiomorphs=True):
+        self.slow = slow
+        self.enantiomorphs = enantiomorphs
         self.inputfiles = []
         self.outputfiles = []
         self.models = []
