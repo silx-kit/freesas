@@ -150,13 +150,18 @@ class InputModels:
 
 class AlignModels:
     """
-    Docstring ?
+    Used to align DAM from pdb files
     """
 
-    def __init__(self, slow=True, enantiomorphs=True):
+    def __init__(self, files, slow=True, enantiomorphs=True):
+        """
+        @param files: list of pdb files to read to create DAM
+        @param slow: optimized every symmetry if True, else only optimized the best one
+        @param enantiomorphs: take into account both enantiomorphs if True (i.e. inversion authorized)
+        """
         self.slow = slow
         self.enantiomorphs = enantiomorphs
-        self.inputfiles = []
+        self.inputfiles = files
         self.outputfiles = []
         self.models = []
         self.arrayNSD = None
