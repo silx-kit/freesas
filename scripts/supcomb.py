@@ -25,7 +25,6 @@ args = parser.parse_args()
 input_len = len(args.file)
 logger.info("%s input files"%input_len)
 selection = InputModels()
-align = AlignModels()
 
 if args.mode=="SLOW":
     slow = True
