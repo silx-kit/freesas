@@ -28,16 +28,16 @@ selection = InputModels()
 align = AlignModels()
 
 if args.mode=="SLOW":
-    align.slow = True
+    slow = True
     logger.info("SLOW mode")
 else:
-    align.slow = False
+    slow = False
     logger.info("FAST mode")
 
 if args.enantiomorphs=="YES":
-    align.enantiomorphs = True
+    enantiomorphs = True
 else:
-    align.enantiomorphs = False
+    enantiomorphs = False
     logger.info("NO enantiomorphs")
 
 if args.quiet=="OFF":
@@ -50,23 +50,18 @@ else:
     save = True
     logger.info("Figures saved automatically : \n  R factor values and selection =>  Rfactor.png \n  NSD table and selection =>  nsd.png")
 
+align = AlignModels(args.file, slow=slow, enantiomorphs=enantiomorphs)
 if input_len==2:
     align.outputfiles = args.output
-else:
-    align.outputfiles = ["model-%02i.pdb" % (i+1) for i in range(input_len)]
-
-if input_len==2:
-    align.inputfiles = args.file
-    align.assign_models()
     dist = align.alignment_2models()
     logger.info("%s and %s aligned"%(args.file[0], args.file[1]))
     logger.info("NSD after optimized alignment = %s"%(dist))
 else:
+    align.outputfiles = ["model-%02i.pdb" % (i+1) for i in range(input_len)]
     selection.inputfiles = args.file
     selection.models_selection()
     selection.rfactorplot(save=save)
     align.models = selection.sasmodels
-    align.inputfiles = args.file
     align.validmodels = selection.validmodels
 
     align.makeNSDarray()
