@@ -8,11 +8,13 @@ type license.
 Introduction
 ------------
 
-Freesas has been write as a re-implementation of some ATSAS parts in
-Python for a better integration in the BM29 ESRF beam-line processing
-pipelines. It provides functions to read SAS data from pdb files and to
-handle them. Parts of the code are written in Cython and parallelized to
-speed-up the execution.
+| FreeSAS has been write as a re-implementation of some ATSAS parts in
+  Python for a better integration in the BM29 ESRF beam-line processing
+  pipelines. It provides functions to read SAS data from pdb files and to
+  handle them. Parts of the code are written in Cython and parallelized to
+  speed-up the execution.
+
+| FreeSAS code is available on Github at https://github.com/kif/freesas .
 
 Installation
 ------------
@@ -42,8 +44,7 @@ Read a pdb file:
     print model1.header                #print pdb file content
     print model1.atoms                 #print dummy atoms coordinates
     print model1.rfactor               #print R-factor of the DAM
-    
-    
+   
 Some informations are extracted of the model atoms coordinates:
 
 - fineness : average distance between a DA and its first neighbours
@@ -68,7 +69,7 @@ Some informations are extracted of the model atoms coordinates:
     model1.canonical_parameters()  #calculate the DAM canonical_parameters
     print model1.can_param
 
-Other methods:
+Other methods: transformation and NSD calculation
 
 .. code-block:: python
 
@@ -78,7 +79,7 @@ Other methods:
     #return DAM coordinates after the transformation
 
     model2 = SASModel("dammif-02.pdb") #create a second SASModel
-    model2.canonical_parameters
+    model2.canonical_parameters()
     atoms1 = model1.atoms
     atoms2 = model2.atoms
     model1.dist(model2, atoms1, atoms2)#calculate the NSD between models
@@ -87,8 +88,12 @@ Other methods:
     symmetry = [1,1,1]
     model1.dist_after_movement(param2, model2, symmetry)
     #calculate the NSD, first model on its canonical position, second
-    model after a transformation with param2 and symmetry
+    #model after a transformation with param2 and symmetry
     
 		
 Supcomb script
 ..............
+
+FreeSAS can also be used directly using command lines. Here is presented 
+the way to use the programme supcomb.py, the re-implementation of the 
+Supcomb of the Atsas package.
