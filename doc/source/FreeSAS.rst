@@ -26,9 +26,10 @@ Freesas as a library
 
 Here are presented some basics way to use FreeSAS as a library.
 Some abbreviations:
-DA = Dummy Atom
-DAM = Dummy Atoms Model
-NSD = Normalized Spatial Discrepancy
+
+- DA = Dummy Atom
+- DAM = Dummy Atoms Model
+- NSD = Normalized Spatial Discrepancy
 
 Read a pdb file:
 
@@ -44,11 +45,12 @@ Read a pdb file:
     
     
 Some informations are extracted of the model atoms coordinates:
+
 - fineness : average distance between a DA and its first neighbours
 - radius of gyration
 - Dmax : DAM diameter, maximal distance between 2 DA of the DAM
 - center of mass
-- inerita tensor
+- inertia tensor
 - canonical parameters : 3 parameters of translation and 3 euler
   angles, define the transformation to applied to the DAM to put it
   on its canonical position (center of mass at the origin, inertia axis
