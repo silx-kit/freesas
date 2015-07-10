@@ -33,7 +33,15 @@ Some abbreviations:
 - DAM = Dummy Atoms Model
 - NSD = Normalized Spatial Discrepancy
 
-Read a pdb file:
+
+The SASModel class
+""""""""""""""""""
+
+This class allows to manipulate a DAM and to do some operations on it as 
+it is presented here.
+
+First, the method SASModel.read() can be used to read a pdb file 
+containing data of a DAM :
 
 .. code-block:: python
 
@@ -69,12 +77,12 @@ Some informations are extracted of the model atoms coordinates:
     model1.canonical_parameters()  #calculate the DAM canonical_parameters
     print model1.can_param
 
-Other methods: transformation and NSD calculation
+Other methods of the class for transformations and NSD calculation
 
 .. code-block:: python
 
     param1 = model1.can_param           #parameters for the transformation
-    symmetry = [1,1,1]                 #symmetry for the transformation
+    symmetry = [1,1,1]                  #symmetry for the transformation
     model1.transform(param1, symmetry)
     #return DAM coordinates after the transformation
 
@@ -89,7 +97,30 @@ Other methods: transformation and NSD calculation
     model1.dist_after_movement(param2, model2, symmetry)
     #calculate the NSD, first model on its canonical position, second
     #model after a transformation with param2 and symmetry
-    
+
+
+The AlignModels class
+"""""""""""""""""""""
+
+This other class contains lot of tools to align several DAMs, using the 
+SASModel class presented before.
+
+The first thing to do is to select the pdb files you are interested in 
+and to create SASModels corresponding using the method of the class like 
+following :
+
+.. code-block:: python
+
+    from freesas.align import AlignModels
+    inputfiles = ["dammif-01.pdb", "dammif-02.pdb", "dammif-03.pdb", ...]
+    align = AlignModels(inputfiles)        #create the class
+    align.assign_models()                  #create the SASModels
+    print align.models                     #SASModels ready to be aligned
+
+Next, the different NSD between each computed models can be calculated 
+and save as a 2d-array. But first it is necessary to give which models are 
+valid and which ones are not and need to be discarded :
+
 		
 Supcomb script
 ..............
