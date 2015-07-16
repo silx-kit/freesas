@@ -6,6 +6,7 @@ __copyright__ = "2015, ESRF"
 import numpy
 import unittest
 from utilstests import base, join
+from freesas.model import SASModel
 from freesas.align import AlignModels
 from freesas.transformations import translation_matrix, euler_matrix
 import logging
@@ -54,24 +55,25 @@ class TestAlign(unittest.TestCase):
     testfile2 = join(base, "testdata", "dammif-02.pdb")
 
     def test_alignment(self):
-        m = assign_random_mol()
-        n = move(m * 1.0)
-        align = AlignModels()
-        align.assign_models(m)
-        align.assign_models(n)
-        mol1 = align.models[0]
-        mol2 = align.models[1]
-        if mol1.dist(mol2, m, n) == 0:
+        inputfiles = [self.testfile1, self.testfile1]
+        align = AlignModels(inputfiles, slow=False)
+        align.assign_models()
+        m = align.models[0]
+        n = align.models[1]
+        n.atoms = move(n.atoms)
+        n.centroid()
+        n.inertiatensor()
+        n.canonical_parameters()
+        if m.dist(n, m.atoms, n.atoms) == 0:
+            print m.dist(n, m.atoms, n.atoms)
             logger.error("pb of movement")
         dist = align.alignment_2models(save=False)
         self.assertAlmostEqual(dist, 0, 12, msg="NSD unequal 0, %s!=0" % dist)
 
     def test_usefull_alignment(self):
-        m = assign_random_mol()
-        n = assign_random_mol()
-        align = AlignModels()
-        align.assign_models(m)
-        align.assign_models(n)
+        inputfiles = [self.testfile1, self.testfile2]
+        align = AlignModels(inputfiles, slow=False)
+        align.assign_models()
         mol1 = align.models[0]
         mol2 = align.models[1]
         dist_before = mol1.dist(mol2, mol1.atoms, mol2.atoms)
@@ -80,11 +82,9 @@ class TestAlign(unittest.TestCase):
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s" % (dist_before, dist_after))
 
     def test_optimisation_align(self):
-        m = assign_random_mol()
-        n = assign_random_mol()
-        align = AlignModels()
-        align.assign_models(m)
-        align.assign_models(n)
+        inputfiles = [self.testfile1, self.testfile2]
+        align = AlignModels(inputfiles, slow=False)
+        align.assign_models()
         mol1 = align.models[0]
         mol2 = align.models[1]
         align.slow = False
@@ -96,42 +96,36 @@ class TestAlign(unittest.TestCase):
         self.assertGreaterEqual(dist_before, dist_after, "increase of distance after optimized alignment %s<%s" % (dist_before, dist_after))
 
     def test_alignment_intruder(self):
-        align = AlignModels()
-        align.slow = False
-        align.enantiomorphs = False
-        m = assign_random_mol()
         intruder = numpy.random.randint(0, 8)
-
+        inputfiles = []
         for i in range(8):
             if i == intruder:
-                mol = assign_random_mol()
-                align.assign_models(mol)
+                inputfiles.append(self.testfile2)
             else:
-                align.assign_models(m)
+                inputfiles.append(self.testfile1)
+
+        align = AlignModels(inputfiles, slow=False, enantiomorphs=False)
+        align.assign_models()
         align.validmodels = numpy.ones(8)
         table = align.makeNSDarray()
         if table.sum() == 0:
             logger.error("there is no intruders")
 
-        num_intr = None
-        max_dist = 0.00
-        for i in range(len(table)):
-            aver = table[i, :].mean()
-            if aver >= max_dist:
-                max_dist = aver
-                num_intr = i
+        averNSD = ((table.sum(axis=-1)) / (align.validmodels.sum() - 1))
+        num_intr = averNSD.argmax()
+
         if not num_intr and num_intr != 0:
             logger.error("cannot find the intruder")
-        self.assertEqual(num_intr, intruder, msg="not find the good intruder")
+        self.assertEqual(num_intr, intruder, msg="not find the good intruder, %s!=%s"%(num_intr, intruder))
 
     def test_reference(self):
-        align = AlignModels()
-        align.slow = False
-        align.enantiomorphs = False
+        inputfiles = [self.testfile1] * 8
+        align = AlignModels(inputfiles, slow=False, enantiomorphs=False)
+        align.assign_models()
         for i in range(8):
             mol = assign_random_mol()
-            align.assign_models(mol)
-            align.validmodels = numpy.ones(8)
+            align.models[i].atoms = mol
+        align.validmodels = numpy.ones(8)
         table = align.makeNSDarray()
         ref = align.find_reference()
         neg_dif = 0
