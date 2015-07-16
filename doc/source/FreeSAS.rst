@@ -77,7 +77,7 @@ Some informations are extracted of the model atoms coordinates:
     model1.canonical_parameters()  #calculate the DAM canonical_parameters
     print model1.can_param
 
-Other methods of the class for transformations and NSD calculation
+Other methods of the class for transformations and NSD calculation:
 
 .. code-block:: python
 
@@ -120,6 +120,15 @@ following :
 Next, the different NSD between each computed models can be calculated 
 and save as a 2d-array. But first it is necessary to give which models are 
 valid and which ones are not and need to be discarded :
+
+.. code-block:: python
+
+    align.validmodels = numpy.ones((len(align.inputfiles)))
+    #here we keep all models as valid ones
+    align.makeNSDarray()                 #create the NSD table
+    align.plotNSDarray()                 #display the table as png file
+    align.find_reference()               #select the reference model
+    align.alignment_reference()          #align models with the reference
 
 		
 Supcomb script
