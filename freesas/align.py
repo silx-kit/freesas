@@ -32,8 +32,8 @@ class InputModels:
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
 
-        @param molecule: optional 2d array, coordinates of the atoms for the model to create
-        @return self.models: list of SASModel
+        :param molecule: optional 2d array, coordinates of the atoms for the model to create
+        :return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule) == 0:
             logger.error("No input files")
@@ -65,7 +65,7 @@ class InputModels:
         inputs plus 2 times the standard deviation.
         R-factors are saved in the attribute self.rfactors, 1d array, and in percentage.
 
-        @return rmax: maximal value for the R-factor 
+        :return rmax: maximal value for the R-factor 
         """
         if len(self.sasmodels) == 0:
             self.assign_models()
@@ -85,7 +85,7 @@ class InputModels:
         """
         Check if each model respect the limit for the R-factor
 
-        @return self.validmodels: 1d array, 0 for a non valid model, else 1
+        :return self.validmodels: 1d array, 0 for a non valid model, else 1
         """
         if self.rmax is None:
             self.rcalculation()
@@ -108,9 +108,9 @@ class InputModels:
         Create a png file with the table of R factor for each model.
         A threshold is computed to discarded models with Rfactor>Rmax.
 
-        @param filename: filename for the figure, default to Rfactor.png
-        @param save: save automatically the figure if True, else show it
-        @return fig: the wanted figures
+        :param filename: filename for the figure, default to Rfactor.png
+        :param save: save automatically the figure if True, else show it
+        :return fig: the wanted figures
         """
         if filename is None:
             filename = "Rfactor.png"
@@ -155,9 +155,9 @@ class AlignModels:
 
     def __init__(self, files, slow=True, enantiomorphs=True):
         """
-        @param files: list of pdb files to read to create DAM
-        @param slow: optimized every symmetry if True, else only optimized the best one
-        @param enantiomorphs: take into account both enantiomorphs if True (i.e. inversion authorized)
+        :param files: list of pdb files to read to create DAM
+        :param slow: optimized every symmetry if True, else only optimized the best one
+        :param enantiomorphs: take into account both enantiomorphs if True (i.e. inversion authorized)
         """
         self.slow = slow
         self.enantiomorphs = enantiomorphs
@@ -176,8 +176,8 @@ class AlignModels:
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
 
-        @param molecule: optional 2d array, coordinates of the atoms for the model to create
-        @return self.models: list of SASModel
+        :param molecule: optional 2d array, coordinates of the atoms for the model to create
+        :return self.models: list of SASModel
         """
         if not self.inputfiles and len(molecule) == 0:
             logger.error("No input files")
@@ -207,11 +207,11 @@ class AlignModels:
         """
         Use scipy.optimize to optimize transformation parameters to minimize NSD
 
-        @param reference: SASmodel
-        @param molecule: SASmodel        
-        @param symmetry: 3-list of +/-1
-        @return p: transformation parameters optimized
-        @return dist: NSD after optimization
+        :param reference: SASmodel
+        :param molecule: SASmodel        
+        :param symmetry: 3-list of +/-1
+        :return p: transformation parameters optimized
+        :return dist: NSD after optimization
         """
         p, dist, niter, nfuncalls, warmflag = fmin(reference.dist_after_movement, molecule.can_param, args=(molecule, symmetry), ftol=1e-4, maxiter=200, full_output=True, disp=False)
         if niter == 200:
@@ -224,10 +224,10 @@ class AlignModels:
         """
         Apply 8 combinations to the molecule and select the one which minimize the distance between it and the reference.
 
-        @param reference: SASModel, the one which do not move
-        @param molecule: SASModel, the one wich has to be aligned
-        @return combinaison: best symmetry to minimize NSD
-        @return p: transformation parameters optimized if slow is true, unoptimized else
+        :param reference: SASModel, the one which do not move
+        :param molecule: SASModel, the one wich has to be aligned
+        :return combinaison: best symmetry to minimize NSD
+        :return p: transformation parameters optimized if slow is true, unoptimized else
         """
         can_paramref = reference.can_param
         can_parammol = molecule.can_param
@@ -272,7 +272,7 @@ class AlignModels:
         """
         Calculate the NSD correlation table and save it in self.arrayNSD
 
-        @return self.arrayNSD: 2d array, NSD correlation table
+        :return self.arrayNSD: 2d array, NSD correlation table
         """
         models = self.models
         size = len(models)
@@ -306,10 +306,10 @@ class AlignModels:
         Create a png file with the table of NSD and the average NSD for each model.
         A threshold is computed to segregate good models and the ones to exclude.
 
-        @param rmax: threshold of R factor for the validity of a model
-        @param filename: filename for the figure, default to nsd.png
-        @param save: save automatically the figure if True, else show it
-        @return fig: the wanted figures
+        :param rmax: threshold of R factor for the validity of a model
+        :param filename: filename for the figure, default to nsd.png
+        :param save: save automatically the figure if True, else show it
+        :return fig: the wanted figures
         """
         if self.arrayNSD is None:
             self.makeNSDarray()
@@ -393,7 +393,7 @@ class AlignModels:
         Find the reference model among the models aligned.
         The reference model is the one with lower average NSD with other models.
         
-        @return ref_number: position of the reference model in the list self.models
+        :return ref_number: position of the reference model in the list self.models
         """
         if self.arrayNSD is None:
             self.makeNSDarray()
@@ -440,7 +440,7 @@ class AlignModels:
         Align two models using the first one as reference.
         The aligned models are save in pdb files.
 
-        @return dist: NSD after alignment
+        :return dist: NSD after alignment
         """
         models = self.models
         reference = models[0]
