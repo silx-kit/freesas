@@ -160,7 +160,7 @@ SuPyComb script
   NSD mean is the reference one. A second figure with the NSD table and the 
   graphic with the NSD means is displayed or saved.
 | Finally, the valid models are aligned on the reference one and final 
-  position are saved in pdb files called model-01.pdb, model-02.pdb, etc... 
+  positions are saved in pdb files called model-01.pdb, model-02.pdb, etc... 
 
 
 | Several options are available for the supycomb program: 
