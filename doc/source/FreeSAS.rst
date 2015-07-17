@@ -131,14 +131,14 @@ valid and which ones are not and need to be discarded :
     align.alignment_reference()          #align models with the reference
 
 		
-Supcomb script
-..............
+SuPyComb script
+.................
 
 | FreeSAS can also be used directly using command lines. Here is 
-  presented the way to use the program supcomb.py, the re-implementation 
-  of the Supcomb of the Atsas package.
+  presented the way to use the program supycomb, the re-implementation 
+  of the supcomb of the Atsas package.
 
-| supcomb.py has two different process, the first one is called when only 
+| Supycomb has two different process, the first one is called when only 
   two pdb files are put as arguments and a second one for more than two 
   files.
 
@@ -150,22 +150,22 @@ Supcomb script
 
 | The second one creates a model for each file put as argument. Models are 
   first selected as valid or not using its R-factor value. The maximum 
-  value is the mean of R-factors plus two times the standard deviation. 
-  The figure of the R-factors is then displayed or saved automatically in 
-  png format. 
+  value is the mean of R-factors plus twice the standard deviation. The 
+  figure of the R-factors is then displayed or saved automatically in png 
+  format. 
 | Next, NSD between each valid DAM are computed to select best models 
   using the mean of NSD with other models for each DAM. A maximal value 
   for the NSD mean is create as the mean of the ND mean plus a standard 
   deviation to discarded the to different models. The model with the lower 
   NSD mean is the reference one. A second figure with the NSD table and the 
   graphic with the NSD means is displayed or saved.
-| Finally, the valid models are aligned on the reference one and its final 
+| Finally, the valid models are aligned on the reference one and final 
   position are saved in pdb files called model-01.pdb, model-02.pdb, etc... 
 
 
-| Several options are available for the supcomb.py program: 
+| Several options are available for the supycomb program: 
 
-#put there the --help menu of supcomb.py
+#put there the --help menu of supycomb
 
 | Slow mode / fast mode:
 | For the slow mode, the optimization of the NSD is done for each symmetry 
@@ -178,9 +178,10 @@ Supcomb script
 | Enantiomorphs option:
 | This option can be used to authorize or not the program to look for 
   enantiomorphs. If not, the program will not test 8 symmetries but only 4. 
-  The execution time will be nearly two times faster without enantiomorphs 
-  but it will not be able the recognize to enaniomorphs of the same 
-  proteins.
+  The execution time will be nearly twice lower without enantiomorphs but 
+  only if you are using the slow mode, the gain is negligible for the fast 
+  mode. Moreover, it will not be able to recognize two enantiomorphs of the 
+  same protein.
 
 | GUI option:
 | You can choose to display the computed figures during the execution of 
