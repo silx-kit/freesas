@@ -134,6 +134,60 @@ valid and which ones are not and need to be discarded :
 Supcomb script
 ..............
 
-FreeSAS can also be used directly using command lines. Here is presented 
-the way to use the programme supcomb.py, the re-implementation of the 
-Supcomb of the Atsas package.
+| FreeSAS can also be used directly using command lines. Here is 
+  presented the way to use the program supcomb.py, the re-implementation 
+  of the Supcomb of the Atsas package.
+
+| supcomb.py has two different process, the first one is called when only 
+  two pdb files are put as arguments and a second one for more than two 
+  files.
+
+| With the first process, the program creates the two DAM provided by pdb 
+  files and align the second one on the first one (reference, do not move). 
+  The coordinates of the atoms of the aligned model are saved in a pdb file 
+  and the program return the final NSD between the two DAM. The name of the 
+  output can be modified.
+
+| The second one creates a model for each file put as argument. Models are 
+  first selected as valid or not using its R-factor value. The maximum 
+  value is the mean of R-factors plus two times the standard deviation. 
+  The figure of the R-factors is then displayed or saved automatically in 
+  png format. 
+| Next, NSD between each valid DAM are computed to select best models 
+  using the mean of NSD with other models for each DAM. A maximal value 
+  for the NSD mean is create as the mean of the ND mean plus a standard 
+  deviation to discarded the to different models. The model with the lower 
+  NSD mean is the reference one. A second figure with the NSD table and the 
+  graphic with the NSD means is displayed or saved.
+| Finally, the valid models are aligned on the reference one and its final 
+  position are saved in pdb files called model-01.pdb, model-02.pdb, etc... 
+
+
+| Several options are available for the supcomb.py program: 
+
+#put there the --help menu of supcomb.py
+
+| Slow mode / fast mode:
+| For the slow mode, the optimization of the NSD is done for each symmetry 
+  (ie. 8 times) whereas for the fast mode, the best symmetry is first 
+  choosen without optimization and only the NSD for this symmetry is 
+  optimized.
+  The result is that the slow mode is nearly 8 times slower than the fast 
+  one. The NSD values thought are a few lower using the slow mode.
+
+| Enantiomorphs option:
+| This option can be used to authorize or not the program to look for 
+  enantiomorphs. If not, the program will not test 8 symmetries but only 4. 
+  The execution time will be nearly two times faster without enantiomorphs 
+  but it will not be able the recognize to enaniomorphs of the same 
+  proteins.
+
+| GUI option:
+| You can choose to display the computed figures during the execution of 
+  the program to save it or not, or to save it automatically as png files 
+  with this option.
+
+| Output option:
+| This option allow to change the default filename of the output for the 
+  two models alignment process. It has to be a .pdb file !
+
