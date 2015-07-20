@@ -28,7 +28,13 @@ def delta_expand(vec1, vec2):
 
 
 class SASModel:
+    """
+    Tools for Dummy Atoms Model manipulation
+    """
     def __init__(self, molecule=None):
+        """
+        :param molecule: if str, name of a pdb file, else if 2d-array, coordinates of atoms of a molecule
+        """
         if isinstance(molecule, (str, unicode)) and os.path.exists(molecule):
             self.read(molecule)
         else:
@@ -171,7 +177,11 @@ class SASModel:
     def calc_invariants(self, use_cython=True):
         """
         Calculate the invariants of the structure:
-        , i.e the average distance between the neighboring points in the model
+            * fineness, ie. average distance between an atoms and its nearest neighbor
+            * radius of gyration of the model
+            * diameter of the model
+
+        :return invariants: 3-tuple containing (fineness, Rg, Dmax)
         """
         if _distance and use_cython:
             return _distance.calc_invariants(self.atoms)

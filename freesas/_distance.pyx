@@ -18,7 +18,7 @@ cimport openmp
 @cython.boundscheck(False)
 def calc_invariants(floating[:, :] atoms):
     """
-    Calculate the fineness of the structure, i.e the average distance between the neighboring points in the model.
+    Calculate the invariants of the structure, i.e fineness, radius of gyration and diameter of the model.
 
     Nota: to economize size*numpy.sqrt, the sqrt is taken at the end of the calculation. 
     We should have done s += sqrt(d) and then s/size, but we do s+= d and then sqrt(s/size).
@@ -27,7 +27,7 @@ def calc_invariants(floating[:, :] atoms):
     @param atoms: 2d-array with atom coordinates:[[x,y,z],...]
     @return: 3-tuple containing (fineness, Rg, Dmax)
         * average distance between an atoms and its nearest neighbor
-        * radius of giration of the model
+        * radius of gyration of the model
         * diameter of the model
     """
     cdef:
