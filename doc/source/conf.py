@@ -19,7 +19,21 @@ import os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(1, '../../freesas')
+import glob
+root_dir = os.path.abspath("../..")
+build_dir = glob.glob('../../build/lib*')
+if not build_dir:
+    import subprocess
+    curr_dir = os.getcwd()
+    os.chdir(root_dir)
+    errno = subprocess.call([sys.executable, 'setup.py', 'build'])
+    if errno != 0:
+        raise SystemExit(errno)
+    else:
+        os.chdir(curr_dir)
+    build_dir = glob.glob('../../build/lib*')
+sys.path.insert(1, build_dir[0])
+os.environ["PATH"] = os.path.join(root_dir,"scripts")+os.pathsep+os.environ.get("PATH","")
 
 # -- General configuration ------------------------------------------------
 

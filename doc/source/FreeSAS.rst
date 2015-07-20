@@ -132,7 +132,7 @@ valid and which ones are not and need to be discarded :
 
 		
 SuPyComb script
-.................
+...............
 
 | FreeSAS can also be used directly using command lines. Here is 
   presented the way to use the program supycomb, the re-implementation 
