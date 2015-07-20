@@ -195,7 +195,7 @@ cmdclass['build_ext'] = build_ext
 
 
 setup(name="freesas",
-      version="0.2",
+      version="0.3",
       author="Guillaume Bonamis, Jerome Kieffer",
       author_email="jerome.kieffer@esrf.fr",
       description="Free tools to analyze Small angle scattering data",
