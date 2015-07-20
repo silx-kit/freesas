@@ -197,8 +197,8 @@ positions are saved in pdb files called model-01.pdb, model-02.pdb, etc...</div>
 <div class="line-block">
 <div class="line">Several options are available for the supycomb program:</div>
 </div>
-<div class="highlight-text"><div class="highlight"><pre>$ supcomb.py --help
-usage: ./supcomb FILES [OPTIONS]
+<div class="highlight-text"><div class="highlight"><pre>$ supycomb.py --help
+usage: supycomb.py FILES [OPTIONS]
 
 align several models and calculate NSD
 
@@ -214,7 +214,7 @@ optional arguments:
   -q {ON,OFF}, --quiet {ON,OFF}
                         Hide log or not, default: ON
   -g {YES,NO}, --gui {YES,NO}
-                        Save automatically figures or not, default: NO
+                        Use GUI for figures or not, default: YES
   -o OUTPUT, --output OUTPUT
                         output filename, default: aligned.pdb
 </pre></div>
@@ -239,9 +239,11 @@ same protein.</div>
 </div>
 <div class="line-block">
 <div class="line">GUI option:</div>
-<div class="line">You can choose to display the computed figures during the execution of
-the program to save it or not, or to save it automatically as png files
-with this option.</div>
+<div class="line">If you choose to display the computed figures during the execution of
+the program to save it or not, so to use the Graphical User Interface,
+you have to select this option as &#8220;YES&#8221; (set by default). It is also
+possible to save it automatically as png files by setting the option as
+&#8220;NO&#8221;.</div>
 </div>
 <div class="line-block">
 <div class="line">Output option:</div>
