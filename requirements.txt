@@ -1,0 +1,5 @@
+numpy
+cython
+matplotlib
+sphinx
+sphinxcontrib-programoutput
