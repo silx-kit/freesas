@@ -49,11 +49,28 @@
 <dl class="class">
 <dt id="freesas.model.SASModel">
 <em class="property">class </em><tt class="descclassname">freesas.model.</tt><tt class="descname">SASModel</tt><big>(</big><em>molecule=None</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Tools for Dummy Atoms Model manipulation</p>
+<dl class="method">
 <dt id="freesas.model.SASModel.calc_invariants">
 <tt class="descname">calc_invariants</tt><big>(</big><em>use_cython=True</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.calc_invariants" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the invariants of the structure:
-, i.e the average distance between the neighboring points in the model</p>
+<dd><dl class="docutils">
+<dt>Calculate the invariants of the structure:</dt>
+<dd><ul class="first last simple">
+<li>fineness, ie. average distance between an atoms and its nearest neighbor</li>
+<li>radius of gyration of the model</li>
+<li>diameter of the model</li>
+</ul>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return invariants:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">3-tuple containing (fineness, Rg, Dmax)</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
