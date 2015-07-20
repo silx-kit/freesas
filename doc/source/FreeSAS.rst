@@ -184,9 +184,11 @@ SuPyComb script
   same protein.
 
 | GUI option:
-| You can choose to display the computed figures during the execution of 
-  the program to save it or not, or to save it automatically as png files 
-  with this option.
+| If you choose to display the computed figures during the execution of 
+  the program to save it or not, so to use the Graphical User Interface, 
+  you have to select this option as "YES" (set by default). It is also 
+  possible to save it automatically as png files by setting the option as 
+  "NO". 
 
 | Output option:
 | This option allow to change the default filename of the output for the 
