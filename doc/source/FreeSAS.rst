@@ -165,7 +165,7 @@ SuPyComb script
 
 | Several options are available for the supycomb program: 
 
-.. command-output:: supcomb.py --help
+.. command-output:: supycomb.py --help
 
 | Slow mode / fast mode:
 | For the slow mode, the optimization of the NSD is done for each symmetry 
