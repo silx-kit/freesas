@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
 
-usage = "./supcomb FILES [OPTIONS]"
+usage = "supycomb.py FILES [OPTIONS]"
 description = "align several models and calculate NSD"
 parser = argparse.ArgumentParser(usage=usage, description=description)
 parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align")
@@ -45,9 +45,9 @@ if args.quiet=="OFF":
 
 if args.gui=="NO":
     save = True
+    logger.info("Figures saved automatically : \n  R factor values and selection =>  Rfactor.png \n  NSD table and selection =>  nsd.png")
 else:
     save = False
-    logger.info("Figures saved automatically : \n  R factor values and selection =>  Rfactor.png \n  NSD table and selection =>  nsd.png")
 
 align = AlignModels(args.file, slow=slow, enantiomorphs=enantiomorphs)
 if input_len==2:
