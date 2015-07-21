@@ -1,5 +1,3 @@
-from _ast import Continue
-from test.profile_alignment import models
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -143,9 +141,10 @@ class AverModels():
     """
     Provides tools to create an averaged models using several aligned dummy atom models
     """
-    def __init__(self, inputfiles, outputfile=None):
+    def __init__(self, inputfiles, grid, outputfile=None):
         """
         :param inputfiles: list of pdb files of aligned models
+        :param grid: 2d-array coordinates of each point of a grid, fourth column full of zeros
         :param outputfile: name of the output pdb file, aver-model.pdb by default
         """
         self.inputfiles = inputfiles
@@ -154,7 +153,7 @@ class AverModels():
         self.header = []
         self.radius = None
         self.atoms = []
-        self.grid = None
+        self.grid = grid
 
     def __repr__(self):
         return "Average SAS model with %i atoms"%len(self.atoms)
@@ -202,18 +201,27 @@ class AverModels():
                     occ += add
         return occ, contrib
 
+    def assign_occupancy(self):
+        """
+        For each point of the grid, total occupancy and contribution factor are computed and saved.
+        The grid is then ordered with decreasing value of occupancy.
+        The fourth column of the array correspond to the occupancy of the point and the fifth to 
+        the contribution for this point.
 
-if __name__ == "__main__":
-    inputfiles = ["damaver.pdb"]
-    grid = Grid(inputfiles)
-    grid.spatial_extent()
-    grid.calc_radius()
-    print grid.radius
-    lattice = grid.make_grid()
-    print grid.nbknots
+        :return sortedgrid: 2d-array, coordinates of each point of the grid
+        """
+        grid = self.grid
+        nbknots = grid.shape[0]
+        grid = numpy.append(grid, numpy.zeros((nbknots, 1), dtype="float"), axis=1)
 
-    m = SASModel("filegrid.pdb")
-    m.atoms = lattice
-    m.save("filegrid.pdb")
+        for i in range(nbknots):
+            occ, contrib = self.calc_occupancy(grid[i, 0:3])
+            grid[i, 3] = occ
+            grid[i, 4] = contrib
 
-    print "DONE"
+        order = numpy.argsort(grid, axis=0)[:,-2]
+        sortedgrid = numpy.empty_like(grid)
+        for i in range(grid.shape[0]):
+            sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
+
+        return sortedgrid
