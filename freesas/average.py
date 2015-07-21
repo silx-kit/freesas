@@ -5,11 +5,18 @@ __copyright__ = "2015, ESRF"
 import numpy
 from freesas.model import SASModel
 
+
 class Grid():
-    def __init__(self, nbknots=None):
-        self.inputs = []
+    """
+    This class is used to create a grid which include all the input models
+    """
+    def __init__(self, inputfiles):
+        """
+        :param inputfiles: list of pdb files needed for averaging
+        """
+        self.inputs = inputfiles
         self.size = []
-        self.nbknots = nbknots if nbknots is not None else 5000
+        self.nbknots = None
         self.radius = None
         self.coordknots = []
 
@@ -20,9 +27,10 @@ class Grid():
         """
         Calculate the maximal extent of input models
         
-        @return self.size: 6-list with x,y,z max and then x,y,z min
+        :return self.size: 6-list with x,y,z max and then x,y,z min
         """
         atoms = []
+        atomsdiameter = []
         for files in self.inputs:
             m = SASModel()
             m.read(files)
@@ -30,62 +38,68 @@ class Grid():
                 atoms = m.atoms
             else:
                 atoms = numpy.append(atoms, m.atoms, axis=0)
-        
-        coordmin = atoms.min(axis=0)
-        coordmax = atoms.max(axis=0)
+            atomsdiameter.append(m.fineness)
+        meandiameter = sum(atomsdiameter) / len(atomsdiameter)
+
+        coordmin = atoms.min(axis=0) - meandiameter
+        coordmax = atoms.max(axis=0) + meandiameter
         self.size = [coordmax[0],coordmax[1],coordmax[2],coordmin[0],coordmin[1],coordmin[2]]
-        
+
         return self.size
 
-    def calc_radius(self):
+    def calc_radius(self, nbknots=None):
         """
         Calculate the radius of each point of a hexagonal close-packed grid, 
         knowing the total volume and the number of knots in this grid.
-        
-        @return radius: the radius of each knot of the grid
+
+        :param nbknots: number of knots wanted for the grid
+        :return radius: the radius of each knot of the grid
         """
         if len(self.size)==0:
             self.spatial_extent()
+        nbknots = nbknots if nbknots is not None else 5000
         size = self.size
         dx = size[0] - size[3]
         dy = size[1] - size[4]
         dz = size[2] - size[5]
-        volume = dx*dy*dz
-        
-        density = numpy.pi/(3*2**0.5)
-        radius = ((3/(4*numpy.pi))*density*volume/self.nbknots)**(1.0/3)
+        volume = dx * dy * dz
+
+        density = numpy.pi / (3*2**0.5)
+        radius = ((3 /( 4 * numpy.pi)) * density * volume / nbknots)**(1.0/3)
         self.radius = radius
-        
+
         return radius
 
     def make_grid(self):
         """
+        Create a grid using the maximal size and the radius previously computed.
+        The geometry used is a face-centered cubic lattice (fcc).
+
+        :return knots: 2d-array, coordinates of each dot of the grid. Saved as self.coordknots.
         """
         if len(self.size)==0:
             self.spatial_extent()
         if self.radius is None:
             self.calc_radius()
-        
+
         radius = self.radius
         a = numpy.sqrt(2.0)*radius
-        b = 2.0*radius
-        
-        xmax = self.size[0] + b
-        xmin = self.size[3] - b
-        ymax = self.size[1] + b
-        ymin = self.size[4] - b
-        zmax = self.size[2] + b
-        zmin = self.size[5] - b
-        
+
+        xmax = self.size[0]
+        xmin = self.size[3]
+        ymax = self.size[1]
+        ymin = self.size[4]
+        zmax = self.size[2]
+        zmin = self.size[5]
+
         x = 0.0
         y = 0.0
         z = 0.0
-        
+
         xlist = []
         ylist = []
         zlist = []
         knots = numpy.empty((1,4), dtype="float")
-        #attention ici on etend le volume uniquement selon les axes croissants !
         while (zmin + z) <= zmax:
             zlist.append(z)
             z += a
@@ -95,7 +109,7 @@ class Grid():
         while (xmin + x) <= xmax:
             xlist.append(x)
             x += a
-        
+
         for i in range(len(zlist)):
             z = zlist[i]
             if i % 2 ==0:
@@ -116,9 +130,13 @@ class Grid():
                     else:
                         for y in ylist[0:-1:2]:
                             knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
-        
+
         knots = numpy.delete(knots, 0, axis=0)
+        self.nbknots = knots.shape[0]
+        self.coordknots = knots
+
         return knots
+
 
 class AverModels():
     def __init__(self, filename=None, reference=None):
@@ -155,7 +173,7 @@ class AverModels():
         lattice_len = 2*radius
         lattice_surf = 2*radius*lattice_len
         lattice_vol = 2*radius*lattice_surf
-        
+
         x = atom[0]
         y = atom[1]
         z = atom[2]
@@ -166,10 +184,10 @@ class AverModels():
         xd = abs(x-x0)
         yd = abs(y-y0)
         zd = abs(z-z0)
-        
+
         if xd>=2*radius or yd>=2*radius or zd>=2*radius:
             fact = 0.0
-        
+
         elif xd==0 or yd==0 or zd==0:
             if xd==yd==zd==0:
                 fact = 1.0
@@ -182,7 +200,7 @@ class AverModels():
                 else:
                     dist = zd
                 fact = dist/(lattice_len)
-            
+
             else:
                 if xd == 0:
                     surf = yd * zd
@@ -206,59 +224,32 @@ class AverModels():
             self.grid = self.makegrid()
         atoms = self.atoms
         grid = self.grid
-        
+
         for i in range(atoms.shape[0]):
             for j in range(grid.shape[0]):
                 fact = self.trilin_interp(atoms[i], grid[j])/len(self.inputfiles)
                 grid[j, 3] += fact
-        
+
         order = numpy.argsort(grid, axis=0)[:,-1]
         sortedgrid = numpy.empty_like(grid)
         for i in range(grid.shape[0]):
             sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
-        
+
         self.grid = sortedgrid
         return sortedgrid
 
 if __name__ == "__main__":
-    grid = Grid()
-    #grid.inputs = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
-    grid.inputs = ["damaver.pdb"]
+    inputfiles = ["damaver.pdb"]
+    grid = Grid(inputfiles)
     grid.spatial_extent()
     grid.calc_radius()
     print grid.radius
     lattice = grid.make_grid()
-    
-    aver = AverModels()
-    #aver.inputfiles = ["aligned-01.pdb", "aligned-02.pdb", "aligned-03.pdb", "aligned-04.pdb", "aligned-11.pdb"]
-    aver.inputfiles = ["damaver.pdb"]
-    aver.models_pooling()
-    aver.radius = grid.radius
-    aver.grid = lattice
-    print aver.atoms.shape[0]
-    print aver.grid.shape[0]
-    aver.assign_occupancy()
-    print aver.grid
-    nb = 0
-    
-    avermodel = numpy.empty((1,4), dtype="float")
-    for i in range(aver.grid.shape[0]):
-        if aver.grid[i,-1]>0:
-            nb += 1
-            atom = aver.grid[i,:].reshape((1,4))
-            avermodel = numpy.append(avermodel, atom, axis=0)
-    print nb
-    avermodel = numpy.delete(avermodel, 0, axis=0)
-    
+    print grid.nbknots
+
     m = SASModel()
     m.read("filegrid.pdb")
     m.atoms = lattice
     m.save("filegrid.pdb")
-    
-    n = SASModel()
-    n.read("filegrid.pdb")
-    n.atoms = avermodel
-    n.save("avermodel.pdb")
-    
-    
+
     print "DONE"
