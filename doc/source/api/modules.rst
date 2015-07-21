@@ -2,14 +2,11 @@ FreeSAS Package
 ===============
 
 .. automodule:: freesas.model
-
-.. autoclass:: SASModel
-   :members:
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 .. automodule:: freesas.align
-
-.. autoclass:: AlignModels
-   :members:
-
-.. autoclass:: InputModels
-   :members:
+    :members:
+    :undoc-members:
+    :show-inheritance:

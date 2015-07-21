@@ -132,7 +132,7 @@ valid and which ones are not and need to be discarded :
 
 		
 SuPyComb script
-.................
+...............
 
 | FreeSAS can also be used directly using command lines. Here is 
   presented the way to use the program supycomb, the re-implementation 
@@ -165,7 +165,7 @@ SuPyComb script
 
 | Several options are available for the supycomb program: 
 
-.. command-output:: supcomb.py --help
+.. command-output:: supycomb.py --help
 
 | Slow mode / fast mode:
 | For the slow mode, the optimization of the NSD is done for each symmetry 
@@ -184,9 +184,11 @@ SuPyComb script
   same protein.
 
 | GUI option:
-| You can choose to display the computed figures during the execution of 
-  the program to save it or not, or to save it automatically as png files 
-  with this option.
+| If you choose to display the computed figures during the execution of 
+  the program to save it or not, so to use the Graphical User Interface, 
+  you have to select this option as "YES" (set by default). It is also 
+  possible to save it automatically as png files by setting the option as 
+  "NO". 
 
 | Output option:
 | This option allow to change the default filename of the output for the 

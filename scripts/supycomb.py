@@ -11,14 +11,14 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
 
-usage = "./supcomb FILES [OPTIONS]"
+usage = "supycomb.py FILES [OPTIONS]"
 description = "align several models and calculate NSD"
 parser = argparse.ArgumentParser(usage=usage, description=description)
 parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align")
 parser.add_argument("-m", "--mode",dest="mode", type=str, choices=["SLOW", "FAST"], default="SLOW", help="Either SLOW or FAST, default: %(default)s)")
 parser.add_argument("-e", "--enantiomorphs",type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
 parser.add_argument("-q", "--quiet", type=str, choices=["ON", "OFF"], default="ON", help="Hide log or not, default: %(default)s")
-parser.add_argument("-g", "--gui", type=str, choices=["YES", "NO"], default="NO", help="Save automatically figures or not, default: %(default)s")
+parser.add_argument("-g", "--gui", type=str, choices=["YES", "NO"], default="YES", help="Use GUI for figures or not, default: %(default)s")
 parser.add_argument("-o", "--output", type=str, default="aligned.pdb", help="output filename, default: %(default)s")
 
 args = parser.parse_args()
@@ -44,10 +44,10 @@ if args.quiet=="OFF":
     logger.info("setLevel: Debug")
 
 if args.gui=="NO":
-    save = False
-else:
     save = True
     logger.info("Figures saved automatically : \n  R factor values and selection =>  Rfactor.png \n  NSD table and selection =>  nsd.png")
+else:
+    save = False
 
 align = AlignModels(args.file, slow=slow, enantiomorphs=enantiomorphs)
 if input_len==2:
