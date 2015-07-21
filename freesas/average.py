@@ -6,7 +6,7 @@ import numpy
 from freesas.model import SASModel
 
 
-class Grid():
+class Grid:
     """
     This class is used to create a grid which include all the input models
     """
@@ -21,7 +21,7 @@ class Grid():
         self.coordknots = []
 
     def __repr__(self):
-        return "Grid with %i knots"%self.knots.shape[0]
+        return "Grid with %i knots"%self.nbknots
 
     def spatial_extent(self):
         """
@@ -30,19 +30,18 @@ class Grid():
         :return self.size: 6-list with x,y,z max and then x,y,z min
         """
         atoms = []
-        atomsdiameter = []
+        models_fineness = []
         for files in self.inputs:
-            m = SASModel()
-            m.read(files)
+            m = SASModel(files)
             if len(atoms)==0:
                 atoms = m.atoms
             else:
                 atoms = numpy.append(atoms, m.atoms, axis=0)
-            atomsdiameter.append(m.fineness)
-        meandiameter = sum(atomsdiameter) / len(atomsdiameter)
+            models_fineness.append(m.fineness)
+        mean_fineness = sum(models_fineness) / len(models_fineness)
 
-        coordmin = atoms.min(axis=0) - meandiameter
-        coordmax = atoms.max(axis=0) + meandiameter
+        coordmin = atoms.min(axis=0) - mean_fineness
+        coordmax = atoms.max(axis=0) + mean_fineness
         self.size = [coordmax[0],coordmax[1],coordmax[2],coordmin[0],coordmin[1],coordmin[2]]
 
         return self.size
@@ -139,10 +138,18 @@ class Grid():
 
 
 class AverModels():
-    def __init__(self, filename=None, reference=None):
-        self.inputfiles = []
-        self.reference = reference if reference is not None else 0#position of reference model in the list of pdb files
-        self.outputfile = filename if filename is not None else "aver-model.pdb"
+    """
+    Provides tools to create an averaged models using several aligned dummy atom models
+    """
+    def __init__(self, inputfiles, outputfile=None, reference=None):
+        """
+        :param inputfiles: list of pdb files of aligned models
+        :param outputfile: name of the output pdb file, aver-model.pdb by default
+        :param reference: position of the reference model in the inputfile list, first one by default
+        """
+        self.inputfiles = inputfiles
+        self.reference = reference if reference is not None else 0
+        self.outputfile = outputfile if outputfile is not None else "aver-model.pdb"
         self.header = []
         self.radius = None
         self.atoms = []
@@ -153,9 +160,9 @@ class AverModels():
 
     def models_pooling(self):
         """
-        Pool the atoms of each input models in self.atoms
+        Pool the atoms of each input model in self.atoms
         
-        @return self.atoms: coordinates of each atom considerated
+        :return self.atoms: coordinates of each atom considerated
         """
         for files in self.inputfiles:
             m = SASModel()
