@@ -1,3 +1,5 @@
+from _ast import Continue
+from test.profile_alignment import models
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -141,15 +143,14 @@ class AverModels():
     """
     Provides tools to create an averaged models using several aligned dummy atom models
     """
-    def __init__(self, inputfiles, outputfile=None, reference=None):
+    def __init__(self, inputfiles, outputfile=None):
         """
         :param inputfiles: list of pdb files of aligned models
         :param outputfile: name of the output pdb file, aver-model.pdb by default
-        :param reference: position of the reference model in the inputfile list, first one by default
         """
         self.inputfiles = inputfiles
-        self.reference = reference if reference is not None else 0
         self.outputfile = outputfile if outputfile is not None else "aver-model.pdb"
+        self.models = []
         self.header = []
         self.radius = None
         self.atoms = []
@@ -158,92 +159,49 @@ class AverModels():
     def __repr__(self):
         return "Average SAS model with %i atoms"%len(self.atoms)
 
-    def models_pooling(self):
+    def read_files(self, reference=None):
         """
-        Pool the atoms of each input model in self.atoms
-        
-        :return self.atoms: coordinates of each atom considerated
+        Read all the pdb file in the inputfiles list, creating SASModels.
+        The SASModels created are save in a list, the reference model is the first model in the list.
+
+        :param reference: position of the reference model file in the inputfiles list
         """
-        for files in self.inputfiles:
-            m = SASModel()
-            m.read(files)
-            if len(self.atoms)==0:
-                self.atoms = m.atoms
+        ref = reference if reference is not None else 0
+        inputfiles = self.inputfiles
+
+        models = []
+        models.append(SASModel(inputfiles[ref]))
+        for i in range(len(inputfiles)):
+            if i==ref:
+                continue
             else:
-                self.atoms = numpy.append(self.atoms, m.atoms, axis=0)
-        return self.atoms
+                models.append(SASModel(inputfiles[i]))
+        self.models = models
 
-    def trilin_interp(self, atom, gridpoint):
+        return models
+
+    def calc_occupancy(self, griddot):
         """
+        Assign an occupancy and a contribution factor to the point of the grid.
+
+        :param griddot: 1d-array, coordinates of a point of the grid
+        :return tuple: 2-tuple containing (occupancy, contribution)
         """
-        radius = self.radius
-        lattice_len = 2*radius
-        lattice_surf = 2*radius*lattice_len
-        lattice_vol = 2*radius*lattice_surf
+        occ = 0.0
+        contrib = 0
+        for model in self.models:
+            f = model.fineness
+            for i in range(model.atoms.shape[0]):
+                dx = model.atoms[i, 0] - griddot[0]
+                dy = model.atoms[i, 1] - griddot[1]
+                dz = model.atoms[i, 2] - griddot[2]
+                dist = dx * dx + dy * dy + dz * dz
+                add = max(1 - dist / (f / 2), 0)
+                if add != 0:
+                    contrib += 1
+                    occ += add
+        return occ, contrib
 
-        x = atom[0]
-        y = atom[1]
-        z = atom[2]
-        x0 = gridpoint[0]
-        y0 = gridpoint[1]
-        z0 = gridpoint[2]
-
-        xd = abs(x-x0)
-        yd = abs(y-y0)
-        zd = abs(z-z0)
-
-        if xd>=2*radius or yd>=2*radius or zd>=2*radius:
-            fact = 0.0
-
-        elif xd==0 or yd==0 or zd==0:
-            if xd==yd==zd==0:
-                fact = 1.0
-            
-            elif xd==yd==0 or yd==zd==0 or xd==zd==0:
-                if xd != 0:
-                    dist = xd
-                elif yd != 0:
-                    dist = yd
-                else:
-                    dist = zd
-                fact = dist/(lattice_len)
-
-            else:
-                if xd == 0:
-                    surf = yd * zd
-                elif yd == 0:
-                    surf = xd * zd
-                else:
-                    surf = xd * yd
-                fact = surf/(lattice_surf)
-        else:
-            vol = xd*yd*zd
-            fact = vol/(lattice_vol)
-        return fact
-
-    def assign_occupancy(self):
-        """
-        Assign an occupancy for each point of the grid.
-        
-        @return grid: 2d array, fourth column is occupancy of the point
-        """
-        if len(self.grid)==0:
-            self.grid = self.makegrid()
-        atoms = self.atoms
-        grid = self.grid
-
-        for i in range(atoms.shape[0]):
-            for j in range(grid.shape[0]):
-                fact = self.trilin_interp(atoms[i], grid[j])/len(self.inputfiles)
-                grid[j, 3] += fact
-
-        order = numpy.argsort(grid, axis=0)[:,-1]
-        sortedgrid = numpy.empty_like(grid)
-        for i in range(grid.shape[0]):
-            sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
-
-        self.grid = sortedgrid
-        return sortedgrid
 
 if __name__ == "__main__":
     inputfiles = ["damaver.pdb"]
@@ -254,8 +212,7 @@ if __name__ == "__main__":
     lattice = grid.make_grid()
     print grid.nbknots
 
-    m = SASModel()
-    m.read("filegrid.pdb")
+    m = SASModel("filegrid.pdb")
     m.atoms = lattice
     m.save("filegrid.pdb")
 
