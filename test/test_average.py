@@ -17,10 +17,12 @@ logger = logging.getLogger("AlignModels_test")
 class TestAverage(unittest.TestCase):
     testfile1 = join(base, "testdata", "model-01.pdb")
     testfile2 = join(base, "testdata", "model-02.pdb")
+    inputfiles = [testfile1, testfile2]
+    grid = Grid(inputfiles)
 
     def test_gridsize(self):
-        inputfiles = [self.testfile1, self.testfile2]
-        grid = Grid(inputfiles)
+        inputfiles = self.inputfiles
+        grid = self.grid
         size = grid.spatial_extent()
         coordmax = numpy.array([size[0:3]], dtype="float")
         coordmin = numpy.array([size[3:6]], dtype="float")
@@ -35,8 +37,7 @@ class TestAverage(unittest.TestCase):
         self.assertEqual(pb, 0, msg="computed size is not the good one")
 
     def test_knots(self):
-        inputfiles = [self.testfile1, self.testfile2]
-        grid = Grid(inputfiles)
+        grid = self.grid
         nbknots = numpy.random.randint(4000, 6000)
         threshold = 10.0#acceptable difference between nbknots and the effective nb of knots in percent
         grid.calc_radius(nbknots)
@@ -44,10 +45,17 @@ class TestAverage(unittest.TestCase):
         gap = (1.0 * (grid.nbknots - nbknots) / nbknots) * 100
         self.assertGreater(threshold, gap, msg="final number of knots too different of wanted number: %s != %s"%(nbknots, grid.nbknots))
 
+    def test_makegrid(self):
+        grid = self.grid
+        lattice = grid.make_grid()
+        m = SASModel(lattice)
+        self.assertAlmostEqual(m.fineness, 2*grid.radius, 10, msg="grid do not have the computed radius")
+
 def test_suite_all_average():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAverage("test_gridsize"))
     testSuite.addTest(TestAverage("test_knots"))
+    testSuite.addTest(TestAverage("test_makegrid"))
     return testSuite
 
 if __name__ == '__main__':
