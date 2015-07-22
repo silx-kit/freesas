@@ -141,14 +141,12 @@ class AverModels():
     """
     Provides tools to create an averaged models using several aligned dummy atom models
     """
-    def __init__(self, inputfiles, grid, outputfile=None):
+    def __init__(self, inputfiles, grid):
         """
         :param inputfiles: list of pdb files of aligned models
         :param grid: 2d-array coordinates of each point of a grid, fourth column full of zeros
-        :param outputfile: name of the output pdb file, aver-model.pdb by default
         """
         self.inputfiles = inputfiles
-        self.outputfile = outputfile if outputfile is not None else "aver-model.pdb"
         self.models = []
         self.header = []
         self.radius = None
@@ -195,7 +193,7 @@ class AverModels():
                 dy = model.atoms[i, 1] - griddot[1]
                 dz = model.atoms[i, 2] - griddot[2]
                 dist = dx * dx + dy * dy + dz * dz
-                add = max(1 - dist / (f / 2), 0)
+                add = max(1 - (dist / f), 0)
                 if add != 0:
                     contrib += 1
                     occ += add
@@ -219,9 +217,55 @@ class AverModels():
             grid[i, 3] = occ
             grid[i, 4] = contrib
 
-        order = numpy.argsort(grid, axis=0)[:,-2]
+        order = numpy.argsort(grid, axis=0)[:, -2]
         sortedgrid = numpy.empty_like(grid)
-        for i in range(grid.shape[0]):
-            sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
+        for i in range(nbknots):
+            sortedgrid[nbknots - i - 1, :] = grid[order[i], :]
 
         return sortedgrid
+
+    def make_header(self):
+        """
+        Create the layout of the pdb file for the averaged model.
+        """
+        header = []
+        header.append("Number of files averaged : %s\n"%len(self.inputfiles))
+        for i in self.inputfiles:
+            header.append(i + "\n")
+        header.append("Total number of dots in the grid : %s\n"%self.grid.shape[0])
+
+        decade = 1
+        for i in range(self.grid.shape[0]):
+            line = "ATOM         CA  ASP    1                                    20.00   2 201\n"
+            line = line[:7] + "%4.i"%(i + 1) + line[11:]
+            if not (i + 1) % 10:
+                decade += 1
+            line = line[:21] + "%4.i"%decade + line[25:]
+            header.append(line)
+        self.header = header
+        return header
+
+    def save_aver(self, filename):
+        """
+        Save the position of each occupied dot of the grid, its occupancy and its contribution 
+        in a pdb file.
+
+        :param filename: name of the pdb file to write
+        """
+        if len(self.header) == 0:
+            self.make_header()
+        assert self.grid.shape[-1] == 5
+
+        nr = 0
+        with open(filename, "w") as pdbout:
+            for line in self.header:
+                if line.startswith("ATOM"):
+                    if nr < self.grid.shape[0] and self.grid[nr, 4] != 0:
+                        coord = "%8.3f%8.3f%8.3f" % tuple(self.grid[nr, 0:3])
+                        occ = "%6.2f" % self.grid[nr, 3]
+                        contrib = "%2.f" % self.grid[nr, 4]
+                        line = line[:30] + coord + occ + line[60:66] + contrib + line[68:]
+                    else:
+                        line = ""
+                    nr += 1
+                pdbout.write(line)
