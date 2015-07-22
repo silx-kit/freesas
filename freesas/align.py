@@ -171,35 +171,22 @@ class AlignModels:
     def __repr__(self):
         return "alignment process for %s models" % len(self.models)
 
-    def assign_models(self, molecule=None):
+    def assign_models(self):
         """
         Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
         Center of mass, inertia tensor and canonical parameters are computed for each SASModel.
 
-        :param molecule: optional 2d array, coordinates of the atoms for the model to create
         :return self.models: list of SASModel
         """
-        if not self.inputfiles and len(molecule) == 0:
-            logger.error("No input files")
-
-        if self.inputfiles:
-            for inputpdb in self.inputfiles:
-                model = SASModel()
-                model.read(inputpdb)
-                model.centroid()
-                model.inertiatensor()
-                model.canonical_parameters()
-                self.models.append(model)
-            if len(self.inputfiles) != len(self.models):
-                logger.error("Problem of assignment\n%s models for %s files" % (len(self.models), len(self.inputfiles)))
-
-        elif len(molecule) != 0:
+        for inputpdb in self.inputfiles:
             model = SASModel()
-            model.atoms = molecule
+            model.read(inputpdb)
             model.centroid()
             model.inertiatensor()
             model.canonical_parameters()
             self.models.append(model)
+        if len(self.inputfiles) != len(self.models):
+            logger.error("Problem of assignment\n%s models for %s files" % (len(self.models), len(self.inputfiles)))
 
         return self.models
 
