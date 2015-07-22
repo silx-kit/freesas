@@ -195,7 +195,7 @@ class AverModels():
                 dy = model.atoms[i, 1] - griddot[1]
                 dz = model.atoms[i, 2] - griddot[2]
                 dist = dx * dx + dy * dy + dz * dz
-                add = max(1 - dist / (f / 2), 0)
+                add = max(1 - (dist / f), 0)
                 if add != 0:
                     contrib += 1
                     occ += add
@@ -219,10 +219,10 @@ class AverModels():
             grid[i, 3] = occ
             grid[i, 4] = contrib
 
-        order = numpy.argsort(grid, axis=0)[:,-2]
+        order = numpy.argsort(grid, axis=0)[:, -2]
         sortedgrid = numpy.empty_like(grid)
-        for i in range(grid.shape[0]):
-            sortedgrid[grid.shape[0]-i-1,:] = grid[order[i], :]
+        for i in range(nbknots):
+            sortedgrid[nbknots - i - 1, :] = grid[order[i], :]
 
         return sortedgrid
 
@@ -239,10 +239,10 @@ class AverModels():
         decade = 1
         for i in range(self.grid.shape[0]):
             line = "ATOM         CA  ASP    1                                    20.00   2 201\n"
-            line = line[:7] + "%04i"%(i + 1) + line[11:]
+            line = line[:7] + "%4.i"%(i + 1) + line[11:]
             if not (i + 1) % 10:
                 decade += 1
-            line = line[:21] + "%04i"%decade + line[25:]
+            line = line[:21] + "%4.i"%decade + line[25:]
             header.append(line)
         self.header = header
         return header
@@ -262,10 +262,10 @@ class AverModels():
         with open(filename, "w") as pdbout:
             for line in self.header:
                 if line.startswith("ATOM"):
-                    if nr < self.grid.shape[0]:
+                    if nr < self.grid.shape[0] and self.grid[nr, 4] != 0:
                         coord = "%8.3f%8.3f%8.3f" % tuple(self.grid[nr, 0:3])
                         occ = "%6.2f" % self.grid[nr, 3]
-                        contrib = "%2.i" % self.grid[nr, 4]
+                        contrib = "%2.f" % self.grid[nr, 4]
                         line = line[:30] + coord + occ + line[60:66] + contrib + line[68:]
                     else:
                         line = ""
