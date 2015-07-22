@@ -141,14 +141,12 @@ class AverModels():
     """
     Provides tools to create an averaged models using several aligned dummy atom models
     """
-    def __init__(self, inputfiles, grid, outputfile=None):
+    def __init__(self, inputfiles, grid):
         """
         :param inputfiles: list of pdb files of aligned models
         :param grid: 2d-array coordinates of each point of a grid, fourth column full of zeros
-        :param outputfile: name of the output pdb file, aver-model.pdb by default
         """
         self.inputfiles = inputfiles
-        self.outputfile = outputfile if outputfile is not None else "aver-model.pdb"
         self.models = []
         self.header = []
         self.radius = None
