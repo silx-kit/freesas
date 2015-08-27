@@ -52,9 +52,10 @@ else:
 align = AlignModels(args.file, slow=slow, enantiomorphs=enantiomorphs)
 if input_len==2:
     align.outputfiles = args.output
+    align.assign_models()
     dist = align.alignment_2models()
     logger.info("%s and %s aligned"%(args.file[0], args.file[1]))
-    logger.info("NSD after optimized alignment = %s"%(dist))
+    logger.info("NSD after optimized alignment = %.2f" % dist)
 else:
     align.outputfiles = ["model-%02i.pdb" % (i+1) for i in range(input_len)]
     selection.inputfiles = args.file
