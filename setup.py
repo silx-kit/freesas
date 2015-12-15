@@ -6,10 +6,24 @@ import platform
 import glob
 import numpy
 from setuptools import setup
+from setuptools.command.build_py import build_py as _build_py
 from setuptools.command.build_ext import build_ext as _build_ext
 from numpy.distutils.core import Extension as _Extension
 
+PROJECT = "freesas"
 cmdclass = {}
+
+def get_version():
+    import version
+    return version.strictversion
+
+
+def get_readme():
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(dirname, "README.rst"), "r") as fp:
+        long_description = fp.read()
+    return long_description
+
 
 #########
 # Cython
@@ -193,12 +207,31 @@ class build_ext(_build_ext):
 
 cmdclass['build_ext'] = build_ext
 
+class build_py(_build_py):
+    """
+    Enhanced build_py which copies version to the built
+    """
+    def build_package_data(self):
+        """Copy data files into build directory
+        Patched in such a way version.py -> silx/_version.py"""
+        print(self.data_files)
+        _build_py.build_package_data(self)
+        for package, src_dir, build_dir, filenames in self.data_files:
+            if package == PROJECT:
+                filename = "version.py"
+                target = os.path.join(build_dir, "_" + filename)
+                self.mkpath(os.path.dirname(target))
+                self.copy_file(os.path.join(filename), target,
+                               preserve_mode=False)
+                break
 
+cmdclass['build_py'] = build_py
 setup(name="freesas",
-      version="0.3",
+      version=get_version(),
       author="Guillaume Bonamis, Jerome Kieffer",
       author_email="jerome.kieffer@esrf.fr",
       description="Free tools to analyze Small angle scattering data",
+      long_description=get_readme(),
       packages=["freesas"],
       test_suite="test",
       data_files=glob.glob("testdata/*"),

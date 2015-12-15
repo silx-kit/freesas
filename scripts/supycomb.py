@@ -12,8 +12,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
 
 usage = "supycomb.py FILES [OPTIONS]"
-description = "align several models and calculate NSD"
-parser = argparse.ArgumentParser(usage=usage, description=description)
+description = "Align several models and calculate NSD"
+epilog = """supycomb is an open-source implementation of
+[J. Appl. Cryst. (2001). 34, 33-41](doi:10.1107/S0021889800014126).
+
+The main difference with supcomb: the fast mode does not re-bin beads. It only refines the best matching orientation which provides a speed-up of a factor 8.
+
+"""
+parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
 parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align")
 parser.add_argument("-m", "--mode",dest="mode", type=str, choices=["SLOW", "FAST"], default="SLOW", help="Either SLOW or FAST, default: %(default)s)")
 parser.add_argument("-e", "--enantiomorphs",type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
