@@ -23,7 +23,7 @@ install:
 
     # Install the build and runtime dependencies of the project
     - "pip install wheel"
-    - "pip install --trusted-host www.edna-site.org -f http://www.edna-site.org/pub/wheelhouse numpy cython h5py"
+    - "pip install --trusted-host www.edna-site.org --upgrade -r ci/requirement_appveyor.txt"
 
     # Print Python info
     - "python ci\\info_platform.py"

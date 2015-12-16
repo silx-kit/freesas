@@ -1,4 +1,4 @@
-#List of dependencies used by pyFAI.
+#List of dependencies used by freesas.
 # PIP installs them from pre-compiled wheels, optimized for Travis-CI Python environment.
 --find-links http://www.edna-site.org/pub/wheelhouse
 
@@ -7,3 +7,4 @@ wheel
 numpy
 cython
 matplotlib
+scipy

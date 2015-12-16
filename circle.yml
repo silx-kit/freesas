@@ -2,13 +2,10 @@
 machine:
   python:
     version: 2.7.5
-# silx dependencies for build and test
+# freesas dependencies for build and test
 dependencies:
     pre:
-        - pip install numpy
-        - pip install cython
-        - pip install h5py
-        - pip install wheel
+        - pip install --trusted-host www.edna-site.org -r ci/requirement_circle.txt --upgrade
         - pip freeze
         
 # test to run
