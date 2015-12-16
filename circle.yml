@@ -14,4 +14,5 @@ dependencies:
 # test to run
 test:
     override:
+        - python setup.py build test
         - python run_tests.py
