@@ -33,6 +33,7 @@ install:
     - "pip freeze"
 
     # Build
+    - "python setup.py build"
     - "python setup.py bdist_wheel"
     - "ls dist"
 
@@ -45,4 +46,5 @@ script:
     - "pip freeze"
 
     # Run the tests
+    - "python setup.py test"
     - "python run_tests.py"
