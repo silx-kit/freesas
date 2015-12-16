@@ -39,17 +39,17 @@ class TestAverage(unittest.TestCase):
     def test_knots(self):
         grid = self.grid
         nbknots = numpy.random.randint(4000, 6000)
-        threshold = 10.0#acceptable difference between nbknots and the effective nb of knots in percent
+        threshold = 10.0  # acceptable difference between nbknots and the effective nb of knots in percent
         grid.calc_radius(nbknots)
         grid.make_grid()
         gap = (1.0 * (grid.nbknots - nbknots) / nbknots) * 100
-        self.assertGreater(threshold, gap, msg="final number of knots too different of wanted number: %s != %s"%(nbknots, grid.nbknots))
+        self.assertGreater(threshold, gap, msg="final number of knots too different of wanted number: %s != %s" % (nbknots, grid.nbknots))
 
     def test_makegrid(self):
         grid = self.grid
         lattice = grid.make_grid()
         m = SASModel(lattice)
-        self.assertAlmostEqual(m.fineness, 2*grid.radius, 10, msg="grid do not have the computed radius")
+        self.assertAlmostEqual(m.fineness, 2 * grid.radius, 10, msg="grid do not have the computed radius")
 
     def test_read(self):
         inputfiles = self.inputfiles
@@ -70,7 +70,8 @@ class TestAverage(unittest.TestCase):
         diff = occ_grid[:-1, 3] - occ_grid[1:, 3]
         self.assertTrue(diff.max() >= 0.0, msg="grid is not properly sorted with occupancy")
 
-def test_suite_all_average():
+
+def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAverage("test_gridsize"))
     testSuite.addTest(TestAverage("test_knots"))
@@ -79,7 +80,7 @@ def test_suite_all_average():
     testSuite.addTest(TestAverage("test_occupancy"))
     return testSuite
 
+
 if __name__ == '__main__':
-    mysuite = test_suite_all_average()
     runner = unittest.TextTestRunner()
-    runner.run(mysuite)
+    runner.run(suite())
