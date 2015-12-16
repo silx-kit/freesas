@@ -113,12 +113,7 @@ def report_rst(cov, package="fabio", version="0.0.0", base=""):
             idx = fname.index(package)
             fqn = os.path.splitext(fname[idx:].replace(os.sep, "."))[0]
         else:
-#             print(name, fname)
             continue
-#         if os.name == "posix" and os.path.islink(fqn):
-#             fqn = os.path.abspath(os.path.join(os.path.dirname(fqn), os.readlink(fqn)))
-#         if os.path.abspath(fname) != fqn:
-#             continue
 
         lines = cl.find("lines").getchildren()
         hits = [int(i.get("hits")) for i in lines]
@@ -150,7 +145,7 @@ def get_project_name(root_dir):
                          shell=False, cwd=root_dir, stdout=subprocess.PIPE)
     name, stderr_data = p.communicate()
     logger.debug("subprocess ended with rc= %s" % p.returncode)
-    return name.strip()
+    return name.split()[-1].decode('ascii')
 
 
 def build_project(name, root_dir):
