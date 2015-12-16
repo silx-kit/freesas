@@ -35,7 +35,7 @@ install:
     - ps: "ls dist"
 
     # Install the generated wheel package to test it
-    - "pip install --pre --no-index --find-links dist/ silx"
+    - "pip install --pre --no-index --find-links dist/ freesas"
     - "pip freeze"
 
 
