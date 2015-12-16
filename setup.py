@@ -5,7 +5,7 @@ import os
 import platform
 import glob
 import numpy
-from setuptools import setup
+from setuptools import setup, Command
 from setuptools.command.build_py import build_py as _build_py
 from setuptools.command.build_ext import build_ext as _build_ext
 from numpy.distutils.core import Extension as _Extension
@@ -230,6 +230,24 @@ class build_py(_build_py):
                 break
 
 cmdclass['build_py'] = build_py
+
+
+class PyTest(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import subprocess
+        errno = subprocess.call([sys.executable, 'run_tests.py', "-i"])
+        if errno != 0:
+            raise SystemExit(errno)
+
+cmdclass['test'] = PyTest
 
 
 setup(name="freesas",

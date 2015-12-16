@@ -200,3 +200,14 @@ SuPyComb script
 | This option allow to change the default filename of the output for the
   two models alignment process. It has to be a .pdb file !
 
+Project
+-------
+
+FreeSAS contains a set of non-regression tests::
+   
+   python run-test.py
+   
+.. toctree::
+   :maxdepth: 2
+
+   coverage
