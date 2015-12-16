@@ -46,5 +46,5 @@ script:
     - "pip freeze"
 
     # Run the tests
-    - "python setup.py test"
+    - "python setup.py build test"
     - "python run_tests.py"
