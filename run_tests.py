@@ -9,10 +9,10 @@ Test coverage dependencies: coverage, lxml.
 """
 
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "01/12/2015"
+__date__ = "16/12/2015"
 __license__ = "MIT"
 
-import distutils
+import distutils.util
 import importlib
 import logging
 import os
@@ -27,6 +27,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("run_tests")
 logger.setLevel(logging.INFO)
 
+os.environ["FREESAS_TESTDATA"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testdata")
 
 logger.info("Python %s %s" % (sys.version, tuple.__itemsize__ * 8))
 
@@ -251,6 +252,7 @@ logger.warning("Test %s %s from %s" % (PROJECT_NAME,
                                        PROJECT_PATH))
 
 test_suite = unittest.TestSuite()
+print(options.test_name)
 test_suite.addTest(
     unittest.defaultTestLoader.loadTestsFromNames(options.test_name))
 
