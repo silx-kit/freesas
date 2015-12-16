@@ -252,6 +252,10 @@ if options.insource:
     logger.warning("Patched sys.path, added: '%s'" % build_dir)
     module = importlib.import_module(PROJECT_NAME)
 
+if "test" not in dir(module):
+    logger.warning("test module not yet loaded")
+    importlib.import_module("%s.test" % PROJECT_NAME)
+
 
 PROJECT_VERSION = getattr(module, 'version', '')
 PROJECT_PATH = module.__path__[0]
@@ -266,8 +270,8 @@ else:
 logger.warning("Test %s %s from %s" % (PROJECT_NAME,
                                        PROJECT_VERSION,
                                        PROJECT_PATH))
-
 test_suite = unittest.TestSuite()
+
 test_suite.addTest(
     unittest.defaultTestLoader.loadTestsFromNames(options.test_name))
 
