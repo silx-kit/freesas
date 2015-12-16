@@ -5,10 +5,10 @@ __copyright__ = "2015, ESRF"
 
 import numpy
 import unittest
-from utilstests import base, join
-from freesas.model import SASModel
-from freesas.align import AlignModels
-from freesas.transformations import translation_matrix, euler_matrix
+from .utilstests import get_datafile
+from ..model import SASModel
+from ..align import AlignModels
+from ..transformations import translation_matrix, euler_matrix
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")
@@ -51,8 +51,8 @@ def assign_random_mol(inf=None, sup=None):
 
 
 class TestAlign(unittest.TestCase):
-    testfile1 = join(base, "testdata", "dammif-01.pdb")
-    testfile2 = join(base, "testdata", "dammif-02.pdb")
+    testfile1 = get_datafile("dammif-01.pdb")
+    testfile2 = get_datafile("dammif-02.pdb")
 
     def test_alignment(self):
         inputfiles = [self.testfile1, self.testfile1]
@@ -116,7 +116,7 @@ class TestAlign(unittest.TestCase):
 
         if not num_intr and num_intr != 0:
             logger.error("cannot find the intruder")
-        self.assertEqual(num_intr, intruder, msg="not find the good intruder, %s!=%s"%(num_intr, intruder))
+        self.assertEqual(num_intr, intruder, msg="not find the good intruder, %s!=%s" % (num_intr, intruder))
 
     def test_reference(self):
         inputfiles = [self.testfile1] * 8
@@ -136,7 +136,7 @@ class TestAlign(unittest.TestCase):
         self.assertEqual(neg_dif, 0, msg="pb with reference choice")
 
 
-def test_suite_all_alignment():
+def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAlign("test_alignment"))
     testSuite.addTest(TestAlign("test_usefull_alignment"))
@@ -146,6 +146,5 @@ def test_suite_all_alignment():
     return testSuite
 
 if __name__ == '__main__':
-    mysuite = test_suite_all_alignment()
     runner = unittest.TextTestRunner()
-    runner.run(mysuite)
+    runner.run(suite())

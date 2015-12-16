@@ -1,21 +1,22 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
+__date__ = "16/12/2015"
 
 import numpy
 import unittest
-from utilstests import base, join
-from freesas.model import SASModel
+from utilstests import get_datafile
+from ..model import SASModel
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cdistance_test")
 
 
 class TestDistance(unittest.TestCase):
-    testfile1 = join(base, "testdata", "model-01.pdb")
-    testfile2 = join(base, "testdata", "dammif-01.pdb")
+    testfile1 = get_datafile("model-01.pdb")
+    testfile2 = get_datafile("dammif-01.pdb")
 
     def test_invariants(self):
         m = SASModel()
@@ -47,7 +48,7 @@ class TestDistance(unittest.TestCase):
         self.assertAlmostEqual(f_cy, 0, 10, "NSD not nul with cy")
 
 
-def test_suite_all_distance():
+def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestDistance("test_invariants"))
     testSuite.addTest(TestDistance("test_distance"))
@@ -55,6 +56,5 @@ def test_suite_all_distance():
     return testSuite
 
 if __name__ == '__main__':
-    mysuite = test_suite_all_distance()
     runner = unittest.TextTestRunner()
-    runner.run(mysuite)
+    runner.run(suite())

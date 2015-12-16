@@ -13,6 +13,7 @@ from numpy.distutils.core import Extension as _Extension
 PROJECT = "freesas"
 cmdclass = {}
 
+
 def get_version():
     import version
     return version.strictversion
@@ -52,6 +53,7 @@ def check_cython():
         if Cython.Compiler.Version.version < "0.17":
             return False
     return True
+
 
 def check_openmp():
     """
@@ -163,6 +165,7 @@ if sphinx:
             sys.path.pop(0)
     cmdclass['build_doc'] = build_doc
 
+
 class build_ext(_build_ext):
     """
     We subclass the build_ext class in order to handle compiler flags
@@ -207,6 +210,7 @@ class build_ext(_build_ext):
 
 cmdclass['build_ext'] = build_ext
 
+
 class build_py(_build_py):
     """
     Enhanced build_py which copies version to the built
@@ -226,13 +230,15 @@ class build_py(_build_py):
                 break
 
 cmdclass['build_py'] = build_py
+
+
 setup(name="freesas",
       version=get_version(),
       author="Guillaume Bonamis, Jerome Kieffer",
       author_email="jerome.kieffer@esrf.fr",
       description="Free tools to analyze Small angle scattering data",
       long_description=get_readme(),
-      packages=["freesas"],
+      packages=["freesas", "freesas.test"],
       test_suite="test",
       data_files=glob.glob("testdata/*"),
       scripts=script_files,

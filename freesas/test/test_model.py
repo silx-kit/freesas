@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# coding: utf-8
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -7,7 +8,7 @@ import numpy
 import unittest
 import os
 import tempfile
-from utilstests import base, join
+from utilstests import get_datafile
 from freesas.model import SASModel
 from freesas.transformations import translation_from_matrix, euler_from_matrix
 import logging
@@ -27,12 +28,12 @@ def assign_random_mol(inf=None, sup=None):
 
 
 class TesttParser(unittest.TestCase):
-    testfile = join(base, "testdata", "model-01.pdb")
+    testfile = get_datafile("model-01.pdb")
 
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.tmpdir = tempfile.mkdtemp()
-        self.outfile = join(self.tmpdir, "out.pdb")
+        self.outfile = os.path.join(self.tmpdir, "out.pdb")
 
     def tearDown(self):
         unittest.TestCase.tearDown(self)
@@ -56,7 +57,7 @@ class TesttParser(unittest.TestCase):
         m.read(self.testfile)
         n = SASModel()
         n.read(self.testfile)
-        self.assertEqual(m.rfactor, n.rfactor, msg="R-factor is not the same %s != %s"%(m.rfactor, n.rfactor))
+        self.assertEqual(m.rfactor, n.rfactor, msg="R-factor is not the same %s != %s" % (m.rfactor, n.rfactor))
 
     def test_init(self):
         m = SASModel()
@@ -157,7 +158,7 @@ class TesttParser(unittest.TestCase):
         self.assertAlmostEqual(dist, 0.0, 10, msg="pb with reverse transformation : %s != 0.0" % dist)
 
 
-def test_suite_all_model():
+def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TesttParser("test_same"))
     testSuite.addTest(TesttParser("test_rfactor"))
@@ -173,7 +174,7 @@ def test_suite_all_model():
     testSuite.addTest(TesttParser("test_reverse_transform"))
     return testSuite
 
+
 if __name__ == '__main__':
-    mysuite = test_suite_all_model()
     runner = unittest.TextTestRunner()
-    runner.run(mysuite)
+    runner.run(suite())
