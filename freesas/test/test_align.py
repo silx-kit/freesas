@@ -1,4 +1,6 @@
 #!/usr/bin/python
+from __future__ import print_function
+
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -17,7 +19,7 @@ logger = logging.getLogger("AlignModels_test")
 def move(mol):
     """
     Random movement of the molecule.
-    
+
     @param mol: 2d array, coordinates of the molecule
     @return mol:2D array, coordinates of the molecule after a translation and a rotation
     """
@@ -36,10 +38,10 @@ def move(mol):
 def assign_random_mol(inf=None, sup=None):
     """
     Create a random 2d array to create a molecule
-    
+
     @param inf: inf limit of coordinates values
     @param sup: sup limit of coordinates values
-    @return molecule: 2d array, random coordinates 
+    @return molecule: 2d array, random coordinates
     """
     if not inf:
         inf = 0
@@ -65,7 +67,7 @@ class TestAlign(unittest.TestCase):
         n.inertiatensor()
         n.canonical_parameters()
         if m.dist(n, m.atoms, n.atoms) == 0:
-            print m.dist(n, m.atoms, n.atoms)
+            logger.error(m.dist(n, m.atoms, n.atoms))
             logger.error("pb of movement")
         dist = align.alignment_2models(save=False)
         self.assertAlmostEqual(dist, 0, 12, msg="NSD unequal 0, %s!=0" % dist)

@@ -260,7 +260,7 @@ setup(name="freesas",
       # test_suite="test",
       data_files=glob.glob("testdata/*"),
       scripts=script_files,
-      install_requires=['numpy'],
+      install_requires=['numpy', "six"],
       ext_modules=ext_modules,
       cmdclass=cmdclass
       )

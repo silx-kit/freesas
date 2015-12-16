@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
+from __future__ import print_function
+
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"

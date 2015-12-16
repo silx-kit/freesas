@@ -80,10 +80,10 @@ class ProfileTestRunner(unittest.TextTestRunner):
         return TestResult(stream=sys.stderr, descriptions=True, verbosity=1)
 
 
-def report_rst(cov, package="fabio", version="0.0.0", base=""):
+def report_rst(cov, package="freesas", version="0.0.0", base=""):
     """
-    Generate a report of test coverage in RST (for Sphinx includion)
-    
+    Generate a report of test coverage in RST (for Sphinx inclusion)
+
     @param cov: test coverage instance
     @return: RST string
     """
@@ -113,6 +113,7 @@ def report_rst(cov, package="fabio", version="0.0.0", base=""):
             idx = fname.index(package)
             fqn = os.path.splitext(fname[idx:].replace(os.sep, "."))[0]
         else:
+            print(name, fname)
             continue
 
         lines = cl.find("lines").getchildren()
@@ -217,9 +218,9 @@ if options.coverage:
     logger.info("Running test-coverage")
     import coverage
     try:
-        cov = coverage.Coverage(omit=["*test*", "*third_party*", "*/setup.py"])
+        cov = coverage.Coverage()  # omit=["*test*", "*third_party*", "*/setup.py"])
     except AttributeError:
-        cov = coverage.coverage(omit=["*test*", "*third_party*", "*/setup.py"])
+        cov = coverage.coverage()  # omit=["*test*", "*third_party*", "*/setup.py"])
     cov.start()
 
 

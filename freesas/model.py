@@ -1,11 +1,16 @@
+#!/usr/bin/env python
+# coding: utf-8
+from __future__ import print_function
+
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
-import numpy
 import os
 from math import sqrt
 import threading
+import six
+import numpy
 try:
     from . import _distance
 except ImportError:
@@ -14,7 +19,8 @@ from . import transformations
 
 
 def delta_expand(vec1, vec2):
-    """
+    """Create a 2d array with the difference vec1[i]-vec2[j]
+
     :param vec1, vec2: 1d-array
     :return v1 - v2: difference for any element of v1 and v2 (i.e a 2D array)
     """
@@ -35,7 +41,7 @@ class SASModel:
         """
         :param molecule: if str, name of a pdb file, else if 2d-array, coordinates of atoms of a molecule
         """
-        if isinstance(molecule, (str, unicode)) and os.path.exists(molecule):
+        if isinstance(molecule, (six.text_type, six.binary_type)) and os.path.exists(molecule):
             self.read(molecule)
         else:
             self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
@@ -56,10 +62,10 @@ class SASModel:
 
     def read(self, filename):
         """
-        Read the PDB file, 
-        extract coordinates of each dummy atom, 
+        Read the PDB file,
+        extract coordinates of each dummy atom,
         extract the R-factor of the model, coordinates of each dummy atom and pdb file header.
-        
+
         :param filename: name of the pdb file to read
         """
         header = []
@@ -80,7 +86,7 @@ class SASModel:
     def save(self, filename):
         """
         Save the position of each dummy atom in a PDB file.
-        
+
         :param filename: name of the pdb file to write
         """
         nr = 0
@@ -98,7 +104,7 @@ class SASModel:
     def centroid(self):
         """
         Calculate the position of the center of mass of the molecule.
-        
+
         :return self.com: 1d array, coordinates of the center of mass of the molecule
         """
         mol = self.atoms[:, 0:3]
@@ -108,7 +114,7 @@ class SASModel:
     def inertiatensor(self):
         """
         calculate the inertia tensor of the protein
-        
+
         :return self.inertensor: inertia tensor of the molecule
         """
         if len(self.com) == 0:
@@ -125,8 +131,8 @@ class SASModel:
     def canonical_translate(self):
         """
         Calculate the translation matrix to translate the center of mass of the molecule on the origin of the base.
-        
-        :return trans: translation matrix 
+
+        :return trans: translation matrix
         """
         if len(self.com) == 0:
             self.com = self.centroid()
@@ -138,7 +144,7 @@ class SASModel:
     def canonical_rotate(self):
         """
         Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.
-        
+
         :return rot: rotation matrix det==1
         """
         if len(self.inertensor) == 0:
@@ -223,7 +229,7 @@ class SASModel:
     def dist(self, other, molecule1, molecule2, use_cython=True):
         """
         Calculate the distance with another model.
-        
+
         :param self,other: two SASModel
         :param molecule1: 2d array of the position of each atom of the first molecule
         :param molecule2: 2d array of the position of each atom of the second molecule
@@ -258,7 +264,7 @@ class SASModel:
     def transform(self, param, symmetry, reverse=None):
         """
         Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry
-        
+
         :param param: 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)
         :param symmetry: list of three constants which define a symmetry to apply
         :return mol: 2d array, coordinates after transformation
@@ -291,7 +297,7 @@ class SASModel:
         """
         The first molecule, molref, is put on its canonical position.
         The second one, mol2, is moved following the transformation selected
-        
+
         :param param: list of 6 parameters for the transformation, 3 coordinates of translation and 3 Euler angles
         :param symmetry: list of three constants which define a symmetry to apply
         :return distance: the NSD between the first molecule and the second one after its movement
