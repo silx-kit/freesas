@@ -5,9 +5,9 @@ __copyright__ = "2015, ESRF"
 
 import numpy
 import unittest
-from utilstests import base, join
-from freesas.model import SASModel
-from freesas.average import Grid, AverModels
+from utilstests import get_datafile
+from ..model import SASModel
+from ..average import Grid, AverModels
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +15,8 @@ logger = logging.getLogger("AlignModels_test")
 
 
 class TestAverage(unittest.TestCase):
-    testfile1 = join(base, "testdata", "model-01.pdb")
-    testfile2 = join(base, "testdata", "model-02.pdb")
+    testfile1 = get_datafile("model-01.pdb")
+    testfile2 = get_datafile("model-02.pdb")
     inputfiles = [testfile1, testfile2]
     grid = Grid(inputfiles)
 

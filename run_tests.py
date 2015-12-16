@@ -21,7 +21,8 @@ import subprocess
 import sys
 import time
 import unittest
-
+import tempfile
+from argparse import ArgumentParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("run_tests")
@@ -47,8 +48,9 @@ else:
     logger.info("h5py %s" % h5py.version.version)
 
 
-
 class TestResult(unittest.TestResult):
+    """
+    """
     logger = logging.getLogger("memProf")
     logger.setLevel(logging.DEBUG)
     logger.handlers.append(logging.FileHandler("profile.log"))
@@ -72,24 +74,22 @@ class ProfileTestRunner(unittest.TextTestRunner):
         return TestResult(stream=sys.stderr, descriptions=True, verbosity=1)
 
 
-def report_rst(cov, package, version="0.0.0"):
+def report_rst(cov, package="fabio", version="0.0.0", base=""):
     """
-    Generate a report of test coverage in RST (for Sphinx inclusion)
+    Generate a report of test coverage in RST (for Sphinx includion)
     
-    :param cov: test coverage instance
-    :param str package: Name of the package
-    :return: RST string
+    @param cov: test coverage instance
+    @return: RST string
     """
-    import tempfile
+    logger.warning("base: %s" % base)
+
     fd, fn = tempfile.mkstemp(suffix=".xml")
     os.close(fd)
     cov.xml_report(outfile=fn)
-
     from lxml import etree
     xml = etree.parse(fn)
     classes = xml.xpath("//class")
 
-    import time
     line0 = "Test coverage report for %s" % package
     res = [line0, "=" * len(line0), ""]
     res.append("Measured on *%s* version %s, %s" % (package, version, time.strftime("%d/%m/%Y")))
@@ -100,10 +100,20 @@ def report_rst(cov, package, version="0.0.0"):
             '']
     tot_sum_lines = 0
     tot_sum_hits = 0
-
     for cl in classes:
         name = cl.get("name")
         fname = cl.get("filename")
+        if package in fname:
+            idx = fname.index(package)
+            fqn = os.path.splitext(fname[idx:].replace(os.sep, "."))[0]
+        else:
+#             print(name, fname)
+            continue
+#         if os.name == "posix" and os.path.islink(fqn):
+#             fqn = os.path.abspath(os.path.join(os.path.dirname(fqn), os.readlink(fqn)))
+#         if os.path.abspath(fname) != fqn:
+#             continue
+
         lines = cl.find("lines").getchildren()
         hits = [int(i.get("hits")) for i in lines]
 
@@ -112,13 +122,13 @@ def report_rst(cov, package, version="0.0.0"):
 
         cover = 100.0 * sum_hits / sum_lines if sum_lines else 0
 
-        res.append('   "%s", "%s", "%s", "%.1f %%"' % (name, sum_lines, sum_hits, cover))
+        res.append('   "%s", "%s", "%s", "%.1f %%"' % (fqn, sum_lines, sum_hits, cover))
         tot_sum_lines += sum_lines
         tot_sum_hits += sum_hits
     res.append("")
+    cover = 100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0
     res.append('   "%s total", "%s", "%s", "%.1f %%"' %
-               (package, tot_sum_lines, tot_sum_hits,
-                100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0))
+               (package, tot_sum_lines, tot_sum_hits, cover))
     res.append("")
     return os.linesep.join(res)
 
@@ -167,10 +177,10 @@ def build_project(name, root_dir):
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_NAME = get_project_name(PROJECT_DIR)
-logger.info('Project name: %s' % PROJECT_NAME)
+logger.info('Project name: %s\t with dir %s' % (PROJECT_NAME, PROJECT_DIR))
 
 
-from argparse import ArgumentParser
+
 
 parser = ArgumentParser(description='Run the tests.')
 
@@ -252,7 +262,6 @@ logger.warning("Test %s %s from %s" % (PROJECT_NAME,
                                        PROJECT_PATH))
 
 test_suite = unittest.TestSuite()
-print(options.test_name)
 test_suite.addTest(
     unittest.defaultTestLoader.loadTestsFromNames(options.test_name))
 
@@ -264,7 +273,9 @@ else:
 
 if options.coverage:
     cov.stop()
+    logger.info("Generating test coverage  report")
     cov.save()
+    report = report_rst(cov, PROJECT_NAME, PROJECT_VERSION, base=module.__path__[0])
     with open("coverage.rst", "w") as fn:
-        fn.write(report_rst(cov, PROJECT_NAME, PROJECT_VERSION))
-    print(cov.report())
+        fn.write(report)
+    logger.info(report)

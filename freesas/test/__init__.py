@@ -9,6 +9,11 @@ __copyright__ = "2015, ESRF"
 import unittest
 from .test_all import suite
 
-if __name__ == '__main__':
+
+def run():
     runner = unittest.TextTestRunner()
-    runner.run(suite())
+    return runner.run(suite())
+
+
+if __name__ == '__main__':
+    run()

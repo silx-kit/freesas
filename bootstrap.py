@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
 Bootstrap helps you to test scripts without installing them
 by patching your PYTHONPATH on the fly
@@ -10,7 +11,7 @@ example: ./bootstrap.py ipython
 __authors__ = ["Frédéric-Emmanuel Picca", "Jérôme Kieffer"]
 __contact__ = "jerome.kieffer@esrf.eu"
 __license__ = "MIT"
-__date__ = "27/11/2015"
+__date__ = "16/12/2015"
 
 
 import sys
@@ -18,9 +19,12 @@ import os
 import shutil
 import distutils.util
 import subprocess
+import logging
+logger = logging.getLogger("bootstrap")
 
 
 TARGET = os.path.basename(os.path.dirname(os.path.abspath(__file__))).split("-")[0]
+os.environ["FREESAS_TESTDATA"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testdata")
 
 
 def _copy(infile, outfile):
@@ -88,41 +92,59 @@ LIBPATH = (os.path.join(home,
 if (not os.path.isdir(SCRIPTSPATH)) or (not os.path.isdir(LIBPATH)):
     build = subprocess.Popen([sys.executable, "setup.py", "build"],
                      shell=False, cwd=os.path.dirname(__file__))
-    print("Build process ended with rc= %s" % build.wait())
+    logger.info("Build process ended with rc= %s" % build.wait())
 # _copy_files("openCL", os.path.join(LIBPATH, TARGET, "openCL"), ".cl")
 # _copy_files("gui", os.path.join(LIBPATH, TARGET, "gui"), ".ui")
 # _copy_files("calibration", os.path.join(LIBPATH, TARGET, "calibration"), ".D")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("usage: ./bootstrap.py <script>\n")
-        print("Available scripts : %s\n" %
-              _get_available_scripts(SCRIPTSPATH))
-        sys.exit(1)
-    os.system("cd %s;python setup.py build; cd -" % home)
-    print("Executing %s from source checkout" % (sys.argv[1]))
+        logging.warning("usage: ./bootstrap.py <script>\n")
+        logging.warning("Available scripts : %s\n" %
+                        _get_available_scripts(SCRIPTSPATH))
+        script = None
+    else:
+        script = sys.argv[1]
 
+    cwd = os.getcwd()
+    os.chdir(home)
+    subprocess.call([sys.executable, "setup.py", "build"])
+    os.chdir(cwd)
+    if script:
+        logger.info("Executing %s from source checkout" % (script))
+    else:
+        logging.info("Running iPython by default")
     sys.path.insert(0, LIBPATH)
-    print("01. Patched sys.path with %s" % LIBPATH)
+    logger.info("01. Patched sys.path with %s" % LIBPATH)
 
     sys.path.insert(0, SCRIPTSPATH)
-    print("02. Patched sys.path with %s" % SCRIPTSPATH)
+    logger.info("02. Patched sys.path with %s" % SCRIPTSPATH)
 
-    script = sys.argv[1]
-    sys.argv = sys.argv[1:]
-    print("03. patch the sys.argv : ", sys.argv)
-
-    print("04. Executing %s.main()" % (script,))
-    fullpath = os.path.join(SCRIPTSPATH, script)
-    if os.path.exists(fullpath):
-        runfile(fullpath)
-    else:
-        if os.path.exists(script):
-            runfile(script)
+    if script:
+        sys.argv = sys.argv[1:]
+        logger.info("03. patch the sys.argv : ", sys.argv)
+        logger.info("04. Executing %s.main()" % (script,))
+        fullpath = os.path.join(SCRIPTSPATH, script)
+        if os.path.exists(fullpath):
+            runfile(fullpath)
         else:
-            for dirname in os.environ.get("PATH", "").split(os.pathsep):
-                fullpath = os.path.join(dirname, script)
-                if os.path.exists(fullpath):
-                    runfile(fullpath)
-                    break
-
+            if os.path.exists(script):
+                runfile(script)
+            else:
+                for dirname in os.environ.get("PATH", "").split(os.pathsep):
+                    fullpath = os.path.join(dirname, script)
+                    if os.path.exists(fullpath):
+                        runfile(fullpath)
+                        break
+    else:
+        logger.info("03. patch the sys.argv : ", sys.argv)
+        sys.path.insert(2, "")
+        try:
+            from IPython import embed
+        except Exception as err:
+            logger.error("Unable to execute iPython, using normal Python")
+            logger.error(err)
+            import code
+            code.interact()
+        else:
+            embed()
