@@ -7,7 +7,7 @@ __date__ = "16/12/2015"
 
 import numpy
 import unittest
-from utilstests import get_datafile
+from .utilstests import get_datafile
 from ..model import SASModel
 import logging
 logging.basicConfig(level=logging.INFO)

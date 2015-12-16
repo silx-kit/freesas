@@ -8,9 +8,9 @@ import numpy
 import unittest
 import os
 import tempfile
-from utilstests import get_datafile
-from freesas.model import SASModel
-from freesas.transformations import translation_from_matrix, euler_from_matrix
+from .utilstests import get_datafile
+from ..model import SASModel
+from ..transformations import translation_from_matrix, euler_from_matrix
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SASModel_test")

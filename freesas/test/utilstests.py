@@ -13,9 +13,9 @@ from ..directories import testdata
 
 
 def get_datafile(name):
-    """Provides the full path of a test file, downloading it from the net if 
-    needed
-    
+    """Provides the full path of a test file,
+    downloading it from the internet if needed
+
     :param name: name of the file to get
     :return: full path of the datafile
     """
