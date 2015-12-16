@@ -1,5 +1,6 @@
 numpy
 cython
-matplotlib
+setuptools
+#matplotlib issue in RTD
 sphinx
 sphinxcontrib-programoutput
