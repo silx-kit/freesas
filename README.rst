@@ -1,7 +1,9 @@
-freesas
+[![Build Status](https://travis-ci.org/kif/freesas.svg)](https://travis-ci.org/kif/freesas)
+
+FreeSAS
 =======
 
-Small angle scattering tools ... but unlike most others, free. 
+Small angle scattering tools ... but unlike most others, free.
 The FreeSAS tool suite is licensed under the MIT license.
 
 Available tools:

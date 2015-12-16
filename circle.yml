@@ -5,9 +5,10 @@ machine:
 # freesas dependencies for build and test
 dependencies:
     pre:
+        - pip install --upgrade setuptools wheel pip
         - pip install --trusted-host www.edna-site.org -r ci/requirement_circle.txt --upgrade
         - pip freeze
-        
+
 # test to run
 test:
     override:
