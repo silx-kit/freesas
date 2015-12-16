@@ -16,7 +16,6 @@ import distutils.util
 import importlib
 import logging
 import os
-import resource
 import subprocess
 import sys
 import time
@@ -31,6 +30,13 @@ logger.setLevel(logging.INFO)
 os.environ["FREESAS_TESTDATA"] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testdata")
 
 logger.info("Python %s %s" % (sys.version, tuple.__itemsize__ * 8))
+
+try:
+    import resource
+except ImportError:
+    resource = None
+    logger.warning("resource module missing")
+
 
 try:
     import numpy
