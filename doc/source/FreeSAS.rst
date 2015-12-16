@@ -142,7 +142,7 @@ SuPyComb script
 
 | FreeSAS can also be used directly using command lines. Here is
   presented the way to use the program supycomb, the re-implementation
-  of the supcomb of the (Atsas package)[http://dx.doi.org/10.1107/S0021889800014126].
+  of the supcomb of the [Atsas package](http://dx.doi.org/10.1107/S0021889800014126).
 
 | Supycomb has two different process, the first one is called when only
   two pdb files are put as arguments and a second one for more than two
