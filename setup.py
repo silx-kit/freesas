@@ -249,6 +249,23 @@ class PyTest(Command):
 
 cmdclass['test'] = PyTest
 
+classifiers = ["Development Status :: 5 - Production/Stable",
+               "Intended Audience :: Developers",
+               "Programming Language :: Python :: 2",
+               "Programming Language :: Python :: 3",
+               "Programming Language :: Cython",
+               "Environment :: Console",
+               "Intented Audience :: Science/Research",
+               "License :: OSI Approved :: MIT License",
+               "Topic :: Software Development :: Libraries :: Python Modules",
+               "Operating System :: Microsoft :: Windows",
+               "Operating System :: Unix",
+               "Operating System :: MacOS :: MacOS X",
+               "Operating System :: POSIX",
+               "Topic :: Scientific/Engineering :: Physics",
+               "Topic :: Scientific/Engineering :: Bio-Informatics"
+               ]
+
 
 setup(name="freesas",
       version=get_version(),
@@ -262,5 +279,6 @@ setup(name="freesas",
       scripts=script_files,
       install_requires=['numpy', "six"],
       ext_modules=ext_modules,
-      cmdclass=cmdclass
+      cmdclass=cmdclass,
+      classifiers=classifiers
       )
