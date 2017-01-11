@@ -121,7 +121,11 @@ def Extension(name, source=None, can_use_openmp=False, extra_sources=None, **kwa
     ext = _Extension(name=name, sources=sources, include_dirs=include_dirs, **kwargs)
 
     if USE_CYTHON:
-        cext = cythonize([ext], compile_time_env={"HAVE_OPENMP": bool(USE_OPENMP)})
+        cext = cythonize([ext],
+                         compiler_directives={'embedsignature': True},
+                         force=(os.environ.get("FORCE_CYTHON") is "True"),
+                         compile_time_env={"HAVE_OPENMP": USE_OPENMP})
+
         if cext:
             ext = cext[0]
     return ext
@@ -129,6 +133,7 @@ def Extension(name, source=None, can_use_openmp=False, extra_sources=None, **kwa
 
 ext_modules = [
                Extension("freesas._distance", can_use_openmp=True),
+               Extension("freesas.cormap", can_use_openmp=False),
                ]
 
 script_files = glob.glob("scripts/*.py")
@@ -255,7 +260,7 @@ classifiers = ["Development Status :: 5 - Production/Stable",
                "Programming Language :: Python :: 3",
                "Programming Language :: Cython",
                "Environment :: Console",
-               #"Intented Audience :: Science/Research",
+               # "Intented Audience :: Science/Research",
                "License :: OSI Approved :: MIT License",
                "Topic :: Software Development :: Libraries :: Python Modules",
                "Operating System :: Microsoft :: Windows",

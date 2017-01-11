@@ -1,8 +1,8 @@
 # Unique place where the version number is defined.
 # Do not copy into the source folder !
-__date__ = "15/12/2015"
+__date__ = "11/01/2017"
 MAJOR = 0
-MINOR = 4
+MINOR = 5
 MICRO = 0
 RELEV = "final"  # <16
 SERIAL = 0  # <16
