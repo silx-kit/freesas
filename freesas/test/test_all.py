@@ -5,12 +5,13 @@ from __future__ import print_function
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "16/12/2015"
+__date__ = "12/01/2017"
 
 import unittest
 from . import test_model
 from . import test_align
 from . import test_distance
+from . import test_cormap
 
 
 def suite():
@@ -18,6 +19,7 @@ def suite():
     testSuite.addTest(test_model.suite())
     testSuite.addTest(test_align.suite())
     testSuite.addTest(test_distance.suite())
+    testSuite.addTest(test_cormap.suite())
     return testSuite
 
 
