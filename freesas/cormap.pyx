@@ -4,6 +4,7 @@ __copyright__ = "2017, ESRF"
 
 import numpy
 from cython cimport floating
+from math import log
 
 
 class LongestRunOfHeads(object):
@@ -16,7 +17,7 @@ class LongestRunOfHeads(object):
         "We store already calculated values for (n,c)"
         self.knowledge = {}
 
-    def A(self, int n, int c):
+    def A(self, n, c):
         """Calculate A(number_of_toss, length_of_longest_run)
         
         :param n: number of coin toss in the experiment, an integer
@@ -25,7 +26,7 @@ class LongestRunOfHeads(object):
         
         """
         if n <= c:
-            return 1 << n
+            return 2 ** n
         elif (n, c) in self.knowledge:
             return self.knowledge[(n, c)]
         else:
@@ -35,14 +36,20 @@ class LongestRunOfHeads(object):
             self.knowledge[(n, c)] = s
             return s
 
-    def __call__(self, int n, int c):
+    def __call__(self, n, c):
         """Calculate the probability of this to occur 
         
         :param n: number of coin toss in the experiment, an integer
         :param c: length of the longest run of heads, an integer 
         :return: The probablility of having c subsequent heads in a n toss of fair coin
         """
-        return 1.0 - self.A(n, c) / 2.0 ** n
+        if c >= n: 
+            return 0
+        delta = 2 ** n - self.A(n, c)
+        #print("%s\n%s\n%s"%(2**n, self.A(n, c),delta))
+        if delta <= 0:
+            return 0
+        return 2.0 ** (log(delta, 2) - n)
 
 
 LROH = LongestRunOfHeads()
