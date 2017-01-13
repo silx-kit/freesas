@@ -2,7 +2,7 @@ include README.md
 include freesas/_distance_nomp.pxi
 include freesas/_distance_omp.pxi
 include freesas/_distance.pyx
-include freesas/cormap.pyx
+include freesas/_cormap.pyx
 include MANIFEST.in
 include version.py
 include run_tests.py
