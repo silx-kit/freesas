@@ -45,6 +45,7 @@ def parse():
     files = [i for i in args.file if os.path.exists(i)]
     if operatingSystem == "Windows" and files == []:
         files = glob.glob(args.file[0])
+        files.sort()
     input_len = len(files)
     logger.debug("%s input files" % input_len)
     return files
