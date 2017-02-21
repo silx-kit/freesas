@@ -10,14 +10,20 @@ import argparse
 import os
 from os.path import dirname, abspath
 import logging
-from freesas.cormap import gof
+try:
+    from freesas.cormap import gof
+except: 
+    from freesas.freesas.cormap import gof
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
 import numpy
 from itertools import combinations
 from collections import namedtuple
 datum = namedtuple("datum", ["index", "filename", "data"])
-
+import platform
+operatingSystem = platform.system()
+if operatingSystem == "Windows":
+    import glob
 
 def parse():
     """ Parse input and return list of files.
@@ -33,9 +39,12 @@ def parse():
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     args = parser.parse_args()
+    print(args)
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     files = [i for i in args.file if os.path.exists(i)]
+    if operatingSystem == "Windows" and files == []:
+        files = glob.glob(args.file[0])
     input_len = len(files)
     logger.debug("%s input files" % input_len)
     return files
@@ -47,7 +56,10 @@ def compare(lstfiles):
            "                                C       Pr(>C)"]
     data = []
     for i, f in enumerate(lstfiles):
-        ary = numpy.loadtxt(f)
+        try:
+            ary = numpy.loadtxt(f)
+        except ValueError as e:
+            print(e)
         if ary.ndim > 1 and ary.shape[1] > 1:
             ary = ary[:, 1]
         d = datum(i + 1, f, ary)
