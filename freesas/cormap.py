@@ -69,12 +69,15 @@ class LongestRunOfHeads(object):
         :param c: length of the longest run of heads or tails, an integer 
         :return: The probablility of having c subsequent heads or tails in a n toss of fair coin
         """
-        if c >= n:
+        if c > n:
             return 0
-        delta = 2 ** n - self.B(n, c)
+        if c == 0:
+            return 0
+        delta = self.B(n,c) - self.B(n,c-1)
         if delta <= 0:
             return 0
         return 2.0 ** (log(delta, 2) - n)
+        
 
 
 LROH = LongestRunOfHeads()
