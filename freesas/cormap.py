@@ -116,9 +116,9 @@ def gof(data1, data2):
         data2 = data2[:, 1]
 
     cdata = numpy.ascontiguousarray(data2 - data1, numpy.float64).ravel()
-    c = measure_longest(cdata) -1 
+    c = measure_longest(cdata)  
     n = cdata.size
-    res = GOF(n, c, LROH.probaLongerRun(n, c))
+    res = GOF(n, c, LROH.probaLongerRun(n, c-1))
     
 
     return res
