@@ -10,10 +10,7 @@ import argparse
 import os
 from os.path import dirname, abspath
 import logging
-try:
-    from freesas.cormap import gof
-except: 
-    from freesas.freesas.cormap import gof
+from freesas.cormap import gof
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
 import numpy
@@ -39,7 +36,6 @@ def parse():
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     args = parser.parse_args()
-    print(args)
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     files = [i for i in args.file if os.path.exists(i)]

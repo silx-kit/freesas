@@ -49,7 +49,7 @@ class LongestRunOfHeads(object):
         return 2 * self.A(n - 1, c - 1)
 
     def __call__(self, n, c):
-        """Calculate the probability of a longest run of head to occur 
+        """Calculate the probability for the longest run of heads to exceed the observed length  
         
         :param n: number of coin toss in the experiment, an integer
         :param c: length of the longest run of heads, an integer 
@@ -62,7 +62,7 @@ class LongestRunOfHeads(object):
             return 0
         return 2.0 ** (log(delta, 2) - n)
 
-    def probaB(self, n, c):
+    def probaHeadOrTail(self, n, c):
         """Calculate the probability of a longest run of head or tails to occur 
         
         :param n: number of coin toss in the experiment, an integer
@@ -74,6 +74,22 @@ class LongestRunOfHeads(object):
         if c == 0:
             return 0
         delta = self.B(n,c) - self.B(n,c-1)
+        if delta <= 0:
+            return 0
+        return 2.0 ** (log(delta, 2) - n)
+    
+    def probaLongerRun(self, n, c):
+        """Calculate the probability for the longest run of heads or tails to exceed the observed length  
+        
+        :param n: number of coin toss in the experiment, an integer
+        :param c: length of thee observed run of heads or tails, an integer 
+        :return: The probablility of having more than c subsequent heads or tails in a n toss of fair coin
+        """
+        if c > n:
+            return 0
+        if c == 0:
+            return 0
+        delta = 2**n - self.B(n,c) 
         if delta <= 0:
             return 0
         return 2.0 ** (log(delta, 2) - n)
@@ -100,7 +116,9 @@ def gof(data1, data2):
         data2 = data2[:, 1]
 
     cdata = numpy.ascontiguousarray(data2 - data1, numpy.float64).ravel()
-    c = measure_longest(cdata)
+    c = measure_longest(cdata) -1 
     n = cdata.size
-    res = GOF(n, c, LROH.probaB(n, c))
+    res = GOF(n, c, LROH.probaLongerRun(n, c))
+    
+
     return res
