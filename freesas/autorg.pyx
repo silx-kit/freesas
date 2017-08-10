@@ -65,8 +65,8 @@ def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
         ymean = datay.mean()
         ssxx = (datax*datax).sum() -n*xmean**2
         ssyy = (datay*datay).sum() -n*ymean**2
-        ssxy = (datay*datax).sum() -n*ymean*xmean
-        s = ((ssyy + a*ssxy)/(n-2))**0.5
+        #ssxy = (datay*datax).sum() -n*ymean*xmean
+        s = ((ssyy + b*b*ssxx)/(n-2))**0.5
         da = s*(1/n + (xmean**2)/ssxx)**0.5
         db = s/ssxx**0.5
         xopt = (a,b)
@@ -77,7 +77,7 @@ def linear_func(cnp.ndarray x,float a, float b):
     #return a+b*x
     return np.add(a,b*x)
 
-def calcRgEDNA(cnp.ndarray x,cnp.ndarray y,cnp.ndarray yerr):
+def calcRg(cnp.ndarray x,cnp.ndarray y,cnp.ndarray yerr):
     xopt, dx= weightedlinFit(x,y,yerr)
     #print xopt, dx
     if xopt[1] > 0:
@@ -189,7 +189,7 @@ def autoRg(cnp.ndarray sasm):
 
 
             try:
-                RG, I0, RGer, I0er,opt = calcRgEDNA(x, y, yw)#, transform=False, error_weight =False)
+                RG, I0, RGer, I0er,opt = calcRg(x, y, yw)#, transform=False, error_weight =False)
             except ValueError as VE:
                 print(VE)
                 raise 
@@ -289,9 +289,9 @@ def autoRg(cnp.ndarray sasm):
 
             try:
                 idx = quality.argmax()
-                rg = fit_list[:,4][quality>quality[idx]-.1].mean()
+                rg = fit_list[idx,4]
                 rger = fit_list[:,5][quality>quality[idx]-.1].std()
-                i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
+                i0 = fit_list[idx,6]
                 i0er = fit_list[:,7][quality>quality[idx]-.1].std()
                 idx_min = int(fit_list[idx,0])
                 idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
