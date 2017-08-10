@@ -134,6 +134,7 @@ def Extension(name, source=None, can_use_openmp=False, extra_sources=None, **kwa
 ext_modules = [
                Extension("freesas._distance", can_use_openmp=True),
                Extension("freesas._cormap", can_use_openmp=False),
+               Extension("freesas.autorg", can_use_openmp=False),
                ]
 
 script_files = glob.glob("scripts/*.py")
@@ -274,7 +275,7 @@ classifiers = ["Development Status :: 5 - Production/Stable",
 
 setup(name="freesas",
       version=get_version(),
-      author="Guillaume Bonamis, Jerome Kieffer",
+      author="Guillaume Bonamis, Martha Brennich, Jerome Kieffer",
       author_email="jerome.kieffer@esrf.fr",
       description="Free tools to analyze Small angle scattering data",
       long_description=get_readme(),
