@@ -10,8 +10,6 @@ Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
 
 
 
-
-
 class Error(Exception):
     """Base class for exceptions in this module."""
 pass
@@ -32,6 +30,7 @@ class InsufficientDataError(Error):
 cimport numpy as cnp
 import numpy  as np
 from math import exp
+
 
 cdef extern from "math.h":
     float sqrt(float m)
@@ -88,8 +87,10 @@ def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
         #x = [-sigmaxx*sigmay + sigmax*sigmaxy,-sigmax*sigmay+sigma*sigmaxy]/detA
         a = (-sigmaxx*sigmay + sigmax*sigmaxy)/detA
         b = (-sigmax*sigmay+sigma*sigmaxy)/detA
-        xmean = datax.mean()
-        ymean = datay.mean()
+        #xmean = datax.mean()
+        #ymean = datay.mean()
+        xmean = datax.sum()/n
+        ymean = datay.sum()/n
         xmean2 = xmean*xmean
         ssxx = (dxx).sum() -n*xmean2#*xmean
         ssyy = (datay*datay).sum() -n*ymean*ymean
@@ -104,7 +105,6 @@ def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
 def linear_func(cnp.ndarray x,float a, float b):
     #return a-b*x
     return np.add(a,-b*x)
-
 
 
 def autoRg(cnp.ndarray sasm):
@@ -228,7 +228,7 @@ def autoRg(cnp.ndarray sasm):
                     diff = np.add(y,-linear_func(x, a, b))
                     diff2 = diff*diff
                     #diff2 = np.square(diff)
-                    r_sqr = 1 - diff2.sum()/np.square(y-y.mean()).sum()
+                    r_sqr = 1 - diff2.sum()/np.square(y-y.sum()/(w)).sum()
                     #r_sqr = 1 - diff2.sum()/((y-y.mean())*(y-y.mean())).sum()
                     if r_sqr > .15:
                         chi_sqr = (diff2*yw).sum()
