@@ -5,8 +5,10 @@ __license__ = "MIT"
 __copyright__ = "2017, EMBL"
 
 """
-Based on the autoRg implementation in BioXTAS RAW by J. Hopkins
+Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
 """
+
+
 
 
 
@@ -29,21 +31,46 @@ class InsufficientDataError(Error):
 #from numpy import sqrt as nsqrt#from numpy import exp as nexp
 cimport numpy as cnp
 import numpy  as np
-from math import sqrt,exp
+from math import exp
+
+cdef extern from "math.h":
+    float sqrt(float m)
+    #float exp(float m) #Note: For exp, python math seems faster?
 
 DTYPE = np.float
 ctypedef cnp.float_t DTYPE_t
 
+cdef float qmaxrg_weight = 1
+cdef float qminrg_weight = 0.1
+cdef float rg_frac_err_weight = 1
+cdef float i0_frac_err_weight = 1
+cdef float r_sqr_weight = 4
+cdef float reduced_chi_sqr_weight = 0
+cdef float window_size_weight = 6
+
+cdef cnp.ndarray weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight,
+                    reduced_chi_sqr_weight, window_size_weight])
+
+
 def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
+    """Calcualtes a fit to a - bx, weighted by w. 
+        Input:
+        x, y: The dataset to be fitted.
+        w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
+        Returns: xopt = (a,b) and dx = (da,db)
+    """
+    
     cdef cnp.ndarray datax = x
     cdef cnp.ndarray datay = y
-    cdef cnp.ndarray weight = w#1/(yerr*yerr)
+    cdef cnp.ndarray weight = w
     cdef int n = datax.shape[0]
     cdef float sigma = weight.sum()
-    cdef float sigmay = (datay*weight).sum() #This is faster then calculating the inner product
+    cdef cnp.ndarray yw = datay*weight
+    cdef cnp.ndarray dxx = datax*datax
+    cdef float sigmay = yw.sum()#(datay*weight).sum() #This is faster then calculating the inner product
     cdef float sigmax = (datax*weight).sum()
-    cdef float sigmaxy = (datax*datay*weight).sum()
-    cdef float sigmaxx = (datax*datax*weight).sum()
+    cdef float sigmaxy = (datax*yw).sum()#(datax*datay*weight).sum()
+    cdef float sigmaxx = (dxx*weight).sum()#(datax*datax*weight).sum()
         #x = [-sigmaxx*sigmay + sigmax*sigmaxy,-sigmax*sigmay+sigma*sigmaxy]/detA
     cdef float a = 0 
     cdef float b= 0 
@@ -55,7 +82,7 @@ def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
     cdef float s =  0 
     cdef float da = 0 
     cdef float db = 0 
-    
+    cdef float xmean2 = 0
     cdef float detA = sigmax*sigmax-sigma*sigmaxx
     if not(detA==0):
         #x = [-sigmaxx*sigmay + sigmax*sigmaxy,-sigmax*sigmay+sigma*sigmaxy]/detA
@@ -63,48 +90,38 @@ def weightedlinFit(cnp.ndarray x, cnp.ndarray y, cnp.ndarray w):
         b = (-sigmax*sigmay+sigma*sigmaxy)/detA
         xmean = datax.mean()
         ymean = datay.mean()
-        ssxx = (datax*datax).sum() -n*xmean**2
-        ssyy = (datay*datay).sum() -n*ymean**2
+        xmean2 = xmean*xmean
+        ssxx = (dxx).sum() -n*xmean2#*xmean
+        ssyy = (datay*datay).sum() -n*ymean*ymean
         #ssxy = (datay*datax).sum() -n*ymean*xmean
-        s = ((ssyy + b*b*ssxx)/(n-2))**0.5
-        da = s*(1/n + (xmean**2)/ssxx)**0.5
-        db = s/ssxx**0.5
+        s = sqrt((ssyy + b*b*ssxx)/(n-2))
+        da = sqrt(s*(1/n + (xmean2)/ssxx))
+        db = sqrt(s/ssxx)
         xopt = (a,b)
         dx = (da,db)
         return xopt, dx
 
 def linear_func(cnp.ndarray x,float a, float b):
-    #return a+b*x
-    return np.add(a,b*x)
+    #return a-b*x
+    return np.add(a,-b*x)
 
-def calcRg(cnp.ndarray x,cnp.ndarray y,cnp.ndarray yerr):
-    xopt, dx= weightedlinFit(x,y,yerr)
-    #print xopt, dx
-    if xopt[1] > 0:
-        RG=sqrt(3.*xopt[1])
-        I0=exp(xopt[0])
 
-        #error in rg and i0 is calculated by noting that q(x)+/-Dq has Dq=abs(dq/dx)Dx, where q(x) is your function you're using
-        #on the quantity x+/-Dx, with Dq and Dx as the uncertainties and dq/dx the derviative of q with respect to x.
-        RGer=0.5*sqrt(3./xopt[1])*dx[1]
-        I0er=I0*dx[0]
-        return RG, I0, RGer, I0er, xopt
-    else:
-        return -1,-1,-1,-1,xopt
 
 def autoRg(cnp.ndarray sasm):
-    #This function automatically calculates the radius of gyration and scattering intensity at zero angle
-    #from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
+    """This function automatically calculates the radius of gyration and scattering intensity at zero angle
+    from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
+    Input:
+    sasm: An array of q, I(q), dI(q)
+    """
     sasm = sasm[np.where((np.isnan(sasm[:,2]) == False)*(np.isinf(sasm[:,2]) == False)*(sasm[:,2] > 0))]
-    #sasm = sasm[indices]
-    #cdef cnp.ndarray  q = sasm[:,0]
+  
+    #We will define q and ierr later, to avoid unnecessary assignments
     cdef cnp.ndarray i = sasm[:,1]
-    #cdef cnp.ndarray err = sasm[:,2]
-    
+
+    cdef cnp.ndarray quality 
 
 
-
-    cdef int qmin = 3
+    cdef int qmin = 0
     cdef int qmax = -1
 
   
@@ -112,19 +129,18 @@ def autoRg(cnp.ndarray sasm):
     #Pick the start of the RG fitting range. Note that in autorg, this is done
     #by looking for strong deviations at low q from aggregation or structure factor
     #or instrumental scattering, and ignoring those. This function isn't that advanced
-    #so we start at 0.
+    #so we start at 0 or the first positive data point
     cdef int data_start = 0
     data_start = max(qmin,np.argmax(i > 0))
-    #print "data_start", data_start
-    #cdef cnp.ndarray q = sasm[data_start:-1,0]
+
     i = i[data_start:-1]
-    #cdef cnp.ndarray err = sasm[data_start:-1,2]
+   
     #Following the atsas package, the end point of our search space is the q value
     #where the intensity has droped by an order of magnitude from the initial value.
-    #data_end = np.abs(i-i[data_start]/10).argmin()
+  
     cdef int data_end = 0
-    data_end = np.argmax(i < i[0]/10)
-    #print "used data ", data_start, data_end + data_start
+    data_end = np.argmax(abs(i) < abs(i[0]/10)) #This is deiffernt from waht Jesse does, but also works...
+
     if (data_end ) < 10:
         raise InsufficientDataError()
   
@@ -139,15 +155,15 @@ def autoRg(cnp.ndarray sasm):
             elif idx == len(i) -1:
                 found = True
         data_end = idx
+    #Let's assign q and ierr abd remove the trailing points from i
     cdef cnp.ndarray q = sasm[data_start:data_start+data_end,0]
     i = i[0:data_end]
     cdef cnp.ndarray err = sasm[data_start:data_start+data_end,2]
 
-    #Start out by transforming as usual.
+    #Start out by transforming: we need x: q*q, y: log I and w: (err/i)**(-2) 
     cdef cnp.ndarray qs = q*q
     cdef cnp.ndarray il = np.log(i)
-    #iler = err/i
-    #ilw = 1/(iler*iler)
+
     cdef cnp.ndarray ilerinv = i/err
     cdef cnp.ndarray ilw = ilerinv * ilerinv
     
@@ -174,7 +190,7 @@ def autoRg(cnp.ndarray sasm):
     window_list = range(min_window,max_window+1, window_step)
  
 
-    cdef cnp.ndarray x,y,yw, diff
+    cdef cnp.ndarray x,y,yw, diff, diff2
     cdef int dof
     #cdef float RG, I0, RGer, I0er, a,b, r_sqr, chi_sqr
     #This function takes every window size in the window list, stepts it through the data range, and
@@ -186,38 +202,45 @@ def autoRg(cnp.ndarray sasm):
             y = il[start:start+w]
             yw = ilw[start:start+w]
 
-
+            
 
             try:
-                RG, I0, RGer, I0er,opt = calcRg(x, y, yw)#, transform=False, error_weight =False)
+                opt,dopt = weightedlinFit(x, y, yw)
             except ValueError as VE:
                 print(VE)
                 raise 
             except Exception as err:
                 print("An error occured. y = ", y, "yw = ", yw, "x = ", x)
                 raise 
-           
-            if RG>0.01 and q[start]*RG<1 and q[start+w-1]*RG<1.35 and RGer/RG <= 1:
-
+            else:
                 a = opt[0]
-                b = -opt[1]
-              
-                #chi_sqr,r_sqr = chiR(opt,data)
-                diff = np.add(y,-linear_func(x, a, b))
-                r_sqr = 1 - (diff*diff).sum()/np.square(y-y.mean()).sum()
+                b = opt[1]
+                da = dopt[0]
+                db = dopt[1]
+                lower = q[start]*q[start]*b
+                upper = q[start+w-1]*q[start+w-1]*b
+                if b>3*10**(-5) and lower <0.33 and upper<0.6075 and db/b <= 1:
 
-                if r_sqr > .15:
-                    chi_sqr = ((diff)*(diff)*yw).sum()
-  
-                    #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
-                    #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
-                    #of the error bars for the system.
-                    dof = w - 2.
-                    reduced_chi_sqr = chi_sqr/dof
-  
-                    fit_list.append([start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr])
-                 
-    #Extreme cases: may need to relax the parameters.
+                    a = opt[0]
+                    b = opt[1]
+
+                    #chi_sqr,r_sqr = chiR(opt,data)
+                    diff = np.add(y,-linear_func(x, a, b))
+                    diff2 = diff*diff
+                    #diff2 = np.square(diff)
+                    r_sqr = 1 - diff2.sum()/np.square(y-y.mean()).sum()
+                    #r_sqr = 1 - diff2.sum()/((y-y.mean())*(y-y.mean())).sum()
+                    if r_sqr > .15:
+                        chi_sqr = (diff2*yw).sum()
+
+                        #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
+                        #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
+                        #of the error bars for the system.
+                        dof = w - 2.
+                        reduced_chi_sqr = chi_sqr/dof
+
+                        fit_list.append([start, w, q[start], q[start+w-1], b, db, a, da, lower, upper, r_sqr, chi_sqr, reduced_chi_sqr])
+        #Extreme cases: may need to relax the parameters.
  
     if len(fit_list)<1:
         #Stuff goes here
@@ -228,48 +251,23 @@ def autoRg(cnp.ndarray sasm):
 
         #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
 
-        #Choice of weights is pretty arbitrary. This set seems to yield results similar to the atsas autorg
-        #for the few things I've tested.
-        qmaxrg_weight = 1
-        qminrg_weight = 1
-        rg_frac_err_weight = 1
-        i0_frac_err_weight = 1
-        r_sqr_weight = 4
-        reduced_chi_sqr_weight = 0
-        window_size_weight = 4
 
-        weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight,
-                            reduced_chi_sqr_weight, window_size_weight])
+        max_window_real = float(window_list[-1]) #To ensure float division in Python 2
 
-        quality = np.zeros(len(fit_list))
-
-        max_window_real = float(window_list[-1])
-
-        all_scores = []
-
-        #This iterates through all the fits, and calculates a score. The score is out of 1, 1 being the best, 0 being the worst.
-        for a in range(len(fit_list)):
-            #Scores all should be 1 based. Reduced chi_square score is not, hence it not being weighted.
-
-            qmaxrg_score = 1-np.absolute((fit_list[a,9]-1.3)/1.3)
-            qminrg_score = 1-fit_list[a,8]
-            rg_frac_err_score = 1-fit_list[a,5]/fit_list[a,4]
-            i0_frac_err_score = 1 - fit_list[a,7]/fit_list[a,6]
-            r_sqr_score = fit_list[a,10]
-            reduced_chi_sqr_score = 1/fit_list[a,12] #Not right
-            window_size_score = fit_list[a,1]/max_window_real
-
-            scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
+        #all_scores = []
+        qmaxrg_score = 1-np.absolute((fit_list[:,9]-0.56)/0.56)
+        qminrg_score = 1-fit_list[:,8]
+        rg_frac_err_score = 1-fit_list[:,5]/fit_list[:,4]
+        i0_frac_err_score = 1 - fit_list[:,7]/fit_list[:,6]
+        r_sqr_score = fit_list[:,10]
+        reduced_chi_sqr_score = 1/fit_list[:,12] #Not right
+        window_size_score = fit_list[:,1]/max_window_real
+        scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
                                reduced_chi_sqr_score, window_size_score])
-
-
-            total_score = (weights*scores).sum()/weights.sum()
-
-            quality[a] = total_score
-
-            all_scores.append(scores)
+        quality = np.dot(weights,scores)/weights.sum()
+       
         #I have picked an aribtrary threshold here. Not sure if 0.6 is a good quality cutoff or not.
-        if quality.max() > 0.5:
+        if quality.max() > 0:# 0.5:
             # idx = quality.argmax()
             # rg = fit_list[idx,4]
             # rger1 = fit_list[idx,5]
@@ -289,20 +287,25 @@ def autoRg(cnp.ndarray sasm):
 
             try:
                 idx = quality.argmax()
-                rg = fit_list[idx,4]
-                rger = fit_list[:,5][quality>quality[idx]-.1].std()
-                i0 = fit_list[idx,6]
-                i0er = fit_list[:,7][quality>quality[idx]-.1].std()
+                #rg = fit_list[:,4][quality>quality[idx]-.1].mean()
+                
+                rg = sqrt(3.*fit_list[idx,4])
+                dber = fit_list[:,5][quality>quality[idx]-.1].std()
+                rger = 0.5*sqrt(3./rg)*dber
+                i0 = exp(fit_list[idx,6])
+                #i0 = fit_list[:,6][quality>quality[idx]-.1].mean()
+                daer = fit_list[:,7][quality>quality[idx]-.1].std()
+                i0er = i0*daer
                 idx_min = int(fit_list[idx,0])
                 idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
-                #idx_min_corr = np.argmin(np.absolute(sasm[:,0] - fit_list[idx,3]))
-                #idx_max_corr = np.argmin(np.absolute(sasm[:,0] - fit_list[idx,4]))
+                idx_min_corr = np.argmin(np.absolute(sasm[:,0] - fit_list[idx,3]))
+                idx_max_corr = np.argmin(np.absolute(sasm[:,0] - fit_list[idx,4]))
             except:
                 idx = quality.argmax()
-                rg = fit_list[idx,4]
-                rger = fit_list[idx,5]
-                i0 = fit_list[idx,6]
-                i0er = fit_list[idx,7]
+                rg = sqrt(3.*fit_list[idx,4])
+                rger = 0.5*sqrt(3./rg)*fit_list[idx,5]
+                i0 = exp(fit_list[idx,6])
+                i0er = i0*fit_list[idx,7]
                 idx_min = int(fit_list[idx,0])
                 idx_max = int(fit_list[idx,0]+fit_list[idx,1]-1)
 
@@ -324,7 +327,7 @@ def autoRg(cnp.ndarray sasm):
         i0er = -1
         idx_min = -1
         idx_max = -1
-        quality = []
+        #quality = []
         all_scores = []
 
     idx_min = idx_min + data_start
