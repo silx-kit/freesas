@@ -1,0 +1,513 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>FreeSAS Package &mdash; FreeSAS 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="FreeSAS 1.0 documentation" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../FreeSAS.html">FreeSAS 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-freesas.model">
+<span id="freesas-package"></span><h1>FreeSAS Package<a class="headerlink" href="#module-freesas.model" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="freesas.model.SASModel">
+<em class="property">class </em><tt class="descclassname">freesas.model.</tt><tt class="descname">SASModel</tt><big>(</big><em>molecule=None</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tools for Dummy Atoms Model manipulation</p>
+<dl class="method">
+<dt id="freesas.model.SASModel.calc_invariants">
+<tt class="descname">calc_invariants</tt><big>(</big><em>use_cython=True</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.calc_invariants" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Calculate the invariants of the structure:</dt>
+<dd><ul class="first last simple">
+<li>fineness, ie. average distance between an atoms and its nearest neighbor</li>
+<li>radius of gyration of the model</li>
+<li>diameter of the model</li>
+</ul>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return invariants:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">3-tuple containing (fineness, Rg, Dmax)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.canonical_parameters">
+<tt class="descname">canonical_parameters</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.model.SASModel.canonical_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the 6 canonical parameters of the initial molecule:
+x0, y0, z0, the position of the center of mass
+phi, theta, psi, the three Euler angles of the canonical rotation (axis:x,y&#8217;,z&#8217;&#8216;)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.canonical_rotate">
+<tt class="descname">canonical_rotate</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.model.SASModel.canonical_rotate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the rotation matrix to align inertia momentum of the molecule on principal axis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return rot:</th><td class="field-body">rotation matrix det==1</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.canonical_translate">
+<tt class="descname">canonical_translate</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.model.SASModel.canonical_translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the translation matrix to translate the center of mass of the molecule on the origin of the base.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return trans:</th><td class="field-body">translation matrix</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.centroid">
+<tt class="descname">centroid</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.model.SASModel.centroid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the position of the center of mass of the molecule.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return self.com:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">1d array, coordinates of the center of mass of the molecule</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.dist">
+<tt class="descname">dist</tt><big>(</big><em>other</em>, <em>molecule1</em>, <em>molecule2</em>, <em>use_cython=True</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the distance with another model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>self,other</strong> &#8211; two SASModel</li>
+<li><strong>molecule1</strong> &#8211; 2d array of the position of each atom of the first molecule</li>
+<li><strong>molecule2</strong> &#8211; 2d array of the position of each atom of the second molecule</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return D:</th><td class="field-body"><p class="first last">NSD between the 2 molecules, in their position molecule1 and molecule2</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.dist_after_movement">
+<tt class="descname">dist_after_movement</tt><big>(</big><em>param</em>, <em>other</em>, <em>symmetry</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.dist_after_movement" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first molecule, molref, is put on its canonical position.
+The second one, mol2, is moved following the transformation selected</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>param</strong> &#8211; list of 6 parameters for the transformation, 3 coordinates of translation and 3 Euler angles</li>
+<li><strong>symmetry</strong> &#8211; list of three constants which define a symmetry to apply</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return distance:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">the NSD between the first molecule and the second one after its movement</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.inertiatensor">
+<tt class="descname">inertiatensor</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.model.SASModel.inertiatensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate the inertia tensor of the protein</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return self.inertensor:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">inertia tensor of the molecule</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.read">
+<tt class="descname">read</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the PDB file, 
+extract coordinates of each dummy atom, 
+extract the R-factor of the model, coordinates of each dummy atom and pdb file header.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; name of the pdb file to read</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.save">
+<tt class="descname">save</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the position of each dummy atom in a PDB file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; name of the pdb file to write</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.model.SASModel.transform">
+<tt class="descname">transform</tt><big>(</big><em>param</em>, <em>symmetry</em>, <em>reverse=None</em><big>)</big><a class="headerlink" href="#freesas.model.SASModel.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the new coordinates of each dummy atoms of the molecule after a transformation defined by six parameters and a symmetry</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>param</strong> &#8211; 6 parameters of transformation (3 coordinates of translation, 3 Euler angles)</li>
+<li><strong>symmetry</strong> &#8211; list of three constants which define a symmetry to apply</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return mol:</th><td class="field-body"><p class="first last">2d array, coordinates after transformation</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-freesas.align"></span><dl class="class">
+<dt id="freesas.align.AlignModels">
+<em class="property">class </em><tt class="descclassname">freesas.align.</tt><tt class="descname">AlignModels</tt><big>(</big><em>files</em>, <em>slow=True</em>, <em>enantiomorphs=True</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used to align DAM from pdb files</p>
+<dl class="method">
+<dt id="freesas.align.AlignModels.alignment_2models">
+<tt class="descname">alignment_2models</tt><big>(</big><em>save=True</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.alignment_2models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align two models using the first one as reference.
+The aligned models are save in pdb files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return dist:</th><td class="field-body">NSD after alignment</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.alignment_reference">
+<tt class="descname">alignment_reference</tt><big>(</big><em>ref_number=None</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.alignment_reference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align all models in self.models with the reference one.
+The aligned models are saved in pdb files (names in list self.outputfiles)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.alignment_sym">
+<tt class="descname">alignment_sym</tt><big>(</big><em>reference</em>, <em>molecule</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.alignment_sym" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply 8 combinations to the molecule and select the one which minimize the distance between it and the reference.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>reference</strong> &#8211; SASModel, the one which do not move</li>
+<li><strong>molecule</strong> &#8211; SASModel, the one wich has to be aligned</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return combinaison:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first">best symmetry to minimize NSD</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return p:</th><td class="field-body"><p class="first last">transformation parameters optimized if slow is true, unoptimized else</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.assign_models">
+<tt class="descname">assign_models</tt><big>(</big><em>molecule=None</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.assign_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
+Center of mass, inertia tensor and canonical parameters are computed for each SASModel.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>molecule</strong> &#8211; optional 2d array, coordinates of the atoms for the model to create</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return self.models:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">list of SASModel</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.find_reference">
+<tt class="descname">find_reference</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.find_reference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the reference model among the models aligned.
+The reference model is the one with lower average NSD with other models.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return ref_number:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">position of the reference model in the list self.models</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.makeNSDarray">
+<tt class="descname">makeNSDarray</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.makeNSDarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the NSD correlation table and save it in self.arrayNSD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return self.arrayNSD:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">2d array, NSD correlation table</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.optimize">
+<tt class="descname">optimize</tt><big>(</big><em>reference</em>, <em>molecule</em>, <em>symmetry</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.optimize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use scipy.optimize to optimize transformation parameters to minimize NSD</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>reference</strong> &#8211; SASmodel</li>
+<li><strong>molecule</strong> &#8211; SASmodel</li>
+<li><strong>symmetry</strong> &#8211; 3-list of +/-1</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return p:</th><td class="field-body"><p class="first">transformation parameters optimized</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return dist:</th><td class="field-body"><p class="first last">NSD after optimization</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.AlignModels.plotNSDarray">
+<tt class="descname">plotNSDarray</tt><big>(</big><em>rmax=None</em>, <em>filename=None</em>, <em>save=False</em><big>)</big><a class="headerlink" href="#freesas.align.AlignModels.plotNSDarray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a png file with the table of NSD and the average NSD for each model.
+A threshold is computed to segregate good models and the ones to exclude.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rmax</strong> &#8211; threshold of R factor for the validity of a model</li>
+<li><strong>filename</strong> &#8211; filename for the figure, default to nsd.png</li>
+<li><strong>save</strong> &#8211; save automatically the figure if True, else show it</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return fig:</th><td class="field-body"><p class="first last">the wanted figures</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="freesas.align.InputModels">
+<em class="property">class </em><tt class="descclassname">freesas.align.</tt><tt class="descname">InputModels</tt><a class="headerlink" href="#freesas.align.InputModels" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="freesas.align.InputModels.assign_models">
+<tt class="descname">assign_models</tt><big>(</big><em>molecule=None</em><big>)</big><a class="headerlink" href="#freesas.align.InputModels.assign_models" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create SASModels from pdb files saved in self.inputfiles and saved them in self.models.
+Center of mass, inertia tensor and canonical parameters are computed for each SASModel.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>molecule</strong> &#8211; optional 2d array, coordinates of the atoms for the model to create</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return self.models:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">list of SASModel</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.InputModels.models_selection">
+<tt class="descname">models_selection</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.align.InputModels.models_selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if each model respect the limit for the R-factor</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return self.validmodels:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body">1d array, 0 for a non valid model, else 1</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.InputModels.rcalculation">
+<tt class="descname">rcalculation</tt><big>(</big><big>)</big><a class="headerlink" href="#freesas.align.InputModels.rcalculation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
+inputs plus 2 times the standard deviation.
+R-factors are saved in the attribute self.rfactors, 1d array, and in percentage.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return rmax:</th><td class="field-body">maximal value for the R-factor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="freesas.align.InputModels.rfactorplot">
+<tt class="descname">rfactorplot</tt><big>(</big><em>filename=None</em>, <em>save=False</em><big>)</big><a class="headerlink" href="#freesas.align.InputModels.rfactorplot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a png file with the table of R factor for each model.
+A threshold is computed to discarded models with Rfactor&gt;Rmax.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filename</strong> &#8211; filename for the figure, default to Rfactor.png</li>
+<li><strong>save</strong> &#8211; save automatically the figure if True, else show it</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return fig:</th><td class="field-body"><p class="first last">the wanted figures</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/modules.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../FreeSAS.html">FreeSAS 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Guillaume Bonamis.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
