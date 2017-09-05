@@ -3,7 +3,7 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__date__ = "16/12/2015"
+__date__ = "05/09/2017"
 __copyright__ = "2015, ESRF"
 
 import unittest
