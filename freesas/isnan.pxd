@@ -24,6 +24,6 @@
 
 # This header provides a compatible isnan function across platforms.
    
-cdef extern from "src/isnan.h":
+cdef extern from "include/isnan.h":
     bint isnan(double x) nogil
     bint isfinite(double x) nogil
