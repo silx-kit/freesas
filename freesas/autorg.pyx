@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function
-__author__ = "Martha Brennich"
-__license__ = "MIT"
-__copyright__ = "2017, EMBL"
-
 """
 Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
 """
+from __future__ import division, print_function
+__authors__ = ["Martha Brennich", "Jerome Kieffer"]
+__license__ = "MIT"
+__copyright__ = "2017, EMBL"
 
 
 class Error(Exception):
@@ -32,6 +31,9 @@ cimport numpy as cnumpy
 import numpy as numpy 
 from math import exp
 from libc.math cimport sqrt 
+from .isnan cimport import isfinite 
+from cython import floating
+
 
 DTYPE = numpy.float64
 ctypedef cnumpy.float64_t DTYPE_t
@@ -52,6 +54,50 @@ _weights = numpy.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight,
                         window_size_weight])
 WEIGHTS = _weights / _weights.sum()
 
+cpdef int currate_data(floating[:, :] data, 
+                       DTYPE_t[::1] q, 
+                       DTYPE_t[::1] intensity,
+                       DTYPE_t[::1] sigma,
+                       int[::1] offsets):
+    """Clean up the input (data, 2D array of q, i, sigma)
+    
+    It removed negatives q, intensity, sigmas and also NaNs and infinites
+    q, intensity and sigma are ouput array. 
+    
+    :param data: input data, array of q,i,sigma of size N
+    :param q: output array, to be filled with valid values
+    :param intensity: output array, to be filled with valid values
+    :param sigma: output array, to be filled with valid values
+    :param offsets: output array, provide the index in the input array for an 
+                   index in the output array
+    :return: the number of valid points in the array n <=N
+    """
+    cdef:
+        int idx_in, idx_out, size_in, size_out
+        DTYPE_t one_q, one_i, one_sigma
+        
+    size_in = data.shape[0]
+    # it may work with more then 3 col and discard subsequent columns
+    #assert data.shape[1] == 3, "data has 3 columns" 
+    assert q.size >= size_in, "size of q_array is valid"
+    assert intensity.size >= size_in, "size of intensity array is valid"
+    assert sigma.size >= size_in, "size of sigma array is valid"
+    assert offsets.size >= size_in, "size of offsets array is valid"  
+    idx_out = 0
+    for idx_in in range(size_in):
+        one_q = data[idx_in, 0]
+        one_i = data[idx_in, 1]
+        one_sigma = data[idx_in, 2]
+        if isfinite(one_q) and one_q >= 0.0 and \
+           isfinite(one_i) and one_i >= 0.0 and \
+           isfinite(one_sigma) and one_sigma >= 0.0:
+            q[idx_out] = one_q
+            intensity[idx_out] = one_i
+            sigma[idx_out] = one_sigma
+            offsets[idx_out] = idx_in
+            idx_out += 1
+    return idx_out
+             
 
 def weightedlinFit(float[::1] datax, float[::1] datay, float[::1] weight):
     """Calculates a fit to a - bx, weighted by w. 
