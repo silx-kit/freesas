@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True, embedsignature=True
+# 
+#    Project: freesas
+#             https://github.com/kif/freesas
+#
+#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 """
 Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
 """
@@ -153,7 +178,7 @@ def currate_data(floating[:, :] data,
              
 
 def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight, 
-                   int data_start, int data_end, DTYPE_t[::1] results):
+                   int data_start, int data_end, DTYPE_t[::1] fit_data):
     """Calculates a fit to intercept-slope*x, weighted by w. 
         Input:
         x, y: The dataset to be fitted.
@@ -172,7 +197,7 @@ def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight,
     sigma_uxx = sigma_wy = sigma_wx = sigma_wxy = sigma_wxx = xmean2 = sigma_w = 0.0 
     sigma_uyy = sigma_uy = sigma_ux = sigma_uxy = 0.0
 
-    assert len(results) >= 4, "There is enough room for storing results"
+    assert len(fit_data) >= 8, "There is enough room for storing results"
     size = data_end - data_start
     assert size > 2, "data range size should be >2"
 
@@ -208,12 +233,12 @@ def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight,
         # xopt = (intercept, slope)
         # dx = (sigma_intercept, sigma_slope)
         # Returns results: intercept, sigma_intercept, slope, sigma_slope
-        results[0] = intercept
-        results[1] = sigma_intercept
-        results[2] = slope
-        results[3] = sigma_slope
+        fit_data[4] = slope
+        fit_data[5] = sigma_slope
+        fit_data[6] = intercept
+        fit_data[7] = sigma_intercept
     else:
-        results[:] = 0
+        fit_data[4:8] = 0.0
 
 
 def calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
@@ -270,7 +295,7 @@ def autoRg(sasm):
         DTYPE_t[::1] fit_result, fit_data
         int[::1] offsets, data_range
         int raw_size, currated_size, data_start, data_end
-        int window_size, start, end
+        int window_size, start, end, nb_fit
         list fit_list
         cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
         
@@ -294,27 +319,26 @@ def autoRg(sasm):
     if (data_end - data_start) < 10:
         raise InsufficientDataError()
   
-
-    #Pick a minimum fitting window size. 10 is consistent with atsas autorg.
+    # Pick a minimum fitting window size. 10 is consistent with atsas autorg.
     min_window = 10
-
     max_window = data_end - data_start
 
-    fit_list = []
-
-    # It is very time consuming to search every possible window size and every possible starting point.
+    # It is very time consuming to search every possible window size and every 
+    # possible starting point.
     # Here we define a subset to search.
-    tot_points = max_window
-    window_step = tot_points // 10
-    data_step = tot_points // 50
+    window_step = max_window // 10
+    data_step = max_window // 50
 
     if window_step == 0:
         window_step = 1
     if data_step == 0:
         data_step = 1
 
-    # This function takes every window size in the window list, stepts it through the data range, and
-    # fits it to get the RG and I0. If basic conditions are met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
+    fit_list = []
+
+    # This function takes every window size in the window list, stepts it through 
+    # the data range, and fits it to get the RG and I0. If basic conditions are 
+    # met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
     # We keep the fit.
     for window_size in range(min_window, max_window + 1, window_step):
         for start in range(data_start, data_end - window_size, data_step):
@@ -326,7 +350,7 @@ def autoRg(sasm):
             fit_data[2] = q_ary[start]
             fit_data[3] = q_ary[end - 1]
             try: 
-                weightedlinFit(q2_ary, lgi_ary, wg_ary, start, end, fit_result)
+                weightedlinFit(q2_ary, lgi_ary, wg_ary, start, end, fit_data)
             except ValueError as VE:
                 logger.error(VE)
                 raise 
@@ -334,16 +358,16 @@ def autoRg(sasm):
                 logger.error("An error occured: start=%s end=%s", start, end)
                 raise 
             else:
-                intercept, sigma_intercept, slope, sigma_slope = fit_result
+
+                slope = fit_data[4] 
+                sigma_slope = fit_data[5] 
+                intercept = fit_data[6] 
+                # fit_data[7] = sigma_intercept #not used
+
                 if (intercept == 0) and (slope == 0):
                     logger.error("Null determiant")
                     continue
-                
-                fit_data[4] = slope
-                fit_data[5] = sigma_slope
-                fit_data[6] = intercept
-                fit_data[7] = sigma_intercept
-                
+                               
                 lower = q2_ary[start] * slope
                 upper = q2_ary[start + window_size - 1] * slope
 
@@ -351,6 +375,7 @@ def autoRg(sasm):
                 fit_data[9] = upper
                 
                 # check the validity of the model with some physics
+                # i. e qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
                 if (slope > 3e-5) and (lower < 0.33) and (upper < 0.6075) \
                         and (sigma_slope / slope <= 1):
                     r_sqr = calc_chi(q2_ary, lgi_ary, wg_ary, start, end, 
@@ -358,22 +383,23 @@ def autoRg(sasm):
                     if r_sqr > .15:
                         fit_list.append(fit_data)
     
- 
     if not fit_list:
         #Extreme cases: may need to relax the parameters.
         pass
     
     if fit_list:
-        fit_array = numpy.vstack(fit_list)
+        nb_fit = len(fit_list)
+        fit_array = numpy.empty((nb_fit, 13), dtype=DTYPE)
+        for idx in range(nb_fit):
+            fit_array[idx, :] = fit_list[idx] 
 
         #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
-
 
         max_window_real = float(max_window) #To ensure float division in Python 2
 
         #all_scores = []
-        qmaxrg_score = 1-numpy.absolute((fit_array[:,9]-0.56)/0.56)
-        qminrg_score = 1-fit_array[:,8]
+        qmaxrg_score = 1.0 - numpy.absolute((fit_array[:,9]-0.56)/0.56)
+        qminrg_score = 1.0 - fit_array[:,8]
         rg_frac_err_score = 1-fit_array[:,5]/fit_array[:,4]
         i0_frac_err_score = 1 - fit_array[:,7]/fit_array[:,6]
         r_sqr_score = fit_array[:,10]
@@ -448,10 +474,11 @@ def autoRg(sasm):
         quality = 0
         all_scores = []
 
-    idx_min = idx_min + data_start
-    idx_max = idx_max + data_start
+    # managed by offsets
+    # idx_min = idx_min + data_start
+    # idx_max = idx_max + data_start
 
     #We could add another function here, if not good quality fits are found, either reiterate through the
     #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
 
-    return RG_RESULT(rg, rger, i0, i0er, idx_min, idx_max, quality, aggregated)
+    return RG_RESULT(rg, rger, i0, i0er, offsets[idx_min], offsets[idx_max], quality, aggregated)
