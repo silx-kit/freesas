@@ -2,9 +2,9 @@
 # Do not copy into the source folder !
 __date__ = "11/01/2017"
 MAJOR = 0
-MINOR = 5
+MINOR = 6
 MICRO = 0
-RELEV = "final"  # <16
+RELEV = "dev"  # <16
 SERIAL = 0  # <16
 
 from collections import namedtuple
