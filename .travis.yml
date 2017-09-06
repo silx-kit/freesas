@@ -26,7 +26,7 @@ install:
 
     # Install build dependencies
     - "pip install wheel"
-    - "pip install --trusted-host www.silx.org.org -r ci/requirement_travis.txt --upgrade --find-links http://www.silx.org/pub/wheelhouse"
+    - "pip install --trusted-host www.silx.org -r ci/requirement_travis.txt --upgrade --find-links http://www.silx.org/pub/wheelhouse"
 
     # Print Python info
     - "python ci/info_platform.py"
