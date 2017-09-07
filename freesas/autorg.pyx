@@ -401,6 +401,10 @@ def autoRg(sasm):
                         #reset data
                         for idx in range(13):
                             fit_mv[nb_fit, idx] = 0.0
+                else:
+                    for idx in range(13):
+                        fit_mv[nb_fit, idx] = 0.0
+                    
     if nb_fit == 0:
         #Extreme cases: may need to relax the parameters.
         pass
