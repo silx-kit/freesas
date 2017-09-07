@@ -25,12 +25,14 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "05/09/2017"
+__date__ = "07/09/2017"
 
 import numpy
 import unittest
 from .utilstests import get_datafile
 from ..autorg import autoRg, RG_RESULT
+import logging
+logger = logging.getLogger(__name__)
 
 
 class TestAutoRg(unittest.TestCase):
@@ -50,10 +52,14 @@ class TestAutoRg(unittest.TestCase):
         print(self.testfile)
         data = numpy.loadtxt(self.testfile)
         atsas_result = self.atsas_autorg.copy()
-        print("Reference version: %s" % atsas_result.pop("Version"))
-        print("Ref: %s" % (RG_RESULT(**atsas_result),))
-        print("Obt: %s" % (autoRg(data),))
-        print()
+        logger.debug("Reference version: %s" % atsas_result.pop("Version"))
+        atsas_result = RG_RESULT(**atsas_result)
+        free_result = autoRg(data)
+        logger.debug("Ref: %s" % (atsas_result,))
+        logger.debug("Obt: %s" % (free_result,))
+        self.assertAlmostEqual(atsas_result.Rg, free_result.Rg, 1, "RG fits within 2 digits")
+        self.assertAlmostEqual(atsas_result.I0, free_result.I0, msg="I0 fits within +/- 1 ", delta=1)
+        self.assertAlmostEqual(atsas_result.quality, free_result.quality, 1, msg="quality fits within 1 digits")
 
 
 def suite():
