@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #cython: boundscheck=False, wraparound=False, cdivision=True, embedsignature=True
+
 __author__ = "Jerome Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
