@@ -1,10 +1,10 @@
 # Unique place where the version number is defined.
 # Do not copy into the source folder !
-__date__ = "11/01/2017"
+__date__ = "07/09/2017"
 MAJOR = 0
 MINOR = 6
 MICRO = 0
-RELEV = "dev"  # <16
+RELEV = "final"  # <16
 SERIAL = 0  # <16
 
 from collections import namedtuple

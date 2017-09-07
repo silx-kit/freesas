@@ -2,7 +2,11 @@ General introduction to FreeSAS
 ===============================
 
 FreeSAS is a Python package with small angles scattering tools in a MIT
-type license.
+type license. It provides:
+
+* autorg: Automatique radius of giration assessement based on Guinier law
+* cormap: Comparison of a set of (saxs) curves to decide if they are the same or not
+* supcomb: overlay and averageing of dummy-atom models
 
 
 Introduction
