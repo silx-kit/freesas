@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True, embedsignature=True
+#cython: boundscheck=False, wraparound=False, cdivision=True, embedsignature=True
 # 
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -55,7 +55,7 @@ RG_RESULT = namedtuple("RG_RESULT", ["Rg", "sigma_Rg", "I0", "sigma_I0", "start_
 cimport numpy as cnumpy
 import numpy as numpy 
 from math import exp
-from libc.math cimport sqrt, log 
+from libc.math cimport sqrt, log, fabs
 from .isnan cimport isfinite 
 from cython cimport floating
 import logging
@@ -177,29 +177,33 @@ def currate_data(floating[:, :] data,
     data_range[2] = idx_out   
              
 
-def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight, 
-                   int data_start, int data_end, DTYPE_t[::1] fit_data):
-    """Calculates a fit to intercept-slope*x, weighted by w. 
+cdef DTYPE_t weighted_linear_fit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight, 
+                                 int data_start, int data_end, 
+                                 DTYPE_t[:, ::1] fit_mv, int position) nogil:
+    """Calculates a fit to intercept-slope*x, weighted by w. s
         Input:
         x, y: The dataset to be fitted.
         w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
         data_start and data_end: start and end for this fit
         Returns results: intercept, sigma_intercept, slope, sigma_slope
+                        in the array fit_mv at the given position 
     """
     cdef: 
         int i, size
         DTYPE_t one_y, one_x, one_xy, one_xx, one_w, sigma_uxx, sigma_uxy, sigma_uyy
         DTYPE_t sigma_wy, sigma_wx, sigma_wxx, sigma_wxy, sigma_w, sigma_ux, sigma_uy
         DTYPE_t intercept, slope, xmean, ymean, ssxx, ssxy, ssyy, s, sigma_intercept, sigma_slope, xmean2
-        DTYPE_t detA
+        DTYPE_t detA, reduced_chi_sqr
 
     intercept = slope = xmean = ymean = ssxx = ssyy = ssxy = s = sigma_intercept = sigma_slope = 0.0 
     sigma_uxx = sigma_wy = sigma_wx = sigma_wxy = sigma_wxx = xmean2 = sigma_w = 0.0 
     sigma_uyy = sigma_uy = sigma_ux = sigma_uxy = 0.0
 
-    assert len(fit_data) >= 8, "There is enough room for storing results"
+# There should be a python function performing the sanitization
+#     assert fit_mv.shape[0] >= position, "There is enough room for storing results"
+#     assert fit_mv.shape[1] >= 8, "There is enough room for storing results"
     size = data_end - data_start
-    assert size > 2, "data range size should be >2"
+#     assert size > 2, "data range size should be >2"
 
     for i in range(data_start, data_end):
         one_w = weight[i]
@@ -218,14 +222,14 @@ def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight,
     
     detA = sigma_wx * sigma_wx - sigma_w * sigma_wxx
 
-    if abs(detA) > 1e-100:
+    if fabs(detA) > 1e-100:
         # x = [-sigma_wxx*sigma_wy + sigma_wx*sigma_wxy,-sigma_wx*sigma_wy+sigma_w*sigma_wxy]/detA
         intercept = (-sigma_wxx * sigma_wy + sigma_wx * sigma_wxy) / detA
         slope = (-sigma_wx * sigma_wy + sigma_w * sigma_wxy) / detA
         xmean = sigma_ux / size
         ymean = sigma_uy / size
         xmean2 = xmean * xmean
-        ssxx = sigma_uxx - size * xmean2#*xmean
+        ssxx = sigma_uxx - size * xmean2 # *xmean
         ssyy = sigma_uyy - size * ymean * ymean
         s = sqrt((ssyy + slope * slope * ssxx) / (size - 2))
         sigma_intercept = sqrt(s * (1.0 / size + xmean2 / ssxx))
@@ -233,24 +237,34 @@ def weightedlinFit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight,
         # xopt = (intercept, slope)
         # dx = (sigma_intercept, sigma_slope)
         # Returns results: intercept, sigma_intercept, slope, sigma_slope
-        fit_data[4] = slope
-        fit_data[5] = sigma_slope
-        fit_data[6] = intercept
-        fit_data[7] = sigma_intercept
-    else:
-        fit_data[4:8] = 0.0
+        fit_mv[position, 4] = slope
+        fit_mv[position, 5] = sigma_slope
+        fit_mv[position, 6] = intercept
+        fit_mv[position, 7] = sigma_intercept
+#     else:
+#         fit_mv[position, 4:8] = 0.0
+    return intercept
 
 
-def calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
-             int start, int end, DTYPE_t offset, DTYPE_t slope,
-             DTYPE_t[::1] fit_data):
+cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
+                      int start, int end, DTYPE_t offset, DTYPE_t slope,
+                      DTYPE_t[:, ::1] fit_mv, int position) nogil:
     """Calculate the r_sqr, chi_sqr and reduced_chi_sqr to be saved in fit_data"""
     cdef: 
         int idx, size
-        DTYPE_t value, sum_n, sum_y, sum_d, one_y, r_sqr, mean_y, value2, chi_sqr
+        DTYPE_t value, sum_n, sum_y, sum_d, one_y, r_sqr, mean_y, value2
+        DTYPE_t reduced_chi_sqr, chi_sqr
     
     size = end - start
-    assert size > 2, "more then 3 points in dataset"
+# This sanitization should be performed at the Python-level
+#     if size > 2:
+#         with gil:
+#             raise RuntimeError("Expect more then 3 points in dataset to fit"
+#     if fit_mv.shape[0] >= position:
+#         with gil:
+#             "There is enough room for storing results"
+#     assert fit_mv.shape[1] >= 8, "There is enough room for storing results"
+
     sum_n = 0.0
     sum_y = 0.0
     sum_d = 0.0
@@ -275,9 +289,9 @@ def calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
     #    chi_sqr = (diff2*yw).sum()
     reduced_chi_sqr = chi_sqr / (size - 2)
     
-    fit_data[10] = r_sqr
-    fit_data[11] = chi_sqr
-    fit_data[12] = reduced_chi_sqr
+    fit_mv[position, 10] = r_sqr
+    fit_mv[position, 11] = chi_sqr
+    fit_mv[position, 12] = reduced_chi_sqr
     return r_sqr
 
 
@@ -288,15 +302,17 @@ def autoRg(sasm):
     sasm: An array of q, I(q), dI(q)
     """
     cdef:
-        DTYPE_t quality
+        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr
         bint aggregated = 0
         cnumpy.ndarray qualities
-        DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary_ary, wg_ary, 
-        DTYPE_t[::1] fit_result, fit_data
+        DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
+        DTYPE_t[::1] fit_data
         int[::1] offsets, data_range
-        int raw_size, currated_size, data_start, data_end
-        int window_size, start, end, nb_fit
-        list fit_list
+        int raw_size, currated_size, data_start, data_end, data_step
+        int min_window, max_window, window_size, window_step 
+        int start, end, nb_fit, array_size, block_size=39 #page of 4k
+        int idx_min, idx_max, idx
+        DTYPE_t[:, ::1] fit_mv, tmp_mv
         cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
         
     raw_size = len(sasm)
@@ -308,7 +324,6 @@ def autoRg(sasm):
     wg_ary = numpy.empty(raw_size, dtype=DTYPE)
     offsets = numpy.empty(raw_size, dtype=numpy.int32)
     data_range = numpy.zeros(3, dtype=numpy.int32)
-    fit_result = numpy.zeros(4, dtype=DTYPE)
     
     currate_data(sasm, q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary, offsets, data_range)
     
@@ -334,79 +349,77 @@ def autoRg(sasm):
     if data_step == 0:
         data_step = 1
 
-    fit_list = []
-
+    array_size = block_size
+    nb_fit = 0
+    fit_mv = numpy.zeros((array_size, 13), dtype=DTYPE)
     # This function takes every window size in the window list, stepts it through 
     # the data range, and fits it to get the RG and I0. If basic conditions are 
     # met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
     # We keep the fit.
-    for window_size in range(min_window, max_window + 1, window_step):
-        for start in range(data_start, data_end - window_size, data_step):
-            end = start + window_size
-            # nota: fresh array each time
-            fit_data = numpy.zeros(13, dtype=DTYPE)
-            fit_data[0] = start
-            fit_data[1] = window_size 
-            fit_data[2] = q_ary[start]
-            fit_data[3] = q_ary[end - 1]
-            try: 
-                weightedlinFit(q2_ary, lgi_ary, wg_ary, start, end, fit_data)
-            except ValueError as VE:
-                logger.error(VE)
-                raise 
-            except Exception as err:
-                logger.error("An error occured: start=%s end=%s", start, end)
-                raise 
-            else:
+    with nogil:
+        #for window_size in range(min_window, max_window + 1 , window_step):
+        for window_size from min_window <= window_size < max_window + 1 by window_step:
+            #for start in range(data_start, data_end - window_size, data_step):
+            for start from data_start <= start < data_end - window_size by data_step:
+                end = start + window_size
+                fit_mv[nb_fit, 0] = start
+                fit_mv[nb_fit, 1] = window_size 
+                fit_mv[nb_fit, 2] = q_ary[start]
+                fit_mv[nb_fit, 3] = q_ary[end - 1]
 
-                slope = fit_data[4] 
-                sigma_slope = fit_data[5] 
-                intercept = fit_data[6] 
-                # fit_data[7] = sigma_intercept #not used
+                intercept = weighted_linear_fit(q2_ary, lgi_ary, wg_ary, start, end, fit_mv, nb_fit)
 
-                if (intercept == 0) and (slope == 0):
-                    logger.error("Null determiant")
-                    continue
-                               
+                if (intercept == 0):
+                    with gil:
+                        logger.error("Null determiant")
+                        continue
+    
+                slope = fit_mv[nb_fit, 4] 
+                sigma_slope = fit_mv[nb_fit, 5] 
+
                 lower = q2_ary[start] * slope
                 upper = q2_ary[start + window_size - 1] * slope
 
-                fit_data[8] = lower 
-                fit_data[9] = upper
+                fit_mv[nb_fit, 8] = lower 
+                fit_mv[nb_fit, 9] = upper
                 
                 # check the validity of the model with some physics
                 # i. e qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
                 if (slope > 3e-5) and (lower < 0.33) and (upper < 0.6075) \
                         and (sigma_slope / slope <= 1):
                     r_sqr = calc_chi(q2_ary, lgi_ary, wg_ary, start, end, 
-                                     intercept, slope, fit_data)
+                                     intercept, slope, fit_mv, nb_fit)
                     if r_sqr > .15:
-                        fit_list.append(fit_data)
-    
-    if not fit_list:
+                        nb_fit += 1
+                        if nb_fit >= array_size:
+                            array_size *= 2
+                            with gil:
+                                tmp_mv = numpy.zeros((array_size, 13), dtype=DTYPE)
+                                tmp_mv[:nb_fit, :] = fit_mv[:, :]
+                                fit_mv = tmp_mv
+                    else:
+                        #reset data
+                        for idx in range(13):
+                            fit_mv[nb_fit, idx] = 0.0
+    if nb_fit == 0:
         #Extreme cases: may need to relax the parameters.
         pass
     
-    if fit_list:
-        nb_fit = len(fit_list)
-        fit_array = numpy.empty((nb_fit, 13), dtype=DTYPE)
-        for idx in range(nb_fit):
-            fit_array[idx, :] = fit_list[idx] 
+    if nb_fit > 0:
+        fit_array = numpy.asarray(fit_mv)[:nb_fit, :]
 
         #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
 
-        max_window_real = float(max_window) #To ensure float division in Python 2
-
         #all_scores = []
-        qmaxrg_score = 1.0 - numpy.absolute((fit_array[:,9]-0.56)/0.56)
-        qminrg_score = 1.0 - fit_array[:,8]
-        rg_frac_err_score = 1-fit_array[:,5]/fit_array[:,4]
-        i0_frac_err_score = 1 - fit_array[:,7]/fit_array[:,6]
-        r_sqr_score = fit_array[:,10]
-        reduced_chi_sqr_score = 1/fit_array[:,12] #Not right
-        window_size_score = fit_array[:,1]/max_window_real
+        qmaxrg_score = 1.0 - numpy.absolute((fit_array[:, 9]-0.56)/0.56)
+        qminrg_score = 1.0 - fit_array[:, 8]
+        rg_frac_err_score = 1.0 - fit_array[:, 5]/fit_array[:, 4]
+        i0_frac_err_score = 1.0 - fit_array[:, 7]/fit_array[:, 6]
+        r_sqr_score = fit_array[:, 10]
+        reduced_chi_sqr_score = 1.0 / fit_array[:,12] #Not right
+        window_size_score = fit_array[:, 1] / max_window #float dividion forced by fit_array dtype 
         scores = numpy.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
-                               reduced_chi_sqr_score, window_size_score])
+                              reduced_chi_sqr_score, window_size_score])
         qualities = numpy.dot(WEIGHTS, scores)
        
         #I have picked an aribtrary threshold here. Not sure if 0.6 is a good qualities cutoff or not.
@@ -432,26 +445,26 @@ def autoRg(sasm):
                 idx = qualities.argmax()
                 #rg = fit_array[:,4][qualities>qualities[idx]-.1].mean()
                 
-                rg = sqrt(3.*fit_array[idx,4])
-                dber = fit_array[:,5][qualities>qualities[idx]-.1].std()
-                rger = 0.5*sqrt(3./rg)*dber
-                i0 = exp(fit_array[idx,6])
+                rg = sqrt(3. * fit_array[idx, 4])
+                dber = fit_array[:, 5][qualities > qualities[idx] - .1].std()
+                rger = 0.5 * sqrt(3. / rg) * dber
+                i0 = exp(fit_array[idx, 6])
                 #i0 = fit_array[:,6][qualities>qualities[idx]-.1].mean()
-                daer = fit_array[:,7][qualities>qualities[idx]-.1].std()
-                i0er = i0*daer
-                idx_min = int(fit_array[idx,0])
-                idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
-                idx_min_corr = numpy.argmin(numpy.absolute(sasm[:,0] - fit_array[idx,3]))
-                idx_max_corr = numpy.argmin(numpy.absolute(sasm[:,0] - fit_array[idx,4]))
+                daer = fit_array[:, 7][qualities > qualities[idx] - .1].std()
+                i0er = i0 * daer
+                idx_min = int(fit_array[idx, 0])
+                idx_max = int(fit_array[idx, 0] + fit_array[idx, 1] - 1.0)
+                idx_min_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 3]))
+                idx_max_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 4]))
             except:
                 
                 idx = qualities.argmax()
-                rg = sqrt(3.*fit_array[idx,4])
-                rger = 0.5*sqrt(3./rg)*fit_array[idx,5]
-                i0 = exp(fit_array[idx,6])
-                i0er = i0*fit_array[idx,7]
-                idx_min = int(fit_array[idx,0])
-                idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
+                rg = sqrt(3. * fit_array[idx, 4])
+                rger = 0.5 * sqrt(3. / rg) * fit_array[idx, 5]
+                i0 = exp(fit_array[idx, 6])
+                i0er = i0 * fit_array[idx, 7]
+                idx_min = int(fit_array[idx, 0])
+                idx_max = int(fit_array[idx, 0] + fit_array[idx, 1] - 1.0)
             quality = qualities[idx]
         else:
           

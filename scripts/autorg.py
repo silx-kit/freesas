@@ -75,4 +75,9 @@ if __name__ == "__main__":
         except:
             logger.error("Unable to parse file %s", afile)
         else:
-            print("%s %s" % (afile, autorg.autoRg(data)))
+            try:
+                rg = autorg.autoRg(data)
+            except Exception as err:
+                print("%s %s" % (afile, err))
+            else:
+                print("%s %s" % (afile, rg))
