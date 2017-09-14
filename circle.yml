@@ -1,0 +1,20 @@
+# machine configuration
+machine:
+  python:
+    version: 2.7.5
+# freesas dependencies for build and test
+dependencies:
+    pre:
+        - pip --version
+        - pip install --upgrade setuptools
+        - pip install --upgrade wheel
+        - pip install --upgrade pip
+        - pip --version
+        - pip install --trusted-host www.edna-site.org -r ci/requirement_circle.txt --upgrade
+        - pip freeze
+
+# test to run
+test:
+    override:
+        - python setup.py build test
+        - python run_tests.py

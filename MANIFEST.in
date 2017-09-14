@@ -1,0 +1,6 @@
+include README.md
+recursive-include freesas *.pxd *.h *.pyx *.pxi
+include MANIFEST.in
+include version.py
+include run_tests.py
+recursive-include testdata *.pdb

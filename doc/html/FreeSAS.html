@@ -1,0 +1,320 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>General introduction to FreeSAS &mdash; FreeSAS 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="FreeSAS 1.0 documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">FreeSAS 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="general-introduction-to-freesas">
+<h1>General introduction to FreeSAS<a class="headerlink" href="#general-introduction-to-freesas" title="Permalink to this headline">¶</a></h1>
+<p>FreeSAS is a Python package with small angles scattering tools in a MIT
+type license.</p>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<div class="line-block">
+<div class="line">FreeSAS has been write as a re-implementation of some ATSAS parts in
+Python for a better integration in the BM29 ESRF beam-line processing
+pipelines. It provides functions to read SAS data from pdb files and to
+handle them. Parts of the code are written in Cython and parallelized to
+speed-up the execution.</div>
+</div>
+<div class="line-block">
+<div class="line">FreeSAS code is available on Github at <a class="reference external" href="https://github.com/kif/freesas">https://github.com/kif/freesas</a> .</div>
+</div>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="freesas-as-a-library">
+<h3>Freesas as a library<a class="headerlink" href="#freesas-as-a-library" title="Permalink to this headline">¶</a></h3>
+<p>Here are presented some basics way to use FreeSAS as a library.
+Some abbreviations:</p>
+<ul class="simple">
+<li>DA = Dummy Atom</li>
+<li>DAM = Dummy Atoms Model</li>
+<li>NSD = Normalized Spatial Discrepancy</li>
+</ul>
+<div class="section" id="the-sasmodel-class">
+<h4>The SASModel class<a class="headerlink" href="#the-sasmodel-class" title="Permalink to this headline">¶</a></h4>
+<p>This class allows to manipulate a DAM and to do some operations on it as
+it is presented here.</p>
+<p>First, the method SASModel.read() can be used to read a pdb file
+containing data of a DAM :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">freesas.model</span> <span class="kn">import</span> <span class="n">SASModel</span>
+<span class="n">model1</span> <span class="o">=</span> <span class="n">SASModel</span><span class="p">()</span>                <span class="c">#create SASModel class object</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s">&quot;dammif-01.pdb&quot;</span><span class="p">)</span>       <span class="c">#read the pdb file</span>
+<span class="c">#these 2 lines can be replaced by model1 = SASModel(&quot;dammif-01.pdb&quot;)</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">header</span>                <span class="c">#print pdb file content</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">atoms</span>                 <span class="c">#print dummy atoms coordinates</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">rfactor</span>               <span class="c">#print R-factor of the DAM</span>
+</pre></div>
+</div>
+<p>Some informations are extracted of the model atoms coordinates:</p>
+<ul class="simple">
+<li>fineness : average distance between a DA and its first neighbours</li>
+<li>radius of gyration</li>
+<li>Dmax : DAM diameter, maximal distance between 2 DA of the DAM</li>
+<li>center of mass</li>
+<li>inertia tensor</li>
+<li>canonical parameters : 3 parameters of translation and 3 euler
+angles, define the transformation to applied to the DAM to put it
+on its canonical position (center of mass at the origin, inertia axis
+aligned with coordinates axis)</li>
+</ul>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">fineness</span>          <span class="c">#print the DAM fineness</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">Rg</span>                <span class="c">#print the DAM radius of gyration</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">Dmax</span>              <span class="c">#print the DAM diameter</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">centroid</span><span class="p">()</span>              <span class="c">#calculate the DAM center of mass</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">com</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">inertiatensor</span><span class="p">()</span>         <span class="c">#calculate the DAM inertiatensor</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">inertensor</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">canonical_parameters</span><span class="p">()</span>  <span class="c">#calculate the DAM canonical_parameters</span>
+<span class="k">print</span> <span class="n">model1</span><span class="o">.</span><span class="n">can_param</span>
+</pre></div>
+</div>
+<p>Other methods of the class for transformations and NSD calculation:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">param1</span> <span class="o">=</span> <span class="n">model1</span><span class="o">.</span><span class="n">can_param</span>           <span class="c">#parameters for the transformation</span>
+<span class="n">symmetry</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>                  <span class="c">#symmetry for the transformation</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">param1</span><span class="p">,</span> <span class="n">symmetry</span><span class="p">)</span>
+<span class="c">#return DAM coordinates after the transformation</span>
+
+<span class="n">model2</span> <span class="o">=</span> <span class="n">SASModel</span><span class="p">(</span><span class="s">&quot;dammif-02.pdb&quot;</span><span class="p">)</span> <span class="c">#create a second SASModel</span>
+<span class="n">model2</span><span class="o">.</span><span class="n">canonical_parameters</span><span class="p">()</span>
+<span class="n">atoms1</span> <span class="o">=</span> <span class="n">model1</span><span class="o">.</span><span class="n">atoms</span>
+<span class="n">atoms2</span> <span class="o">=</span> <span class="n">model2</span><span class="o">.</span><span class="n">atoms</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">dist</span><span class="p">(</span><span class="n">model2</span><span class="p">,</span> <span class="n">atoms1</span><span class="p">,</span> <span class="n">atoms2</span><span class="p">)</span><span class="c">#calculate the NSD between models</span>
+
+<span class="n">param2</span> <span class="o">=</span> <span class="n">model2</span><span class="o">.</span><span class="n">can_param</span>
+<span class="n">symmetry</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">model1</span><span class="o">.</span><span class="n">dist_after_movement</span><span class="p">(</span><span class="n">param2</span><span class="p">,</span> <span class="n">model2</span><span class="p">,</span> <span class="n">symmetry</span><span class="p">)</span>
+<span class="c">#calculate the NSD, first model on its canonical position, second</span>
+<span class="c">#model after a transformation with param2 and symmetry</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="the-alignmodels-class">
+<h4>The AlignModels class<a class="headerlink" href="#the-alignmodels-class" title="Permalink to this headline">¶</a></h4>
+<p>This other class contains lot of tools to align several DAMs, using the
+SASModel class presented before.</p>
+<p>The first thing to do is to select the pdb files you are interested in
+and to create SASModels corresponding using the method of the class like
+following :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">freesas.align</span> <span class="kn">import</span> <span class="n">AlignModels</span>
+<span class="n">inputfiles</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;dammif-01.pdb&quot;</span><span class="p">,</span> <span class="s">&quot;dammif-02.pdb&quot;</span><span class="p">,</span> <span class="s">&quot;dammif-03.pdb&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="n">align</span> <span class="o">=</span> <span class="n">AlignModels</span><span class="p">(</span><span class="n">inputfiles</span><span class="p">)</span>        <span class="c">#create the class</span>
+<span class="n">align</span><span class="o">.</span><span class="n">assign_models</span><span class="p">()</span>                  <span class="c">#create the SASModels</span>
+<span class="k">print</span> <span class="n">align</span><span class="o">.</span><span class="n">models</span>                     <span class="c">#SASModels ready to be aligned</span>
+</pre></div>
+</div>
+<p>Next, the different NSD between each computed models can be calculated
+and save as a 2d-array. But first it is necessary to give which models are
+valid and which ones are not and need to be discarded :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">align</span><span class="o">.</span><span class="n">validmodels</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">align</span><span class="o">.</span><span class="n">inputfiles</span><span class="p">)))</span>
+<span class="c">#here we keep all models as valid ones</span>
+<span class="n">align</span><span class="o">.</span><span class="n">makeNSDarray</span><span class="p">()</span>                 <span class="c">#create the NSD table</span>
+<span class="n">align</span><span class="o">.</span><span class="n">plotNSDarray</span><span class="p">()</span>                 <span class="c">#display the table as png file</span>
+<span class="n">align</span><span class="o">.</span><span class="n">find_reference</span><span class="p">()</span>               <span class="c">#select the reference model</span>
+<span class="n">align</span><span class="o">.</span><span class="n">alignment_reference</span><span class="p">()</span>          <span class="c">#align models with the reference</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="supycomb-script">
+<h3>SuPyComb script<a class="headerlink" href="#supycomb-script" title="Permalink to this headline">¶</a></h3>
+<div class="line-block">
+<div class="line">FreeSAS can also be used directly using command lines. Here is
+presented the way to use the program supycomb, the re-implementation
+of the supcomb of the Atsas package.</div>
+</div>
+<div class="line-block">
+<div class="line">Supycomb has two different process, the first one is called when only
+two pdb files are put as arguments and a second one for more than two
+files.</div>
+</div>
+<div class="line-block">
+<div class="line">With the first process, the program creates the two DAM provided by pdb
+files and align the second one on the first one (reference, do not move).
+The coordinates of the atoms of the aligned model are saved in a pdb file
+and the program return the final NSD between the two DAM. The name of the
+output can be modified.</div>
+</div>
+<div class="line-block">
+<div class="line">The second one creates a model for each file put as argument. Models are
+first selected as valid or not using its R-factor value. The maximum
+value is the mean of R-factors plus twice the standard deviation. The
+figure of the R-factors is then displayed or saved automatically in png
+format.</div>
+<div class="line">Next, NSD between each valid DAM are computed to select best models
+using the mean of NSD with other models for each DAM. A maximal value
+for the NSD mean is create as the mean of the ND mean plus a standard
+deviation to discarded the to different models. The model with the lower
+NSD mean is the reference one. A second figure with the NSD table and the
+graphic with the NSD means is displayed or saved.</div>
+<div class="line">Finally, the valid models are aligned on the reference one and final
+positions are saved in pdb files called model-01.pdb, model-02.pdb, etc...</div>
+</div>
+<div class="line-block">
+<div class="line">Several options are available for the supycomb program:</div>
+</div>
+<div class="highlight-text"><div class="highlight"><pre>$ supycomb.py --help
+usage: supycomb.py FILES [OPTIONS]
+
+align several models and calculate NSD
+
+positional arguments:
+  FILE                  pdb files to align
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m {SLOW,FAST}, --mode {SLOW,FAST}
+                        Either SLOW or FAST, default: SLOW)
+  -e {YES,NO}, --enantiomorphs {YES,NO}
+                        Search enantiomorphs, YES or NO, default: YES)
+  -q {ON,OFF}, --quiet {ON,OFF}
+                        Hide log or not, default: ON
+  -g {YES,NO}, --gui {YES,NO}
+                        Use GUI for figures or not, default: YES
+  -o OUTPUT, --output OUTPUT
+                        output filename, default: aligned.pdb
+</pre></div>
+</div>
+<div class="line-block">
+<div class="line">Slow mode / fast mode:</div>
+<div class="line">For the slow mode, the optimization of the NSD is done for each symmetry
+(ie. 8 times) whereas for the fast mode, the best symmetry is first
+choosen without optimization and only the NSD for this symmetry is
+optimized.
+The result is that the slow mode is nearly 8 times slower than the fast
+one. The NSD values thought are a few lower using the slow mode.</div>
+</div>
+<div class="line-block">
+<div class="line">Enantiomorphs option:</div>
+<div class="line">This option can be used to authorize or not the program to look for
+enantiomorphs. If not, the program will not test 8 symmetries but only 4.
+The execution time will be nearly twice lower without enantiomorphs but
+only if you are using the slow mode, the gain is negligible for the fast
+mode. Moreover, it will not be able to recognize two enantiomorphs of the
+same protein.</div>
+</div>
+<div class="line-block">
+<div class="line">GUI option:</div>
+<div class="line">If you choose to display the computed figures during the execution of
+the program to save it or not, so to use the Graphical User Interface,
+you have to select this option as &#8220;YES&#8221; (set by default). It is also
+possible to save it automatically as png files by setting the option as
+&#8220;NO&#8221;.</div>
+</div>
+<div class="line-block">
+<div class="line">Output option:</div>
+<div class="line">This option allow to change the default filename of the output for the
+two models alignment process. It has to be a .pdb file !</div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">General introduction to FreeSAS</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#usage">Usage</a><ul>
+<li><a class="reference internal" href="#freesas-as-a-library">Freesas as a library</a><ul>
+<li><a class="reference internal" href="#the-sasmodel-class">The SASModel class</a></li>
+<li><a class="reference internal" href="#the-alignmodels-class">The AlignModels class</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#supycomb-script">SuPyComb script</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/FreeSAS.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">FreeSAS 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Guillaume Bonamis.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
