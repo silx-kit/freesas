@@ -3,7 +3,7 @@
 __date__ = "07/09/2017"
 MAJOR = 0
 MINOR = 6
-MICRO = 0
+MICRO = 1
 RELEV = "final"  # <16
 SERIAL = 0  # <16
 
