@@ -1,0 +1,50 @@
+os:
+    - linux
+    #- osx
+
+language: python
+python:
+    - "2.7"
+    - "3.4"
+    - "3.5"
+
+cache:
+    apt: true
+    directories:
+        - $HOME/.cache/pip
+
+addons:
+    apt:
+        packages:
+            - libhdf5-7
+            - libhdf5-dev
+
+install:
+    # Upgrade distribution modules
+    - "pip install --upgrade setuptools"
+    - "pip install --upgrade pip"
+
+    # Install build dependencies
+    - "pip install wheel"
+    - "pip install --trusted-host www.silx.org -r ci/requirement_travis.txt --upgrade --find-links http://www.silx.org/pub/wheelhouse"
+
+    # Print Python info
+    - "python ci/info_platform.py"
+    - "pip freeze"
+
+    # Build
+    - "python setup.py build"
+    - "python setup.py bdist_wheel"
+    - "ls dist"
+
+    # Install generated wheel
+    - "pip install --pre --find-links dist/ --trusted-host www.silx.org --find-links http://www.silx.org/pub/wheelhouse freesas"
+
+script:
+    # Print Python info
+    - "python ci/info_platform.py"
+    - "pip freeze"
+
+    # Run the tests
+    - "python setup.py build test"
+    - "python run_tests.py"

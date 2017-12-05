@@ -281,7 +281,8 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
     for idx in range(start, end):
         one_y = y[idx]
         value = one_y - mean_y
-        sum_d = value * value
+        sum_d += value * value
+
     r_sqr = 1.0 - sum_n / sum_d
     #r_sqr = 1 - diff2.sum()/((y-y.mean())*(y-y.mean())).sum()
     
