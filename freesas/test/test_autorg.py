@@ -30,7 +30,7 @@ __date__ = "07/09/2017"
 import numpy
 import unittest
 from .utilstests import get_datafile
-from ..autorg import autoRg, RG_RESULT
+from ..autorg import autoRg, RG_RESULT#, linFit
 import logging
 logger = logging.getLogger(__name__)
 
@@ -61,10 +61,29 @@ class TestAutoRg(unittest.TestCase):
         self.assertAlmostEqual(atsas_result.I0, free_result.I0, msg="I0 fits within +/- 1 ", delta=1)
         self.assertAlmostEqual(atsas_result.quality, free_result.quality, 1, msg="quality fits within 1 digits")
 
+class TestFit(unittest.TestCase): 
+    testx = [1.47,1.5,1.52,1.57,1.6,1.63,1.65,1.68,1.7,1.73,1.75,1.78,1.80,1.83]
+    testy = [52.21,53.12,54.48,57.20,58.57,59.93,61.29,63.11,64.47,66.28,68.1,69.92,72.19,74.46]
+    testw = [1.0] *15
+    testintercept = -39.7468
+    testslope = -61.6746
+
+    def test_linFit(self):
+        print(self.testx,self.testy,self.testw)
+        #fit_result = self.atsas_autorg.copy()
+        #logger.debug("Reference version: %s" % atsas_result.pop("Version"))
+        #atsas_result = RG_RESULT(**atsas_result)
+        #free_result = autoRg(data)
+        fit_result = linFit(self.testx,self.testy,self.testw)
+        print(fit_result)
+        #logger.debug("Ref: %s" % (atsas_result,))
+        #logger.debug("Obt: %s" % (free_result,))
+        #self.assertAlmostEqual(atsas_result.Rg, free_result.Rg, 1, "RG fits within 2 digits")    
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAutoRg("test_autorg"))
+    #testSuite.addTest(TestFit("test_linFit"))
     return testSuite
 
 if __name__ == '__main__':
