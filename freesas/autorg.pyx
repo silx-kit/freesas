@@ -56,6 +56,7 @@ cimport numpy as cnumpy
 import numpy as numpy 
 from math import exp
 from libc.math cimport sqrt, log, fabs
+from libc.stdlib cimport malloc, free
 from .isnan cimport isfinite 
 from cython cimport floating
 import logging
@@ -245,6 +246,32 @@ cdef DTYPE_t weighted_linear_fit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t
 #         fit_mv[position, 4:8] = 0.0
     return intercept
 
+def linFit(x,y,w):
+    """wrapper for testing of weighted_linear_fit
+        x, y: The dataset to be fitted.
+        w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
+        Returns results: tuple (intercept,slope)
+    """
+    cdef:
+        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr  
+        DTYPE_t[::1] datax, datay, weight 
+        int data_start, data_end, position, size
+        DTYPE_t[:, ::1] fit_mv
+        
+    size = len(x)
+    
+    datax= numpy.empty(size, dtype=DTYPE)
+    datay= numpy.empty(size, dtype=DTYPE)
+    weight= numpy.empty(size, dtype=DTYPE)
+    fit_mv = numpy.zeros((1, 13), dtype=DTYPE)
+    for i in range(size):
+        datax[i] = x[i]
+        datay[i] = y[i]
+        weight[i] = w[i]
+        
+    intercept = weighted_linear_fit(datax, datay, weight, 0, 15, fit_mv, 0)   
+     
+    return (fit_mv[0,6], fit_mv[0,4])    
 
 cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
                       int start, int end, DTYPE_t offset, DTYPE_t slope,
@@ -281,7 +308,8 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
     for idx in range(start, end):
         one_y = y[idx]
         value = one_y - mean_y
-        sum_d = value * value
+        sum_d += value * value
+
     r_sqr = 1.0 - sum_n / sum_d
     #r_sqr = 1 - diff2.sum()/((y-y.mean())*(y-y.mean())).sum()
     
