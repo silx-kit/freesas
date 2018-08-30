@@ -39,4 +39,6 @@ cpdef int measure_longest(floating[::1] ary):
             else:
                 acc = acc + d
             last = d
+        if abs(acc) > longest:
+            longest = abs(acc) 
     return longest

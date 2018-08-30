@@ -73,11 +73,11 @@ class LongestRunOfHeads(object):
             return 0
         if c == 0:
             return 0
-        delta = self.B(n,c) - self.B(n,c-1)
+        delta = self.B(n, c) - self.B(n, c - 1)
         if delta <= 0:
             return 0
         return 2.0 ** (log(delta, 2) - n)
-    
+
     def probaLongerRun(self, n, c):
         """Calculate the probability for the longest run of heads or tails to exceed the observed length  
         
@@ -89,11 +89,10 @@ class LongestRunOfHeads(object):
             return 0
         if c == 0:
             return 0
-        delta = 2**n - self.B(n,c) 
+        delta = (2 ** n) - self.B(n, c)
         if delta <= 0:
             return 0
         return 2.0 ** (log(delta, 2) - n)
-        
 
 
 LROH = LongestRunOfHeads()
@@ -116,9 +115,7 @@ def gof(data1, data2):
         data2 = data2[:, 1]
 
     cdata = numpy.ascontiguousarray(data2 - data1, numpy.float64).ravel()
-    c = measure_longest(cdata)  
+    c = measure_longest(cdata)
     n = cdata.size
-    res = GOF(n, c, LROH.probaLongerRun(n, c-1))
-    
-
+    res = GOF(n, c, LROH.probaLongerRun(n, c - 1))
     return res
