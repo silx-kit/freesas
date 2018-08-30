@@ -76,7 +76,7 @@ class LongestRunOfHeads(object):
         delta = self.B(n, c) - self.B(n, c - 1)
         if delta <= 0:
             return 0
-        return 2.0 ** (log(delta, 2) - n)
+        return min(2.0 ** (log(delta, 2.0) - n), 1.0)
 
     def probaLongerRun(self, n, c):
         """Calculate the probability for the longest run of heads or tails to exceed the observed length  
@@ -92,7 +92,7 @@ class LongestRunOfHeads(object):
         delta = (2 ** n) - self.B(n, c)
         if delta <= 0:
             return 0
-        return 2.0 ** (log(delta, 2) - n)
+        return min(2.0 ** (log(delta, 2.0) - n), 1.0)
 
 
 LROH = LongestRunOfHeads()
