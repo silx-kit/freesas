@@ -47,7 +47,6 @@ class TestCormap(unittest.TestCase):
         res = cormap.measure_longest(data)
         self.assertEqual(res, target + 1, msg="computed size is correct: negative/alternating")
 
-
     def test_stats(self):
         self.assertEqual(cormap.LROH.A(10, 0), 1)
         self.assertEqual(cormap.LROH.A(10, 1), 144)

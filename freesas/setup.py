@@ -63,7 +63,7 @@ def create_extension_config(name, extra_sources=None, can_use_openmp=False):
 
 
 def configuration(parent_package='', top_path=None):
-    config = Configuration('ext', parent_package, top_path)
+    config = Configuration('freesas', parent_package, top_path)
 
     ext_modules = [
         create_extension_config("_distance", can_use_openmp=True),
@@ -73,6 +73,9 @@ def configuration(parent_package='', top_path=None):
 
     for ext_config in ext_modules:
         config.add_extension(**ext_config)
+
+    config.add_subpackage('test')
+    config.add_subpackage('app')
 
     return config
 
