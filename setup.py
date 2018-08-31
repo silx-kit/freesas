@@ -123,6 +123,7 @@ classifiers = ["Development Status :: 5 - Production/Stable",
 # version.py #
 # ########## #
 
+
 class build_py(_build_py):
     """
     Enhanced build_py which copies version.py to <PROJECT>._version.py
@@ -141,7 +142,6 @@ class build_py(_build_py):
 class PyTest(Command):
     """Command to start tests running the script: run_tests.py"""
     user_options = []
-
     description = "Execute the unittests"
 
     def initialize_options(self):
@@ -152,7 +152,7 @@ class PyTest(Command):
 
     def run(self):
         import subprocess
-        errno = subprocess.call([sys.executable, 'run_tests.py', "-i"])  # TODO replace without -i
+        errno = subprocess.call([sys.executable, 'run_tests.py'])
         if errno != 0:
             raise SystemExit(errno)
 
@@ -180,9 +180,7 @@ if sphinx is None:
 
 class BuildMan(Command):
     """Command to build man pages"""
-
     description = "Build man pages of the provided entry points"
-
     user_options = []
 
     def initialize_options(self):
@@ -539,7 +537,7 @@ class BuildExt(build_ext):
 
     LINK_ARGS_CONVERTER = {'-fopenmp': ''}
 
-    description = 'Build silx extensions'
+    description = 'Build freesas extensions'
 
     def finalize_options(self):
         build_ext.finalize_options(self)
@@ -587,7 +585,8 @@ class BuildExt(build_ext):
             patched_exts = cythonize(
                 [ext],
                 compiler_directives={'embedsignature': True},
-                force=self.force_cython
+                force=self.force_cython,
+                compile_time_env={"HAVE_OPENMP": self.use_openmp}
             )
             ext.sources = patched_exts[0].sources
 
@@ -675,6 +674,7 @@ class BuildExt(build_ext):
             self.patch_extension(ext)
         build_ext.build_extensions(self)
 
+
 ################################################################################
 # Clean command
 ################################################################################
@@ -744,6 +744,7 @@ class CleanCommand(Clean):
 # Source tree
 ################################################################################
 
+
 class SourceDistWithCython(sdist):
     """
     Force cythonization of the extensions before generating the source
@@ -768,8 +769,10 @@ class SourceDistWithCython(sdist):
         cythonize(
             self.extensions,
             compiler_directives={'embedsignature': True},
+            compile_time_env={"HAVE_OPENMP": False},
             force=True
         )
+
 
 ################################################################################
 # Debian source tree
@@ -812,7 +815,7 @@ class sdist_debian(sdist):
                     self.filelist.exclude_pattern(pattern=base_file + ".html")
 
         # do not include third_party/_local files
-        self.filelist.exclude_pattern(pattern="*", prefix="silx/third_party/_local")
+        # self.filelist.exclude_pattern(pattern="*", prefix="silx/third_party/_local")
 
     def make_distribution(self):
         self.prune_file_list()
@@ -854,30 +857,37 @@ def get_project_configuration(dry_run):
         # for most of the computation
         "numpy%s" % numpy_requested_version,
         # for the script launcher
-        "setuptools", "six"]
+        "setuptools",
+        "six"]
 
-    setup_requires = ["setuptools", "numpy"]
+    setup_requires = ["setuptools",
+                      "numpy",
+                      "cython"]
 
     package_data = {
         # Resources files for silx
-        'silx.resources': [
-            'gui/logo/*.png',
-            'gui/logo/*.svg',
-            'gui/icons/*.png',
-            'gui/icons/*.svg',
-            'gui/icons/*.mng',
-            'gui/icons/*.gif',
-            'gui/icons/*/*.png',
-            'opencl/*.cl',
-            'opencl/image/*.cl',
-            'opencl/sift/*.cl',
-            'opencl/codec/*.cl',
-            'gui/colormaps/*.npy'],
-        'silx.examples': ['*.png'],
+        # 'silx.resources': [
+        #    'gui/logo/*.png',
+        #    'gui/logo/*.svg',
+        #    'gui/icons/*.png',
+        #    'gui/icons/*.svg',
+        #    'gui/icons/*.mng',
+        #    'gui/icons/*.gif',
+        #    'gui/icons/*/*.png',
+        #    'opencl/*.cl',
+        #    'opencl/image/*.cl',
+        #    'opencl/sift/*.cl',
+        #    'opencl/codec/*.cl',
+        #    'gui/colormaps/*.npy'],
+        # 'silx.examples': ['*.png'],
     }
 
     entry_points = {
-        'console_scripts': ['silx = silx.__main__:main'],
+        'console_scripts': [
+                            'autorg.py = freesas.app.autorg:main',
+                            'cormap.py = freesas.app.cormap:main',
+                            'supycomb.py = freesas.app.supycomb:main',
+                           ],
         # 'gui_scripts': [],
     }
 

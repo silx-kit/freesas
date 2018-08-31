@@ -1,6 +1,19 @@
 include README.md
+include CHANGELOG.rst
+include copyright
+include LICENSE
 recursive-include freesas *.pxd *.h *.pyx *.pxi
 include MANIFEST.in
-include version.py
 include run_tests.py
 recursive-include testdata *.pdb
+include run_tests.py
+include version.py
+include stdeb.cfg
+include build-deb.sh
+include requirements.txt
+include requirements-dev.txt
+recursive-include doc/source *.py *.rst *.png *.ico *.ipynb
+global-exclude .ipynb_checkpoints/*
+recursive-include examples *
+recursive-include package *
+
