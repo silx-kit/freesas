@@ -10,6 +10,7 @@ __date__ = "31/08/2018"
 import argparse
 import os
 import logging
+import freesas
 from freesas.cormap import gof
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
@@ -34,9 +35,11 @@ def parse():
     the cormap algorithm in datcmp (from ATSAS).
     It does not scale the data and assume they are already scaled 
     """
+    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    parser.add_argument("-V", "--version", action='version', version=version)
     args = parser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)

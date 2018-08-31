@@ -6,6 +6,7 @@ __copyright__ = "2015, ESRF"
 import argparse
 from os.path import dirname, abspath
 base = dirname(dirname(abspath(__file__)))
+import freesas
 from freesas.align import InputModels, AlignModels
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -22,8 +23,10 @@ def main():
     The main difference with supcomb: the fast mode does not re-bin beads. It only refines the best matching orientation which provides a speed-up of a factor 8.
     
     """
+    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align")
+    parser.add_argument("-V", "--version", action='version', version=version)
     parser.add_argument("-m", "--mode", dest="mode", type=str, choices=["SLOW", "FAST"], default="SLOW", help="Either SLOW or FAST, default: %(default)s)")
     parser.add_argument("-e", "--enantiomorphs", type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
     parser.add_argument("-q", "--quiet", type=str, choices=["ON", "OFF"], default="ON", help="Hide log or not, default: %(default)s")
