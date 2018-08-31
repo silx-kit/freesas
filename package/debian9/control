@@ -39,7 +39,7 @@ Depends: ${misc:Depends},
          ${shlibs:Depends},
          python3-pkg-resources,
          python3-freesas (>= ${source:Version})
-Description: Toolbox for X-Ray data analysis - Executables
+Description: Free tools for small angle scattering analysis - Executables
  .
  This uses the Python 3 version of the package.
 
@@ -58,7 +58,7 @@ Depends: ${misc:Depends},
          python-concurrent.futures,
 # Recommends:
 Suggests: python-rfoo
-Description: Toolbox for X-Ray data analysis - Python2 library
+Description: Free tools for small angle scattering analysis - Python2 library
  .
  This is the Python 2 version of the package.
 
@@ -75,7 +75,7 @@ Depends: ${misc:Depends},
          python3-six,
 # Recommends:
 # Suggests: python3-rfoo
-Description: Toolbox for X-Ray data analysis - Python3
+Description: Free tools for small angle scattering analysis - Python3
  .
  This is the Python 3 version of the package.
 
@@ -85,6 +85,6 @@ Architecture: all
 Section: doc
 Depends: ${misc:Depends},
          ${sphinxdoc:Depends}
-Description: Toolbox for X-Ray data analysis - Documentation
+Description: Free tools for small angle scattering analysis - Documentation
  .
  This is the common documentation package.
