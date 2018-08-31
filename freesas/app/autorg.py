@@ -29,7 +29,7 @@ from __future__ import division, print_function
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-
+__date__ = "31/08/2018"
 
 import os
 import argparse
@@ -67,7 +67,8 @@ def parse():
     logger.debug("%s input files" % input_len)
     return files
 
-if __name__ == "__main__":
+
+def main():
     list_files = parse()
     for afile in list_files:
         try:
@@ -81,3 +82,6 @@ if __name__ == "__main__":
                 print("%s %s" % (afile, err))
             else:
                 print("%s %s" % (afile, rg))
+
+if __name__ == "__main__":
+    main()

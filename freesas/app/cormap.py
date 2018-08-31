@@ -5,10 +5,10 @@ from __future__ import division, print_function
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
+__date__ = "31/08/2018"
 
 import argparse
 import os
-from os.path import dirname, abspath
 import logging
 from freesas.cormap import gof
 logging.basicConfig(level=logging.INFO)
@@ -17,10 +17,12 @@ import numpy
 from itertools import combinations
 from collections import namedtuple
 datum = namedtuple("datum", ["index", "filename", "data"])
+
 import platform
 operatingSystem = platform.system()
 if operatingSystem == "Windows":
     import glob
+
 
 def parse():
     """ Parse input and return list of files.
@@ -71,7 +73,13 @@ def compare(lstfiles):
     print(os.linesep.join(res))
     return res
 
-if __name__ == "__main__":
+
+def main():
+    """main entry point"""
     f = parse()
     if f:
         compare(f)
+
+
+if __name__ == "__main__":
+    main()
