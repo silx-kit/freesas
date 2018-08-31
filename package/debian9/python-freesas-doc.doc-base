@@ -1,0 +1,9 @@
+Document: freesas-manual
+Title: freesas documentation manual
+Author: Jérôme Kieffer <jerome.kieffer@esrf.eu>
+Abstract: Toolbox for X-Ray data analysis 
+Section: Science/Data Analysis
+
+Format: HTML
+Index: /usr/share/doc/python-freesas-doc/html/index.html
+Files: /usr/share/doc/python-freesas-doc/html/*
