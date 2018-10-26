@@ -29,7 +29,7 @@ from __future__ import division, print_function
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-
+__date__ = "31/08/2018"
 
 import os
 import argparse
@@ -40,6 +40,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("autorg")
 
 import numpy
+import freesas
 from freesas import autorg
 
 
@@ -53,9 +54,11 @@ def parse():
     the autorg algorithm originately part of the ATSAS suite.
     As this is reverse engineered, some constants and results may differ 
     """
+    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    parser.add_argument("-V", "--version", action='version', version=version)
     args = parser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
@@ -67,7 +70,8 @@ def parse():
     logger.debug("%s input files" % input_len)
     return files
 
-if __name__ == "__main__":
+
+def main():
     list_files = parse()
     for afile in list_files:
         try:
@@ -81,3 +85,6 @@ if __name__ == "__main__":
                 print("%s %s" % (afile, err))
             else:
                 print("%s %s" % (afile, rg))
+
+if __name__ == "__main__":
+    main()

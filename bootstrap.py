@@ -10,7 +10,7 @@ example: ./bootstrap.py ipython
 __authors__ = ["Frédéric-Emmanuel Picca", "Jérôme Kieffer"]
 __contact__ = "jerome.kieffer@esrf.eu"
 __license__ = "MIT"
-__date__ = "21/04/2017"
+__date__ = "26/07/2018"
 
 
 import sys
@@ -18,9 +18,25 @@ import os
 import distutils.util
 import subprocess
 import logging
+import collections
+from argparse import ArgumentParser
 
 logging.basicConfig()
 logger = logging.getLogger("bootstrap")
+
+
+def is_debug_python():
+    """Returns true if the Python interpreter is in debug mode."""
+    try:
+        import sysconfig
+    except ImportError:  # pragma nocover
+        # Python < 2.7
+        import distutils.sysconfig as sysconfig
+
+    if sysconfig.get_config_var("Py_DEBUG"):
+        return True
+
+    return hasattr(sys, "gettotalrefcount")
 
 
 def _distutils_dir_name(dname="lib"):
@@ -30,6 +46,8 @@ def _distutils_dir_name(dname="lib"):
     platform = distutils.util.get_platform()
     architecture = "%s.%s-%i.%i" % (dname, platform,
                                     sys.version_info[0], sys.version_info[1])
+    if is_debug_python():
+        architecture += "-pydebug"
     return architecture
 
 
@@ -83,7 +101,9 @@ def run_file(filename, argv):
             logger.info("Patch the sys.argv: %s", sys.argv)
             logger.info("Executing %s.main()", filename)
             print("########### EXECFILE ###########")
-            execfile(filename, globals(), globals())
+            module_globals = globals().copy()
+            module_globals['__file__'] = filename
+            execfile(filename, module_globals, module_globals)
         finally:
             sys.argv = old_argv
     except SyntaxError as error:
@@ -103,14 +123,15 @@ def run_entry_point(entry_point, argv):
     (http://setuptools.readthedocs.io/en/latest/setuptools.html#automatic-script-creation)
 
     :param str entry_point: A string identifying a function from a module
-        (NAME = PACKAGE.MODULE:FUNCTION)
+        (NAME = PACKAGE.MODULE:FUNCTION [EXTRA])
     """
     import importlib
     elements = entry_point.split("=")
     target_name = elements[0].strip()
     elements = elements[1].split(":")
     module_name = elements[0].strip()
-    function_name = elements[1].strip()
+    # Take care of entry_point optional "extra" requirements declaration
+    function_name = elements[1].split()[0].strip()
 
     logger.info("Execute target %s (function %s from module %s) using importlib", target_name, function_name, module_name)
     full_args = [target_name]
@@ -168,39 +189,50 @@ def find_executable(target):
     return None, None
 
 
-home = os.path.dirname(os.path.abspath(__file__))
-LIBPATH = os.path.join(home, 'build', _distutils_dir_name('lib'))
-cwd = os.getcwd()
-os.chdir(home)
-build = subprocess.Popen([sys.executable, "setup.py", "build"],
-                         shell=False, cwd=os.path.dirname(os.path.abspath(__file__)))
-logger.info("Build process ended with rc= %s", build.wait())
-os.chdir(cwd)
+def main(argv):
+    parser = ArgumentParser(prog="bootstrap", usage="./bootstrap.py <script>",
+                            description=__doc__)
+    parser.add_argument("script", nargs="*")
+    parser.add_argument("-m", help="run library module as a script (terminates option list)")
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        logger.warning("usage: ./bootstrap.py <script>\n")
-        script = None
+    Options = collections.namedtuple("Options", ["script", "module"])
+    if len(argv) == 1:
+        options = Options(script=None, module=None)
     else:
-        script = sys.argv[1]
+        if argv[1] in ["-h", "--help"]:
+            parser.print_help()
+            return
+        if argv[1] == "-m":
+            if len(argv) < 3:
+                parser.parse_args(argv[1:])
+                return
+            options = Options(script=None, module=argv[2:])
+        else:
+            options = Options(script=argv[1:], module=None)
 
-    if script:
-        logger.info("Executing %s from source checkout", script)
-    else:
-        logging.info("Running iPython by default")
-    sys.path.insert(0, LIBPATH)
-    logger.info("Patched sys.path with %s", LIBPATH)
-
-    if script:
-        argv = sys.argv[2:]
+    if options.script is not None:
+        logger.info("Executing %s from source checkout", options.script)
+        script = options.script[0]
+        argv = options.script[1:]
         kind, target = find_executable(script)
         if kind == "path":
             run_file(target, argv)
         elif kind == "entry_point":
             run_entry_point(target, argv)
         else:
-            logger.error("Script %s not found", script)
+            logger.error("Script %s not found", options.script)
+    elif options.module is not None:
+        logging.info("Running module %s", options.module)
+        import runpy
+        module = options.module[0]
+        try:
+            old = sys.argv
+            sys.argv = [None] + options.module[1:]
+            runpy.run_module(module, run_name="__main__", alter_sys=True)
+        finally:
+            sys.argv = old
     else:
+        logging.info("Running IPython by default")
         logger.info("Patch the sys.argv: %s", sys.argv)
         sys.path.insert(2, "")
         try:
@@ -212,3 +244,29 @@ if __name__ == "__main__":
             code.interact()
         else:
             embed()
+
+
+if __name__ == "__main__":
+    home = os.path.dirname(os.path.abspath(__file__))
+    LIBPATH = os.path.join(home, 'build', _distutils_dir_name('lib'))
+    cwd = os.getcwd()
+    os.chdir(home)
+    build = subprocess.Popen([sys.executable, "setup.py", "build"],
+                         shell=False, cwd=os.path.dirname(os.path.abspath(__file__)))
+    build_rc = build.wait()
+    if not os.path.exists(LIBPATH):
+        logger.warning("`lib` directory does not exist, trying common Python3 lib")
+        LIBPATH = os.path.join(os.path.split(LIBPATH)[0], "lib")
+    os.chdir(cwd)
+
+    if build_rc == 0:
+        logger.info("Build process ended.")
+    else:
+        logger.error("Build process ended with rc=%s", build_rc)
+        sys.exit(-1)
+
+    sys.path.insert(0, LIBPATH)
+    logger.info("Patched sys.path with %s", LIBPATH)
+
+    main(sys.argv)
+

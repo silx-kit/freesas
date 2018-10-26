@@ -5,11 +5,12 @@ from __future__ import division, print_function
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
+__date__ = "31/08/2018"
 
 import argparse
 import os
-from os.path import dirname, abspath
 import logging
+import freesas
 from freesas.cormap import gof
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
@@ -17,10 +18,12 @@ import numpy
 from itertools import combinations
 from collections import namedtuple
 datum = namedtuple("datum", ["index", "filename", "data"])
+
 import platform
 operatingSystem = platform.system()
 if operatingSystem == "Windows":
     import glob
+
 
 def parse():
     """ Parse input and return list of files.
@@ -32,9 +35,11 @@ def parse():
     the cormap algorithm in datcmp (from ATSAS).
     It does not scale the data and assume they are already scaled 
     """
+    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    parser.add_argument("-V", "--version", action='version', version=version)
     args = parser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
@@ -71,7 +76,13 @@ def compare(lstfiles):
     print(os.linesep.join(res))
     return res
 
-if __name__ == "__main__":
+
+def main():
+    """main entry point"""
     f = parse()
     if f:
         compare(f)
+
+
+if __name__ == "__main__":
+    main()
