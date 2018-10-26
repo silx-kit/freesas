@@ -109,7 +109,7 @@ def Extension(name, source=None, can_use_openmp=False, extra_sources=None, **kwa
     else:
         include_dirs = [numpy.get_include()]
 
-    if can_use_openmp and USE_OPENMP:
+    if can_use_openmp and USE_OPENMP: 
         extra_compile_args = set(kwargs.pop("extra_compile_args", []))
         extra_compile_args.add(USE_OPENMP)
         kwargs["extra_compile_args"] = list(extra_compile_args)
@@ -132,7 +132,8 @@ def Extension(name, source=None, can_use_openmp=False, extra_sources=None, **kwa
 
 
 ext_modules = [
-               Extension("freesas._distance", can_use_openmp=True),
+               #Extension("freesas._distance", can_use_openmp=True),
+               #Extension("freesas._distance", can_use_openmp=False),
                Extension("freesas._cormap", can_use_openmp=False),
                Extension("freesas.autorg", can_use_openmp=False),
                ]
@@ -158,7 +159,6 @@ if sphinx:
             # make sure the python path is pointing to the newly built
             # code so that the documentation is built on this and not a
             # previously installed version
-
             build = self.get_finalized_command('build')
             sys.path.insert(0, os.path.abspath(build.build_lib))
 
@@ -181,8 +181,8 @@ class build_ext(_build_ext):
         # Compiler
         # name, compileflag, linkflag
         'msvc': {
-            'openmp': ('/openmp', ' '),
-            'debug': ('/Zi', ' '),
+            'openmp': ('/openmp', ''),
+            'debug': ('/Zi', ''),
             'OpenCL': 'OpenCL',
         },
         'mingw32': {
@@ -207,11 +207,28 @@ class build_ext(_build_ext):
             trans = self.translator['default']
 
         for e in self.extensions:
+            if self.compiler.compiler_type == 'msvc':
+                e.extra_compile_args = [arg for arg in e.extra_compile_args 
+                                        if arg != ""]
+                e.extra_link_args = [arg for arg in e.extra_link_args 
+                                        if arg != ""]
+                e.libraries = [arg for arg in e.libraries
+                                        if arg != ""]
+               
             e.extra_compile_args = [trans[arg][0] if arg in trans else arg
-                                    for arg in e.extra_compile_args]
+                                 for arg in e.extra_compile_args]
             e.extra_link_args = [trans[arg][1] if arg in trans else arg
                                  for arg in e.extra_link_args]
             e.libraries = [trans[arg] for arg in e.libraries if arg in trans]
+            print(e.extra_compile_args, e.extra_link_args, e.libraries)
+            #if self.compiler.compiler_type == 'msvc':
+                #e.extra_compile_args = [arg for arg in e.extra_compile_args 
+                                       # if arg != ' ']
+                #e.extra_link_args = [arg for arg in e.extra_link_args 
+                                       # if arg != ' ']
+                #e.libraries = [arg for arg in e.libraries
+                                       # if arg != ' ']
+                #print(e.extra_compile_args, e.extra_link_args, e.libraries)
         _build_ext.build_extensions(self)
 
 cmdclass['build_ext'] = build_ext

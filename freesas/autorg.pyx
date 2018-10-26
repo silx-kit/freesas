@@ -390,6 +390,7 @@ def autoRg(sasm):
             #for start in range(data_start, data_end - window_size, data_step):
             for start from data_start <= start < data_end - window_size by data_step:
                 end = start + window_size
+                #logger.debug("Fitting: %s , %s ", start,end)
                 fit_mv[nb_fit, 0] = start
                 fit_mv[nb_fit, 1] = window_size 
                 fit_mv[nb_fit, 2] = q_ary[start]
@@ -432,6 +433,9 @@ def autoRg(sasm):
                 else:
                     for idx in range(13):
                         fit_mv[nb_fit, idx] = 0.0
+    
+
+    logger.debug("Number of valid fits: %s ", nb_fit)
                     
     if nb_fit == 0:
         #Extreme cases: may need to relax the parameters.
