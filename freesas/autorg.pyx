@@ -69,7 +69,7 @@ ctypedef cnumpy.float64_t DTYPE_t
 # Definition of a few constants
 cdef: 
     DTYPE_t[::1] WEIGHTS
-    int RATIO_INTENSITY = 10  # start with range from Imax -> Imax/10
+    int RATIO_INTENSITY = 100  # start with range from Imax -> Imax/10
 
 qmaxrg_weight = 1.0
 qminrg_weight = 0.1
@@ -139,6 +139,8 @@ def currate_data(floating[:, :] data,
     start = 0  
     idx_out = 0
     i_max = 0.0
+    i_max1 = 0.0
+    i_max2 = 0.0
     for idx_in in range(size_in):
         one_q = data[idx_in, 0]
         one_i = data[idx_in, 1]
@@ -156,8 +158,13 @@ def currate_data(floating[:, :] data,
             idx_out += 1
             
     # Second pass: focus on the valid region and prepare the 3 other arrays
-    i_thres = i_max / RATIO_INTENSITY
+    
     end = idx_out
+    if end > start + 2:
+        i_thres = (i_max + data[start + 1, 1] + data[start + 2, 1]) / (3 * RATIO_INTENSITY)
+    else:
+        i_thres = i_max / (RATIO_INTENSITY)
+    
     for idx in range(start, idx_out):
         one_i = intensity[idx] 
         if one_i < i_thres:
@@ -358,7 +365,8 @@ def autoRg(sasm):
     data_start, data_end, currated_size = data_range
     
     logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
-    
+    #with gil:
+    #print("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
     if (data_end - data_start) < 10:
         raise InsufficientDataError()
   
