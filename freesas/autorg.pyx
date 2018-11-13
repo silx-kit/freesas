@@ -365,8 +365,7 @@ def autoRg(sasm):
     data_start, data_end, currated_size = data_range
     
     logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
-    #with gil:
-    #print("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
+   
     if (data_end - data_start) < 10:
         raise InsufficientDataError()
   
