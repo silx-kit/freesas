@@ -69,13 +69,13 @@ ctypedef cnumpy.float64_t DTYPE_t
 # Definition of a few constants
 cdef: 
     DTYPE_t[::1] WEIGHTS
-    int RATIO_INTENSITY = 100  # start with range from Imax -> Imax/10
+    int RATIO_INTENSITY = 10  # start with range from Imax -> Imax/10
 
 qmaxrg_weight = 1.0
 qminrg_weight = 0.1
 rg_frac_err_weight = 1.0
 i0_frac_err_weight = 1.0
-r_sqr_weight = 4.0
+r_sqr_weight = 1000
 reduced_chi_sqr_weight = 0.0
 window_size_weight = 6.0
     
@@ -458,7 +458,7 @@ def autoRg(sasm):
         qminrg_score = 1.0 - fit_array[:, 8]
         rg_frac_err_score = 1.0 - fit_array[:, 5]/fit_array[:, 4]
         i0_frac_err_score = 1.0 - fit_array[:, 7]/fit_array[:, 6]
-        r_sqr_score = fit_array[:, 10]
+        r_sqr_score = fit_array[:, 10]**4
         reduced_chi_sqr_score = 1.0 / fit_array[:,12] #Not right
         window_size_score = fit_array[:, 1] / max_window #float dividion forced by fit_array dtype 
         scores = numpy.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
