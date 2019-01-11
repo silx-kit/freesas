@@ -75,7 +75,7 @@ qmaxrg_weight = 1.0
 qminrg_weight = 0.1
 rg_frac_err_weight = 1.0
 i0_frac_err_weight = 1.0
-r_sqr_weight = 4.0
+r_sqr_weight = 1000
 reduced_chi_sqr_weight = 0.0
 window_size_weight = 6.0
     
@@ -139,6 +139,8 @@ def currate_data(floating[:, :] data,
     start = 0  
     idx_out = 0
     i_max = 0.0
+    i_max1 = 0.0
+    i_max2 = 0.0
     for idx_in in range(size_in):
         one_q = data[idx_in, 0]
         one_i = data[idx_in, 1]
@@ -156,8 +158,13 @@ def currate_data(floating[:, :] data,
             idx_out += 1
             
     # Second pass: focus on the valid region and prepare the 3 other arrays
-    i_thres = i_max / RATIO_INTENSITY
+    
     end = idx_out
+    if end > start + 2:
+        i_thres = (i_max + data[start + 1, 1] + data[start + 2, 1]) / (3 * RATIO_INTENSITY)
+    else:
+        i_thres = i_max / (RATIO_INTENSITY)
+    
     for idx in range(start, idx_out):
         one_i = intensity[idx] 
         if one_i < i_thres:
@@ -358,7 +365,7 @@ def autoRg(sasm):
     data_start, data_end, currated_size = data_range
     
     logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
-    
+   
     if (data_end - data_start) < 10:
         raise InsufficientDataError()
   
@@ -390,6 +397,7 @@ def autoRg(sasm):
             #for start in range(data_start, data_end - window_size, data_step):
             for start from data_start <= start < data_end - window_size by data_step:
                 end = start + window_size
+                #logger.debug("Fitting: %s , %s ", start,end)
                 fit_mv[nb_fit, 0] = start
                 fit_mv[nb_fit, 1] = window_size 
                 fit_mv[nb_fit, 2] = q_ary[start]
@@ -432,6 +440,9 @@ def autoRg(sasm):
                 else:
                     for idx in range(13):
                         fit_mv[nb_fit, idx] = 0.0
+    
+
+    logger.debug("Number of valid fits: %s ", nb_fit)
                     
     if nb_fit == 0:
         #Extreme cases: may need to relax the parameters.
@@ -447,7 +458,7 @@ def autoRg(sasm):
         qminrg_score = 1.0 - fit_array[:, 8]
         rg_frac_err_score = 1.0 - fit_array[:, 5]/fit_array[:, 4]
         i0_frac_err_score = 1.0 - fit_array[:, 7]/fit_array[:, 6]
-        r_sqr_score = fit_array[:, 10]
+        r_sqr_score = fit_array[:, 10]**4
         reduced_chi_sqr_score = 1.0 / fit_array[:,12] #Not right
         window_size_score = fit_array[:, 1] / max_window #float dividion forced by fit_array dtype 
         scores = numpy.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
