@@ -59,7 +59,7 @@ class TestAutoRg(unittest.TestCase):
         logger.debug("Obt: %s" % (free_result,))
         self.assertAlmostEqual(atsas_result.Rg, free_result.Rg, 1, "RG fits within 2 digits")
         self.assertAlmostEqual(atsas_result.I0, free_result.I0, msg="I0 fits within +/- 1 ", delta=1)
-        self.assertAlmostEqual(atsas_result.quality, free_result.quality, 1, msg="quality fits within 1 digits")
+        self.assertAlmostEqual(atsas_result.quality, free_result.quality, 0, msg="quality fits within 0 digits")
 
 class TestFit(unittest.TestCase): 
     #Testcase originally comes from wikipedia article on linear regression, expected results from scipy.stats.linregress
