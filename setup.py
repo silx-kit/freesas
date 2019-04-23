@@ -611,7 +611,9 @@ class BuildExt(build_ext):
             return_type = 'void' if sys.version_info[0] <= 2 else 'PyObject*'
 
             ext.extra_compile_args.append(
-                '''-fvisibility=hidden -D'PyMODINIT_FUNC=%s__attribute__((visibility("default"))) %s ' ''' % (extern, return_type))
+                '-fvisibility=hidden')
+            ext.extra_compile_args.append(
+                '-DPyMODINIT_FUNC=%s__attribute__((visibility("default"))) %s ' % (extern, return_type))
 
     def is_debug_interpreter(self):
         """
