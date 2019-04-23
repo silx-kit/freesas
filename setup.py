@@ -24,6 +24,7 @@
 #
 # ###########################################################################*/
 
+__copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
 __date__ = "23/04/2019"
 __license__ = "MIT"
@@ -85,7 +86,10 @@ export LC_ALL=en_US.utf-8
 
 def get_version():
     """Returns current version number from version.py file"""
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, dirname)
     import version
+    sys.path = sys.path[1:]
     return version.strictversion
 
 
@@ -476,7 +480,7 @@ class Build(_build):
                 # By default Xcode5 & XCode6 do not support OpenMP, Xcode4 is OK.
                 osx = tuple([int(i) for i in platform.mac_ver()[0].split(".")])
                 if osx >= (10, 8):
-                    logger.warning("OpenMP support ignored. Your platform do not support it")
+                    logger.warning("OpenMP support ignored. Your platform does not support it.")
                     use_openmp = False
 
         # Remove attributes used by distutils parsing
@@ -543,7 +547,7 @@ class BuildExt(build_ext):
 
     LINK_ARGS_CONVERTER = {'-fopenmp': ''}
 
-    description = 'Build freesas extensions'
+    description = 'Build extensions'
 
     def finalize_options(self):
         build_ext.finalize_options(self)
@@ -626,7 +630,7 @@ class BuildExt(build_ext):
 
             import numpy
             numpy_version = [int(i) for i in numpy.version.short_version.split(".", 2)[:2]]
-            if numpy_version < [1,16]:
+            if numpy_version < [1, 16]:
                 ext.extra_compile_args.append(
                     '''-D'PyMODINIT_FUNC=%s__attribute__((visibility("default"))) %s ' ''' % (extern, return_type))
             else:
@@ -775,7 +779,7 @@ class SourceDistWithCython(sdist):
     without suppport of OpenMP.
     """
 
-    description = "Create a source distribution including cythonozed files (tarball, zip file, etc.)"
+    description = "Create a source distribution including cythonized files (tarball, zip file, etc.)"
 
     def finalize_options(self):
         sdist.finalize_options(self)
@@ -791,7 +795,8 @@ class SourceDistWithCython(sdist):
             self.extensions,
             compiler_directives={'embedsignature': True,
                                  'language_level': 3},
-            force=True
+            force=True,
+            compile_time_env={"HAVE_OPENMP": False}
         )
 
 
