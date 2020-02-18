@@ -15,8 +15,14 @@ environment:
         # Python 3.5
         - PYTHON_DIR: "C:\\Python35-x64"
 
-        # Python 2.7
-        - PYTHON_DIR: "C:\\Python27-x64"
+        # Python 3.6
+        - PYTHON_DIR: "C:\\Python36-x64"
+
+        # Python 3.7
+        - PYTHON_DIR: "C:\\Python37-x64"
+
+        # Python 3.8
+        - PYTHON_DIR: "C:\\Python38-x64"
 
 install:
     - "SET PATH=%PYTHON_DIR%;%PYTHON_DIR%\\Scripts;%PATH%"
@@ -30,8 +36,8 @@ install:
     - "pip freeze"
 
     # Build
-    - "python setup.py build --no-openmp"
-    - "python setup.py bdist_wheel bdist_msi"
+    - "python3 setup.py build --no-openmp"
+    - "python3 setup.py bdist_wheel bdist_msi"
     - ps: "ls dist"
 
     # Install the generated wheel package to test it
@@ -43,8 +49,8 @@ install:
 build: false
 
 test_script:
-    - "python setup.py build test"
-    - "python run_tests.py"
+    - "python3 setup.py build test"
+    - "python3 run_tests.py"
 
 artifacts:
     # Archive the generated wheel package in the ci.appveyor.com build report.
