@@ -28,7 +28,7 @@ RadiusKey = namedtuple("RadiusKey", "Dmax npt")
 PriorKey = namedtuple("PriorKey", "I0 Dmax npt")
 EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
 EvidenceResult = namedtuple("EvidenceResult", "evidence chi2 regularization radius density sigma")
-
+StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std")
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -124,8 +124,9 @@ cdef class BIFT:
     def reset(self):
         "rest all caches"
         for cache  in (self.prior_cache,  self.evidence_cache, self.radius_cache, self.transfo_cache):
-            for key in list(cache.keys()):
-                cache.pop(key)
+            if cache is not None:
+                for key in list(cache.keys()):
+                    cache.pop(key)
 
     def set_Guinier(self, guinier_fit, factor=3.0):
         """Set some starting point from Guinier fit like:
@@ -334,7 +335,7 @@ cdef class BIFT:
         #c1 = numpy.sum(numpy.sum(transfo_mtx[1:4,1:-1]*p_r[1:-1], axis=1)/self.variance[1:4])
         #c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
         #print(c2/c1, self.scale_factor(transfo_mtx, p_r, 1, 4))
-        self.scale_density(transfo_mtx, p_r, f_r, 1, 4, npt, 1.001) #c2/c1        
+        self.scale_density(transfo_mtx, p_r, f_r, self.high_start, self.high_stop, npt, 1.001) #c2/c1        
         
     
         
@@ -650,7 +651,7 @@ cdef class BIFT:
             int samples, npt, best_idx
             double best_evidence, ev_max
             
-        best_evidence = numpy.fifo(numpy.float64).min
+        best_evidence = numpy.finfo(numpy.float64).min
         samples = len(self.evidence_cache)
         if samples < 2:
             raise RuntimeError("Unable to calculate statistics without evidences having been optimized.")
@@ -681,28 +682,27 @@ cdef class BIFT:
         densities = numpy.zeros((samples, npt), dtype=numpy.float64)
         for idx, value in enumerate(self.evidence_cache.values()):            
             densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
-
             
         #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
-        density_avg = numpy.sum(f_array*proba[:,None], axis=0)
+        density_avg = numpy.sum(densities*proba[:,None], axis=0)
         #Then, calculate the error in P(r) as the square root of the weighted sum of squares of the difference between the average result and the individual estimate
-        density_std = numpy.sqrt(numpy.abs(numpy.sum((densities-density_avg)**2*prob[:,None], axis=0)))
+        density_std = numpy.sqrt(numpy.abs(numpy.sum((densities-density_avg)**2*proba[:,None], axis=0)))
     
         #Then, calculate structural results as weighted sum of each result
-        alpha_avg = numpy.sum(alphas*proba)
-        alpha_std = numpy.sqrt(numpy.sum((alphas - alpha_avg)**2*proba))
-        
+        evidence_avg = numpy.sum(evidences*proba)
+        evidence_std = numpy.sqrt(numpy.sum((evidences - evidence_avg)**2*proba))
+
         Dmax_avg = numpy.sum(Dmaxs*proba)
         Dmax_std = numpy.sqrt(numpy.sum((Dmaxs - Dmax_avg)**2*proba))
+
+        alpha_avg = numpy.sum(alphas*proba)
+        alpha_std = numpy.sqrt(numpy.sum((alphas - alpha_avg)**2*proba))
         
         chi2_avg = numpy.sum(chi2s*proba)
         chi2_std = numpy.sqrt(numpy.sum((chi2s - chi2_avg)**2*proba))
         
-        evidence_avg = numpy.sum(evidences*proba)
-        evidence_std = numpy.sqrt(numpy.sum((evidences - evidence_avg)**2*proba))
-    
         areas = numpy.trapz(densities, radius, axis=1)
-        area2s = numpy.trapz(densities*radius**2, r_array, axis=1)
+        area2s = numpy.trapz(densities*radius**2, radius, axis=1)
         
         Rgs = numpy.sqrt(area2s/(2.*areas))
         Rg_avg = numpy.sum(Rgs*proba)
@@ -715,4 +715,12 @@ cdef class BIFT:
         #Should I also extrapolate to q=0? Might be good, though maybe not in this function
         #Should I report number of good parameters (ftot(nmax-12 in Hansen code, line 2247))
         #Should I report number of Shannon Channels? That's easy to calculate: q_range*dmax/pi
-        return 
+        return StatsResult(radius, density_avg, density_std, 
+                           evidence_avg, evidence_std, 
+                           Dmax_avg, Dmax_std,
+                           alpha_avg, alpha_std,
+                           chi2_avg, chi2_std,
+                           Rg_avg, Rg_std,
+                           I0_avg, I0_std)
+    
+    

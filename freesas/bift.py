@@ -59,7 +59,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=
     # Optimization using Bayesian operator:
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
     print(res)
-    return bo
+    return bo.calc_stats()
 
 
 if __name__ == "__main__":
