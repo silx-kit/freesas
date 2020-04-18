@@ -15,8 +15,14 @@ environment:
         # Python 3.5
         - PYTHON_DIR: "C:\\Python35-x64"
 
-        # Python 2.7
-        - PYTHON_DIR: "C:\\Python27-x64"
+        # Python 3.6
+        - PYTHON_DIR: "C:\\Python36-x64"
+
+        # Python 3.7
+        - PYTHON_DIR: "C:\\Python37-x64"
+
+        # Python 3.8
+        - PYTHON_DIR: "C:\\Python38-x64"
 
 install:
     - "SET PATH=%PYTHON_DIR%;%PYTHON_DIR%\\Scripts;%PATH%"

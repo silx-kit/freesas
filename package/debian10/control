@@ -1,0 +1,90 @@
+Source: freesas
+Maintainer: Debian Science Maintainers <debian-science-maintainers@lists.alioth.debian.org>
+Uploaders: Jerome Kieffer <jerome.kieffer@esrf.fr>,
+           Picca Frédéric-Emmanuel <picca@debian.org>
+Section: science
+Priority: extra
+Build-Depends: cython,
+               cython3,
+               debhelper (>=9.20150101+deb8u2),
+               dh-python,
+               python-all-dev,
+               python-numpy,
+               python-matplotlib,
+               python-dateutil,
+               python-scipy,
+               python-sphinx,
+               python-sphinxcontrib.programoutput,
+               python-enum34,
+               python-concurrent.futures,
+               python3-all-dev,
+               python3-numpy,
+               python3-matplotlib,
+               python3-scipy,
+               python3-sphinx,
+               python3-sphinxcontrib.programoutput,
+               openstack-pkg-tools,
+               help2man
+Standards-Version: 3.9.8
+Vcs-Browser: https://anonscm.debian.org/cgit/debian-science/packages/freesas.git
+Vcs-Git: git://anonscm.debian.org/debian-science/packages/freesas.git
+Homepage: https://github.com/kif/freesas
+X-Python-Version: >= 2.7
+X-Python3-Version: >= 3.4
+
+Package: freesas
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         ${shlibs:Depends},
+         python3-pkg-resources,
+         python3-freesas (>= ${source:Version})
+Description: Free tools for small angle scattering analysis - Executables
+ .
+ This uses the Python 3 version of the package.
+
+Package: python-freesas
+Architecture: any
+Section: python
+Depends: ${misc:Depends},
+         ${python:Depends},
+         ${shlibs:Depends},
+         python-numpy,
+         python-matplotlib,
+         python-dateutil,
+         python-scipy,
+         python-six,
+         python-enum34,
+         python-concurrent.futures,
+# Recommends:
+Suggests: python-rfoo
+Description: Free tools for small angle scattering analysis - Python2 library
+ .
+ This is the Python 2 version of the package.
+
+
+Package: python3-freesas
+Architecture: any
+Section: python
+Depends: ${misc:Depends},
+         ${python3:Depends},
+         ${shlibs:Depends},
+         python3-numpy,
+         python3-matplotlib,
+         python3-scipy,
+         python3-six,
+# Recommends:
+# Suggests: python3-rfoo
+Description: Free tools for small angle scattering analysis - Python3
+ .
+ This is the Python 3 version of the package.
+
+
+Package: python-freesas-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends},
+         ${sphinxdoc:Depends}
+Description: Free tools for small angle scattering analysis - Documentation
+ .
+ This is the common documentation package.
