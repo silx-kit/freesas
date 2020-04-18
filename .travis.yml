@@ -4,9 +4,10 @@ os:
 
 language: python
 python:
-    - "2.7"
-    - "3.4"
     - "3.5"
+    - "3.6"
+    - "3.7"
+    - "3.8"
 
 cache:
     apt: true
@@ -16,7 +17,6 @@ cache:
 addons:
     apt:
         packages:
-            - libhdf5-7
             - libhdf5-dev
 
 install:
