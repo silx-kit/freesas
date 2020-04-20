@@ -1,11 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf-8
-from __future__ import division, print_function
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "31/08/2018"
+__date__ = "20/04/2020"
 
 import argparse
 import os

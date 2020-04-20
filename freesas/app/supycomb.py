@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
+__date__ = "20/04/2020"
 
 import argparse
 from os.path import dirname, abspath
@@ -83,6 +84,7 @@ def main():
 
     if not save and input_len > 2:
         raw_input("Press any key to exit")
+
 
 if __name__ == "__main__":
     main()
