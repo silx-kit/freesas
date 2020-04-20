@@ -911,6 +911,7 @@ def get_project_configuration(dry_run):
                             'autorg.py = freesas.app.autorg:main',
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',
+                            'bift.py = freesas.app.bift:main',
                            ],
         # 'gui_scripts': [],
     }

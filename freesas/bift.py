@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "17/04/2020"
+__date__ = "18/04/2020"
 
 from collections import namedtuple
 from math import log
@@ -59,7 +59,11 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=
     # Optimization using Bayesian operator:
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
     print(res)
-    return bo.calc_stats()
+    print("*"*50)
+    # res = minimize(bo.opti_evidence, res.x, args=(npt,), method="slsqp", options={"eps":1e-2}, bounds=[(1 / bo.q[-1], 1 / bo.delta_q), (0, 2 * alpha_max)])
+    # print(res)
+    print(bo.calc_stats())
+    return bo
 
 
 if __name__ == "__main__":

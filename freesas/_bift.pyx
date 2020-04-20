@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#cython: embedsignature=True, language_level=3, initializedcheck=False
+#cython: embedsignature=True, language_level=3, initializedcheck=False, profile=True
 #boundscheck=False, wraparound=False, cdivision=True, 
 """
 Bayesian Inverse Fourier Transform
@@ -16,7 +16,7 @@ This is a major rewrite in Cython
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "17/04/2020"
+__date__ = "20/04/2020"
 
 
 import cython
@@ -27,8 +27,8 @@ from collections import namedtuple
 RadiusKey = namedtuple("RadiusKey", "Dmax npt")
 PriorKey = namedtuple("PriorKey", "I0 Dmax npt")
 EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple("EvidenceResult", "evidence chi2 regularization radius density sigma")
-StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std")
+EvidenceResult = namedtuple("EvidenceResult", "evidence chi2 regularization radius density")
+StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -167,6 +167,17 @@ cdef class BIFT:
         chi2 = self.calc_chi2(transfo, density, npt)*self.size
         return 0.5*chi2/regularization
     
+    def get_best(self):
+        """Return the most probable configuration found so far
+        """
+        best_evidence = numpy.finfo(numpy.float64).min
+        best_key = None 
+        for key, value in self.evidence_cache.items():
+            if value.evidence>best_evidence:
+                best_key = key
+                best_evidence = value.evidence
+        return best_key, self.evidence_cache.get(best_key)
+    
     @cython.cdivision(True)
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -272,6 +283,9 @@ cdef class BIFT:
         :return: -evidence for optimisation 
         """ 
         Dmax, logalpha = param
+        key = EvidenceKey(Dmax, exp(logalpha), npt)
+        if key in self.evidence_cache:
+            return -self.evidence_cache[key].evidence
         return -self.calc_evidence(Dmax, exp(logalpha), npt)
     
     def calc_evidence(self,
@@ -335,9 +349,7 @@ cdef class BIFT:
         #c1 = numpy.sum(numpy.sum(transfo_mtx[1:4,1:-1]*p_r[1:-1], axis=1)/self.variance[1:4])
         #c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
         #print(c2/c1, self.scale_factor(transfo_mtx, p_r, 1, 4))
-        self.scale_density(transfo_mtx, p_r, f_r, self.high_start, self.high_stop, npt, 1.001) #c2/c1        
-        
-    
+        self.scale_density(transfo_mtx, p_r, f_r, 1, 4, npt, 1.001)
         
         # Do the optimization
         dotsp = self._bift_inner_loop(f_r, p_r, sigma2, B, alpha, npt, sum_dia, xprec=xprec)
@@ -362,7 +374,7 @@ cdef class BIFT:
             evidence = evidence/30.
 
         key = EvidenceKey(Dmax, alpha, npt)
-        self.evidence_cache[key] = EvidenceResult(evidence, chi2, regularization, numpy.asarray(radius), numpy.asarray(f_r), numpy.sqrt(sigma2))
+        self.evidence_cache[key] = EvidenceResult(evidence, chi2, regularization, numpy.asarray(radius), numpy.asarray(f_r))
         return evidence
     
     @cython.cdivision(True)
@@ -651,37 +663,33 @@ cdef class BIFT:
             int samples, npt, best_idx
             double best_evidence, ev_max
             
-        best_evidence = numpy.finfo(numpy.float64).min
         samples = len(self.evidence_cache)
         if samples < 2:
             raise RuntimeError("Unable to calculate statistics without evidences having been optimized.")
 
+        best_key, best = self.get_best()
+        radius = best.radius
+        npt = radius.size
+        densities = numpy.zeros((samples, npt), dtype=numpy.float64)
         evidences = numpy.zeros(samples, dtype=numpy.float64)
         Dmaxs = numpy.zeros(samples, dtype=numpy.float64)
         alphas = numpy.zeros(samples, dtype=numpy.float64)
         chi2s = numpy.zeros(samples, dtype=numpy.float64)
+        regularizations = numpy.zeros(samples, dtype=numpy.float64)
         
         for idx, key in enumerate(self.evidence_cache):
             Dmaxs[idx] = key.Dmax
             alphas[idx] = key.alpha
             value = self.evidence_cache[key]
-            evidence = value.evidence
-            if evidence>best_evidence:
-                best = value
-                best_evidence = evidence
-            evidences[idx] = evidence
+            evidences[idx] = value.evidence
             chi2s[idx] =  value.chi2
+            regularizations[idx] = value.regularization
+            densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
 
         #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
         ev_max = evidences.max()
         proba = numpy.exp(evidences - ev_max)**(1./chi2s.min())
         proba /= proba.sum()
-        
-        radius = best.radius
-        npt = radius.size
-        densities = numpy.zeros((samples, npt), dtype=numpy.float64)
-        for idx, value in enumerate(self.evidence_cache.values()):            
-            densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
             
         #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
         density_avg = numpy.sum(densities*proba[:,None], axis=0)
@@ -689,17 +697,20 @@ cdef class BIFT:
         density_std = numpy.sqrt(numpy.abs(numpy.sum((densities-density_avg)**2*proba[:,None], axis=0)))
     
         #Then, calculate structural results as weighted sum of each result
-        evidence_avg = numpy.sum(evidences*proba)
-        evidence_std = numpy.sqrt(numpy.sum((evidences - evidence_avg)**2*proba))
+        evidence_avg = numpy.dot(evidences, proba)
+        evidence_std = numpy.sqrt(numpy.dot((evidences - evidence_avg)**2, proba))
 
-        Dmax_avg = numpy.sum(Dmaxs*proba)
-        Dmax_std = numpy.sqrt(numpy.sum((Dmaxs - Dmax_avg)**2*proba))
+        Dmax_avg = numpy.dot(Dmaxs, proba)
+        Dmax_std = numpy.sqrt(numpy.dot((Dmaxs - Dmax_avg)**2, proba))
 
-        alpha_avg = numpy.sum(alphas*proba)
-        alpha_std = numpy.sqrt(numpy.sum((alphas - alpha_avg)**2*proba))
+        alpha_avg = numpy.dot(alphas, proba)
+        alpha_std = numpy.sqrt(numpy.dot((alphas - alpha_avg)**2, proba))
         
-        chi2_avg = numpy.sum(chi2s*proba)
-        chi2_std = numpy.sqrt(numpy.sum((chi2s - chi2_avg)**2*proba))
+        chi2_avg = numpy.dot(chi2s, proba)
+        chi2_std = numpy.sqrt(numpy.dot((chi2s - chi2_avg)**2, proba))
+        
+        regularization_avg = numpy.dot(regularizations, proba)
+        regularization_std = numpy.sqrt(numpy.dot((regularizations - regularization_avg)**2, proba))
         
         areas = numpy.trapz(densities, radius, axis=1)
         area2s = numpy.trapz(densities*radius**2, radius, axis=1)
@@ -720,6 +731,7 @@ cdef class BIFT:
                            Dmax_avg, Dmax_std,
                            alpha_avg, alpha_std,
                            chi2_avg, chi2_std,
+                           regularization_avg, regularization_std,
                            Rg_avg, Rg_std,
                            I0_avg, I0_std)
     
