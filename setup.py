@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "16/04/2020"
+__date__ = "20/04/2020"
 __license__ = "MIT"
 
 import sys
@@ -952,6 +952,7 @@ def get_project_configuration(dry_run):
                         package_data=package_data,
                         zip_safe=False,
                         entry_points=entry_points,
+                        python_requires='>=3.5',
                         )
 #      packages=["freesas", "freesas.test"],
 #      data_files=glob.glob("testdata/*"),
