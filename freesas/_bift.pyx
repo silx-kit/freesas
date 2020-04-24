@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-#cython: embedsignature=True, language_level=3, initializedcheck=False, profile=True
-#boundscheck=False, wraparound=False, cdivision=True, 
+#cython: embedsignature=True, language_level=3, initializedcheck=False, 
+#cython: profile=True, warn.undeclared=True, warn.unused=True, warn.unused_result=False, warn.unused_arg=True
+#cython: boundscheck=False, wraparound=False, cdivision=True, 
 """
 Bayesian Inverse Fourier Transform
 
@@ -16,19 +17,22 @@ This is a major rewrite in Cython
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "20/04/2020"
+__date__ = "24/04/2020"
 
 
 import cython
 import numpy
 from libc.math cimport sqrt, fabs, pi, sin, log, exp
 from collections import namedtuple
+import logging
+logger = logging.getLogger(__name__)
 
 RadiusKey = namedtuple("RadiusKey", "Dmax npt")
 PriorKey = namedtuple("PriorKey", "I0 Dmax npt")
 EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
 EvidenceResult = namedtuple("EvidenceResult", "evidence chi2 regularization radius density")
 StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
+
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -66,8 +70,8 @@ cpdef distribution_sphere(double I0,
         double norm, delta_r, r 
         double[::1] p_r
         
-    norm = I0 / (4.0 * pi / 24. * Dmax**3)
-    delta_r = Dmax/npt
+    norm = I0 / (4.0 * pi * Dmax**3 / 24.0)
+    delta_r = Dmax / npt
 
     p_r = numpy.empty(npt+1, dtype=numpy.float64)
     
@@ -80,6 +84,40 @@ cpdef distribution_sphere(double I0,
     return numpy.asarray(p_r)
 
 
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef distribution_parabola(double I0, 
+                            double Dmax,
+                            int npt):
+    """Creates the initial p(r) function for the prior as a parabola.
+
+    p(r) = r * (Dmax - r)
+    
+    I0 = 4*pi * Dmax³/6 
+    
+    :param I0: forward scattering intensity
+    :param npt: number of points in the real space (-1)
+    :param Dmax: Diameter of the the object, here a sphere
+    :return: the density p(r)
+    """
+    cdef:
+        int j
+        double norm, delta_r, r 
+        double[::1] p_r
+        
+    norm = I0 / (4.0 * pi * Dmax**3 / 6.0)
+    delta_r = Dmax / npt
+
+    p_r = numpy.empty(npt+1, dtype=numpy.float64)
+    
+    for j in range(npt+1):
+        r = j * delta_r
+        p_r[j] = norm * r * (Dmax - r) 
+
+    return numpy.asarray(p_r)
+
+
 cdef class BIFT:
     """Bayesian Inverse Fourier Transform
     
@@ -88,7 +126,7 @@ cdef class BIFT:
     :param I_std: error on the intensity estimation    """
     cdef:
         readonly int size, high_start, high_stop
-        readonly double I0, delta_q, Dmax_guess, alpha_max
+        readonly double I0_guess, delta_q, Dmax_guess, alpha_max
         readonly double[::1] q, intensity, variance
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache
      
@@ -98,17 +136,17 @@ cdef class BIFT:
         :param I: Scattering intensity I(q) 
         :param I_std: error on the intensity estimation
         """
-        self.size = q.size
-        assert self.size == I.size, "Intensity array matches in size"
-        assert self.size == I_std.size, "Error array matches in size"
+        self.size = q.shape[0]
+        assert self.size == I.shape[0], "Intensity array matches in size"
+        assert self.size == I_std.shape[0], "Error array matches in size"
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
-        self.delta_q = (q[-1]-q[0]) / (q.size-1)
+        self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
         #We define a region of high signal where the noise is expected to be minimal:
-        self.I0 = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit  
+        self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit  
         self.high_start = numpy.argmax(I) # Might be replaced by the guinier region
-        self.high_stop = self.high_start + numpy.where(I[self.high_start:]<self.I0/2.)[0][0]
+        self.high_stop = self.high_start + numpy.where(I[self.high_start:]<self.I0_guess/2.)[0][0]
         self.Dmax_guess = 0.0
         self.alpha_max = 0.0
         self.prior_cache = {}
@@ -139,7 +177,7 @@ cdef class BIFT:
         :param factor: guess the Dmax =  factor * Rg
         :return: guessed Dmax
         """
-        self.I0 = guinier_fit.I0
+        self.I0_guess = guinier_fit.I0
         self.high_start = guinier_fit.start_point
         self.high_stop = guinier_fit.end_point
         self.Dmax_guess = guinier_fit.Rg * factor
@@ -159,7 +197,7 @@ cdef class BIFT:
             double regularization, chi2
         if self.Dmax_guess<=0.0:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
-        density = self.prior_distribution(self.I0, self.Dmax_guess, npt)
+        density = self.prior_distribution(self.I0_guess, self.Dmax_guess, npt)
         smooth = numpy.zeros(npt+1, numpy.float64)
         self.smooth_density(density, smooth, npt)
         regularization = self.calc_regularization(density, smooth, density, npt) # eq19
@@ -304,7 +342,7 @@ cdef class BIFT:
         :return: evidence (other results are cached) 
         
         All the equation number are refering to 
-        J. Appl. Cryst. (2000). 33, 1415±1421 
+        J. Appl. Cryst. (2000). 33, 1415-1421 
         """
         cdef:
             double[::1] radius, p_r, f_r, sigma2, sum_dia
@@ -315,12 +353,14 @@ cdef class BIFT:
         
         #Simple checks: Dmax and alpha need to be positive 
         if Dmax<=0:
-            raise RuntimeError("Dmax negative")
+            logger.error("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
+            return -numpy.inf
         if alpha<=0:
-            raise RuntimeError("alpha negative")
+            logger.error("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
+            return -numpy.inf
         
         radius = self.radius(Dmax, npt) 
-        p_r = self.prior_distribution(self.I0, Dmax, npt) 
+        p_r = self.prior_distribution(self.I0_guess, Dmax, npt) 
         #Note, here p_r is what Hansen calls m in eq.5
         p_r[0] = 0
         f_r = numpy.zeros(npt+1, dtype=numpy.float64)
@@ -467,8 +507,8 @@ cdef class BIFT:
         #u = numpy.sqrt(numpy.abs(numpy.outer(f_r[1:-1], f_r[1:-1])))*B[1:-1, 1:-1]/alpha
         #u[numpy.diag_indices(u.shape[0])] += 1
         #w = numpy.linalg.svd(u, compute_uv = False)
-        #return numpy.sum(numpy.log(numpy.abs(numpy.linalg.svd(u, compute_uv = False))))
-        return log(fabs(numpy.linalg.det(u)))  
+        return numpy.sum(numpy.log(numpy.abs(numpy.linalg.svd(u, compute_uv = False))))
+        #return log(fabs(numpy.linalg.det(u)))  
 
     @cython.cdivision(True)
     @cython.wraparound(False)
@@ -625,7 +665,9 @@ cdef class BIFT:
                 fx = (2.0*alpha* p_k/sigma_k + sum_dia_k - tmp_sum) / (2.0*alpha/sigma_k + B_kk)
                 # Finally update the value
                 f_r[k] = f_k = (1.0-omega)*f_k + omega*fx
-    
+            #Synchro point
+            
+            
             # Calculate convergence
             sum_c2 = sum_sc = sum_s2 = 0.0
             for k in range(1, npt):

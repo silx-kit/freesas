@@ -47,16 +47,19 @@ class TestBIFT(unittest.TestCase):
     def setUpClass(cls):
         super(TestBIFT, cls).setUpClass()
         cls.r = numpy.linspace(0, cls.DMAX, cls.NPT + 1)
+        dr = cls.DMAX / cls.NPT
         cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
         q = numpy.linspace(0, 8 * cls.DMAX / 3, cls.SIZE + 1)
         T = numpy.outer(q, cls.r)
         sincqr = numpy.where(T == 0, 1, numpy.sin(T) / T)
-        I = (cls.p * sincqr).sum(axis=-1)
+        I = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
         err = numpy.sqrt(I)
         cls.I0 = I[0]
         cls.q = q[1:]
         cls.I = I[1:]
         cls.err = err[1:]
+        cls.Rg = numpy.sqrt(0.5 * numpy.trapz(cls.p * cls.r ** 2, cls.r) / numpy.trapz(cls.p, cls.r))
+        print(cls.Rg)
 
     @classmethod
     def tearDownClass(cls):
@@ -68,25 +71,25 @@ class TestBIFT(unittest.TestCase):
         t0 = time.perf_counter()
         res = auto_bift(data)
         logger.info("Auto_bift time: %s", time.perf_counter() - t0)
-        self.assertAlmostEqual(self.DMAX, res.Dmax_avg, 3, "DMax is correct")
-        self.assertAlmostEqual(self.I0, res.I0_avg, 3, "I0 is correct")
+        self.assertAlmostEqual(self.DMAX / res.Dmax_avg, 1, 1, "DMax is correct")
+        self.assertAlmostEqual(self.I0 / res.I0_avg, 1, 1, "I0 is correct")
+        self.assertAlmostEqual(self.Rg / res.Rg_avg, 1, 2, "Rg is correct")
 
     def test_BIFT(self):
-
         bift = BIFT(self.q, self.I, self.err)
 
     def test_disributions(self):
-        print(self.I0)
         pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))
-        print(pp / self.p)
-        print(abs(pp - self.p).max())
-        raise
+        ps = numpy.asarray(distribution_sphere(self.I0, self.DMAX, self.NPT))
+        self.assertAlmostEqual(numpy.trapz(ps, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a sphere looks OK")
+        self.assertAlmostEqual(numpy.trapz(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
+        self.assertTrue(numpy.allclose(pp, self.p, 1e-4), "distribution matches")
 
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestBIFT("test_disributions"))
-    # testSuite.addTest(TestBIFT("test_autobift"))
+    testSuite.addTest(TestBIFT("test_autobift"))
 
     return testSuite
 

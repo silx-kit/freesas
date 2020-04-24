@@ -14,8 +14,10 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "18/04/2020"
+__date__ = "24/04/2020"
 
+import logging
+logger = logging.getLogger(__name__)
 from collections import namedtuple
 from math import log
 import numpy
@@ -49,21 +51,22 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=
         bo.set_Guinier(rg)
         Dmax = bo.Dmax_guess
     if alpha is None:
-        Niter = 8
+        Niter = 9  # odd to have 1 in the loop
         alpha_max = bo.guess_alpha_max(npt)
-        alphas = numpy.geomspace(1, alpha_max, Niter)
+        alphas = numpy.geomspace(1 / alpha_max, alpha_max, Niter)
         evidences = [bo.calc_evidence(Dmax, alpha, npt) for alpha in alphas]
         start_at = numpy.argmax(evidences)
         alpha = alphas[start_at]
 
     # Optimization using Bayesian operator:
+    logger.debug("start search at alpha=%s Dmax=%s", alpha, Dmax)
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
     print(res)
     print("*"*50)
     # res = minimize(bo.opti_evidence, res.x, args=(npt,), method="slsqp", options={"eps":1e-2}, bounds=[(1 / bo.q[-1], 1 / bo.delta_q), (0, 2 * alpha_max)])
-    # print(res)
-    print(bo.calc_stats())
-    return bo
+    print(bo)
+    return bo.calc_stats()
+#     return bo
 
 
 if __name__ == "__main__":
