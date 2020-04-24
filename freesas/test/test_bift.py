@@ -1,0 +1,96 @@
+# -*- coding: utf-8 -*-
+#
+#    Project: freesas
+#             https://github.com/kif/freesas
+#
+#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+__authors__ = ["J. Kieffer"]
+__license__ = "MIT"
+__date__ = "24/04/2020"
+
+import numpy
+import unittest
+from .utilstests import get_datafile
+from ..bift import auto_bift
+from .._bift import BIFT, distribution_parabola, distribution_sphere
+import logging
+logger = logging.getLogger(__name__)
+import time
+
+
+class TestBIFT(unittest.TestCase):
+
+    DMAX = 10
+    NPT = 100
+    SIZE = 1000
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBIFT, cls).setUpClass()
+        cls.r = numpy.linspace(0, cls.DMAX, cls.NPT + 1)
+        cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
+        q = numpy.linspace(0, 8 * cls.DMAX / 3, cls.SIZE + 1)
+        T = numpy.outer(q, cls.r)
+        sincqr = numpy.where(T == 0, 1, numpy.sin(T) / T)
+        I = (cls.p * sincqr).sum(axis=-1)
+        err = numpy.sqrt(I)
+        cls.I0 = I[0]
+        cls.q = q[1:]
+        cls.I = I[1:]
+        cls.err = err[1:]
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestBIFT, cls).tearDownClass()
+        cls.r = cls.p = cls.I = cls.q = cls.err = None
+
+    def test_autobift(self):
+        data = numpy.vstack((self.q, self.I, self.err)).T
+        t0 = time.perf_counter()
+        res = auto_bift(data)
+        logger.info("Auto_bift time: %s", time.perf_counter() - t0)
+        self.assertAlmostEqual(self.DMAX, res.Dmax_avg, 3, "DMax is correct")
+        self.assertAlmostEqual(self.I0, res.I0_avg, 3, "I0 is correct")
+
+    def test_BIFT(self):
+
+        bift = BIFT(self.q, self.I, self.err)
+
+    def test_disributions(self):
+        print(self.I0)
+        pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))
+        print(pp / self.p)
+        print(abs(pp - self.p).max())
+        raise
+
+
+def suite():
+    testSuite = unittest.TestSuite()
+    testSuite.addTest(TestBIFT("test_disributions"))
+    # testSuite.addTest(TestBIFT("test_autobift"))
+
+    return testSuite
+
+
+if __name__ == '__main__':
+    runner = unittest.TextTestRunner()
+    runner.run(suite())
