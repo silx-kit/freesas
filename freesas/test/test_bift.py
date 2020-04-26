@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "24/04/2020"
+__date__ = "25/04/2020"
 
 import numpy
 import unittest
@@ -69,11 +69,13 @@ class TestBIFT(unittest.TestCase):
     def test_autobift(self):
         data = numpy.vstack((self.q, self.I, self.err)).T
         t0 = time.perf_counter()
-        res = auto_bift(data)
+        bo = auto_bift(data)
+        key, value = bo.get_best()
+        stats = bo.calc_stats()
         logger.info("Auto_bift time: %s", time.perf_counter() - t0)
-        self.assertAlmostEqual(self.DMAX / res.Dmax_avg, 1, 1, "DMax is correct")
-        self.assertAlmostEqual(self.I0 / res.I0_avg, 1, 1, "I0 is correct")
-        self.assertAlmostEqual(self.Rg / res.Rg_avg, 1, 2, "Rg is correct")
+        self.assertAlmostEqual(self.DMAX / key.Dmax, 1, 1, "DMax is correct")
+        self.assertAlmostEqual(self.I0 / stats.I0_avg, 1, 1, "I0 is correct")
+        self.assertAlmostEqual(self.Rg / stats.Rg_avg, 1, 2, "Rg is correct")
 
     def test_BIFT(self):
         bift = BIFT(self.q, self.I, self.err)

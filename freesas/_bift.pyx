@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-#cython: embedsignature=True, language_level=3, initializedcheck=False, 
+#cython: embedsignature=True, language_level=3
 #cython: profile=True, warn.undeclared=True, warn.unused=True, warn.unused_result=False, warn.unused_arg=True
-#cython: boundscheck=False, wraparound=False, cdivision=True, 
+#cython: boundscheck=False, wraparound=False, cdivision=True, initializedcheck=False, 
 """
 Bayesian Inverse Fourier Transform
 
@@ -17,22 +17,89 @@ This is a major rewrite in Cython
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "24/04/2020"
+__date__ = "26/04/2020"
 
 
 import cython
+from cython.parallel import prange
+from cython.view cimport array as cvarray
 import numpy
-from libc.math cimport sqrt, fabs, pi, sin, log, exp
+cimport numpy as cnumpy
+from libc.math cimport sqrt, fabs, pi, sin, log, exp, isfinite
 from collections import namedtuple
+from scipy.linalg import lapack
+from scipy.linalg.cython_lapack cimport dgesvd
+from scipy.linalg.cython_blas cimport dgemm, ddot
 import logging
+import itertools
 logger = logging.getLogger(__name__)
 
 RadiusKey = namedtuple("RadiusKey", "Dmax npt")
-PriorKey = namedtuple("PriorKey", "I0 Dmax npt")
+PriorKey = namedtuple("PriorKey", "type npt")
+TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
 EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple("EvidenceResult", "evidence chi2 regularization radius density")
-StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
+EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density, eigen")
+StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
 
+
+cpdef inline double blas_ddot(double[::1] a, double[::1] b) nogil:
+    "Wrapper for double precision dot product"
+    cdef:
+        int n, one=1
+        double *a0=&a[0]
+        double *b0=&b[0]
+
+    n = a.shape[0]
+    if n != b.shape[0]:
+        with gil:
+            raise ValueError("Shape mismatch in input arrays.")
+   
+    return ddot(&n, a0, &one, b0, &one)
+
+
+cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double alpha=1.0, double beta=0.0) nogil except -1:
+    "Wrapper for double matrix-matrix multiplication C = AxB "
+    cdef:
+        char *transa = 'n'
+        char *transb = 'n'
+        int m, n, k, lda, ldb, ldc
+        double *a0=&a[0,0]
+        double *b0=&b[0,0]
+        double *c0=&c[0,0]
+
+    ldb = (&a[1,0]) - a0 if a.shape[0] > 1 else 1
+    lda = (&b[1,0]) - b0 if b.shape[0] > 1 else 1
+
+    k = b.shape[0]
+    if k != a.shape[1]:
+        with gil:
+            raise ValueError("Shape mismatch in input arrays.")
+    m = b.shape[1]
+    n = a.shape[0]
+    if n != c.shape[0] or m != c.shape[1]:
+        with gil:
+            raise ValueError("Output array does not have the correct shape.")
+    ldc = (&c[1,0]) - c0 if c.shape[0] > 1 else 1
+    dgemm(transa, transb, &m, &n, &k, &alpha, b0, &lda, a0,
+               &ldb, &beta, c0, &ldc)
+    return 0
+
+
+cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) nogil except -1:
+    cdef:
+        char *jobN = 'n'
+        int n, lda, lwork, info, one=1
+    
+    info = 0
+    n = A.shape[0]
+    lwork = work.shape[0]
+    if n != A.shape[1]:
+        return -1
+    lda = (&A[1,0]) - &A[0,0] if A.shape[0] > 1 else 1
+    dgesvd(jobN, jobN, &n, &n, &A[0,0], &lda, &eigen[0], &work[0] , &one, &work[0], &one, &work[0], &lwork, &info)
+    if info:
+        return -1
+    return 0
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -69,18 +136,15 @@ cpdef distribution_sphere(double I0,
         int j
         double norm, delta_r, r 
         double[::1] p_r
-        
-    norm = I0 / (4.0 * pi * Dmax**3 / 24.0)
-    delta_r = Dmax / npt
-
-    p_r = numpy.empty(npt+1, dtype=numpy.float64)
-    
-    for j in range(npt+1):
-        r = j * delta_r
-        p_r[j] = norm * r**2 * (1.0 - 1.5*(r/Dmax) + 0.5*(r/Dmax)**3)
+    p_r = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
+    with nogil:    
+        norm = I0 / (4.0 * pi * Dmax**3 / 24.0)
+        delta_r = Dmax / npt
+        for j in range(npt+1):
+            r = j * delta_r
+            p_r[j] = norm * r**2 * (1.0 - 1.5*(r/Dmax) + 0.5*(r/Dmax)**3)
     # p = p * I0/(4*pi*Dmax**3/24.)
     # p = p * I0/(Dmax**3/(24.*(r[1]-r[0])))   #Which normalization should I use? I'm not sure either agrees with what Hansen does.
-
     return numpy.asarray(p_r)
 
 
@@ -105,16 +169,14 @@ cpdef distribution_parabola(double I0,
         int j
         double norm, delta_r, r 
         double[::1] p_r
-        
-    norm = I0 / (4.0 * pi * Dmax**3 / 6.0)
-    delta_r = Dmax / npt
+    p_r = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
 
-    p_r = numpy.empty(npt+1, dtype=numpy.float64)
-    
-    for j in range(npt+1):
-        r = j * delta_r
-        p_r[j] = norm * r * (Dmax - r) 
-
+    with nogil:
+        norm = I0 / (4.0 * pi * Dmax**3 / 6.0)
+        delta_r = Dmax / npt    
+        for j in range(npt+1):
+            r = j * delta_r
+            p_r[j] = norm * r * (Dmax - r) 
     return numpy.asarray(p_r)
 
 
@@ -128,7 +190,7 @@ cdef class BIFT:
         readonly int size, high_start, high_stop
         readonly double I0_guess, delta_q, Dmax_guess, alpha_max
         readonly double[::1] q, intensity, variance
-        readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache
+        readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
      
     def __cinit__(self, q, I, I_std):
         """Constructor of the Cython class
@@ -153,6 +215,8 @@ cdef class BIFT:
         self.evidence_cache = {}
         self.radius_cache = {}
         self.transfo_cache = {}
+        self.lapack_cache = {}
+        
          
     def __dealloc__(self):
         "This is the destructor of the class: free the memory and empty all caches"
@@ -161,7 +225,7 @@ cdef class BIFT:
 
     def reset(self):
         "rest all caches"
-        for cache  in (self.prior_cache,  self.evidence_cache, self.radius_cache, self.transfo_cache):
+        for cache  in (self.prior_cache,  self.evidence_cache, self.radius_cache, self.transfo_cache, self.lapack_cache):
             if cache is not None:
                 for key in list(cache.keys()):
                     cache.pop(key)
@@ -201,8 +265,8 @@ cdef class BIFT:
         smooth = numpy.zeros(npt+1, numpy.float64)
         self.smooth_density(density, smooth, npt)
         regularization = self.calc_regularization(density, smooth, density, npt) # eq19
-        transfo = self.get_trans_matrix(self.Dmax_guess, npt)
-        chi2 = self.calc_chi2(transfo, density, npt)*self.size
+        transfo = self.get_transformation_matrix(self.Dmax_guess, npt)
+        chi2 = self.calc_chi2(transfo, density, npt)
         return 0.5*chi2/regularization
     
     def get_best(self):
@@ -226,23 +290,26 @@ cdef class BIFT:
                            dist_type='sphere'):
         """Calculate the prior distribution for the bayesian analysis
         
-        Implements memoizing
+        Implements memoizing. 
+        The memoising is performed with I0 = Dmax = 1. Rescaling is performd a posterori 
         
         :param I0: forward scattering intensity, often approximated by th maximum intensity
         :param Dmax: Largest dimention of the object
         :param npt: number of points in the real space (-1)
-        :param dist_type: str, for now only "sphere" is acceptable
+        :param dist_type: Implements "sphere" and parabola
         :return: the distance distribution function p(r) where r = numpy.linspace(0, Dmax, npt+1) 
         """
-        if dist_type != 'sphere':
-            raise RuntimeError("Only 'sphere' is accepted for dist_type")
-        # manage the cache
-        key = PriorKey(I0, Dmax, npt)
+        key = PriorKey(dist_type, npt)
         if key in self.prior_cache:
             value = self.prior_cache[key]
         else:
-            value = self.prior_cache[key] = distribution_sphere(I0, Dmax, npt)
-        return value
+            if dist_type == "sphere":
+                value = self.prior_cache[key] = distribution_sphere(1, 1, npt)
+            elif dist_type == "parabola":
+                value = self.prior_cache[key] = distribution_parabola(1, 1, npt)
+            else:
+                raise RuntimeError("Only 'sphere' is accepted for dist_type")
+        return (I0/Dmax) * value 
     
     @cython.cdivision(True)
     @cython.wraparound(False)
@@ -263,55 +330,92 @@ cdef class BIFT:
         else:
             value = self.radius_cache[key] = numpy.linspace(0, Dmax, npt+1)
         return value
-    
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
-    def calc_trans_matrix(self, double Dmax, int npt):
-        """Calculate the matrix T such as:
-        
-        T.dot.p(r) = I(q)
-        
-        This is A_ij matrix in equation (2) of Hansen 2000.
-        
-        This function is memoizing by get_trans_matrix 
-        """
-        cdef:
-            double[:,::1] Tv
-            double[::1] q
-            double tmp, ql, prefactor, delta_r 
-            int l, c, h, w
-        q = self.q
-        h = self.size
-        w = npt + 1
-        delta_r = Dmax / npt
-        prefactor = 4.0 * pi * delta_r      
-        T = numpy.empty((h,w), dtype=numpy.float64)
-        Tv = T.view()
-        #nogil ?
-        for l in range(h):
-            ql = q[l] * delta_r
-            for c in range(w):
-                tmp = ql * c
-                tmp = sin(tmp)/tmp if tmp!=0.0 else 1.0
-                Tv[l, c] = prefactor * tmp
-        return T
 
-    def get_trans_matrix(self,double Dmax, int npt):
-        """Get the matrix T form cache or calculates it:
+    def get_transformation_matrix(self,
+                                  double Dmax, 
+                                  int npt, 
+                                  bint all_=False):
+        """Get the matrix T from the cache or calculates it:
         
         T.dot.p(r) = I(q)
         
         This is A_ij matrix in eq.2 of Hansen 2000.
         
-        This function does the memoizing for  calc_trans_matrix
+        This function does the memoizing for T, B = T.T x T) and sum_dia
+        
+        :param Dmax: diameter or longest distance in the object
+        :param npt: number of points in the real space (-1)
+        :param all_: return in addition B and sum_dia arrays
+        :return: the T matrix as: T.dot.p(r) = I(q)
         """
+        cdef:
+            double[::1] sum_dia
+            double[:, ::1] B, transpo_mtx, transfo_mtx
         key = RadiusKey(Dmax, npt)
         if key in self.transfo_cache:
             value = self.transfo_cache[key]
         else:
-            value = self.transfo_cache[key] = self.calc_trans_matrix(Dmax, npt)
+            transfo_mtx  = cvarray(shape=(self.size, npt+1), itemsize=sizeof(double), format="d")
+            transpo_mtx  = cvarray(shape=(npt+1, self.size), itemsize=sizeof(double), format="d")
+            B = cvarray(shape=(npt+1, npt+1), itemsize=sizeof(double), format="d")
+            sum_dia = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
+            with nogil:
+                self.initialize_arrays(Dmax, npt, transfo_mtx, transpo_mtx, B, sum_dia)
+            value = self.transfo_cache[key] = TransfoValue(numpy.asarray(transfo_mtx), numpy.asarray(B), numpy.asarray(sum_dia))
+        if all_:
+            return value 
+        else:
+            return value.transfo
+    
+    def get_workspace_size(self, npt):
+        "This function calls LAPACK to measure the size of the workspace needed for the SVD"
+        if npt in self.lapack_cache:
+            value = self.lapack_cache[npt]
+        else:
+            _, s_lw = lapack.get_lapack_funcs(('gesvd', 'gesvd_lwork'))
+            self.lapack_cache[npt] = value = lapack._compute_lwork(s_lw, npt, npt)
         return value
+            
+    @cython.cdivision(True)
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    cdef int initialize_arrays(self,
+                            double Dmax, 
+                            int npt, 
+                            double[:, ::1] transf_matrix,
+                            double[:, ::1] transp_matrix,
+                            double[:, ::1] B,
+                            double[::1] sum_dia
+                            ) nogil except -1:
+
+        cdef:
+            double tmp, ql, prefactor, delta_r, il, varl 
+            int l, c
+            
+        delta_r = Dmax / npt
+        prefactor = 4.0 * pi * delta_r
+        sum_dia[:] = 0.0
+        for l in range(self.size):
+            ql = self.q[l] * delta_r
+            il = self.intensity[l]
+            varl = self.variance[l]
+            for c in range(npt+1):
+                tmp = ql * c
+                tmp = prefactor * (sin(tmp)/tmp if tmp!=0.0 else 1.0)
+                transf_matrix[l, c] = tmp
+                sum_dia[c] += tmp * il / varl
+                transp_matrix[c, l] = tmp / varl
+        sum_dia[0] = 0.0
+
+        res = blas_dgemm(transp_matrix, transf_matrix, B)
+        if res:
+            with gil:
+                raise RuntimeError("Error during blas_dgemm matrix multiplication")
+            return -1
+        #B = numpy.dot(TnT, T)
+        B[0, :] = 0.0
+        B[:, 0] = 0.0    
+        return 0
     
     def opti_evidence(self, param, npt):
         """Function made for optimization based on the evidence maximisation
@@ -326,10 +430,10 @@ cdef class BIFT:
             return -self.evidence_cache[key].evidence
         return -self.calc_evidence(Dmax, exp(logalpha), npt)
     
-    def calc_evidence(self,
-                      double Dmax, 
-                      double alpha, 
-                      int npt):
+    cpdef double calc_evidence(self,
+                               double Dmax, 
+                               double alpha, 
+                               int npt) with gil:
         """
         Calculate the evidence for the given set of parameters
         
@@ -345,9 +449,11 @@ cdef class BIFT:
         J. Appl. Cryst. (2000). 33, 1415-1421 
         """
         cdef:
-            double[::1] radius, p_r, f_r, sigma2, sum_dia
-            double[:, ::1] B
+            double[::1] radius, p_r, f_r, sigma2, sum_dia, workspace, eigen
+            double[:, ::1] B, transfo_mtx, transpo_mtx, U
             double chi2, regularization, xprec, dotsp
+            int j
+            bint do_initialization, is_valid, converged
         
         xprec = 0.999
         
@@ -359,72 +465,79 @@ cdef class BIFT:
             logger.error("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
             return -numpy.inf
         
+        # Here we perform all memory allocation for the complete function 
+        
         radius = self.radius(Dmax, npt) 
-        p_r = self.prior_distribution(self.I0_guess, Dmax, npt) 
+#         radius = numpy.linspace(0, Dmax, npt+1)
+        p_r = self.prior_distribution(self.I0_guess, Dmax, npt)
+        #p_r = distribution_sphere(self.I0_guess, Dmax, npt)
         #Note, here p_r is what Hansen calls m in eq.5
         p_r[0] = 0
         f_r = numpy.zeros(npt+1, dtype=numpy.float64)
         #Note: f_r was called P in the original RAW BIFT code
         sigma2 = numpy.zeros(npt+1, dtype=numpy.float64)
-                
-        transfo_mtx  = self.get_trans_matrix(Dmax, npt)
-
-        #Slightly faster to create this first
-        norm_T = transfo_mtx/numpy.asarray(self.variance)[:,None]  
-    
-        #Creates YSUM in BayesApp code, some kind of calculation intermediate
-        #sum_dia = numpy.sum(norm_T*numpy.asarray(self.intensity)[:,None], axis=0)
-        # 1D vector of shape (q_size)
-        sum_dia = numpy.dot(transfo_mtx.T, numpy.asarray(self.intensity)/numpy.asarray(self.variance))
-        sum_dia[0] = 0 
-    
-        #Creates B(i, j) in BayesApp code
-        B = numpy.dot(transfo_mtx.T, norm_T)     
-        B[0, :] = 0
-        B[:, 0] = 0
-        # B is the autocorrelation matrix of the transfo_mtx scaled with the
-    
-        #Do some kind of rescaling of the input: 
-        #This would probably better be done on the large intensity region like Imax> I >Imax/2 
-        #c1 = numpy.sum(numpy.sum(transfo_mtx[1:4,1:-1]*p_r[1:-1], axis=1)/self.variance[1:4])
-        #c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
-        #print(c2/c1, self.scale_factor(transfo_mtx, p_r, 1, 4))
-        self.scale_density(transfo_mtx, p_r, f_r, 1, 4, npt, 1.001)
         
-        # Do the optimization
-        dotsp = self._bift_inner_loop(f_r, p_r, sigma2, B, alpha, npt, sum_dia, xprec=xprec)
+        #Those are used by the rlogdet function to calculate the determinant 
+        U = cvarray(shape=(npt-1, npt-1), itemsize=sizeof(double), format="d")
+        eigen = cvarray(shape=(npt-1,), itemsize=sizeof(double), format="d")
+        workspace = cvarray(shape=(self.get_workspace_size(npt-1),), itemsize=sizeof(double), format="d")
 
-        # Calculate the evidence
-        regularization = self.calc_regularization(p_r, f_r, sigma2, npt) # eq19
-        #chi2 =numpy.sum((numpy.asarray(self.intensity)[1:-1]-numpy.dot(transfo_mtx[1:-1,1:-1], (f_r)[1:-1]))**2/numpy.asarray(self.variance)[1:-1])/self.size 
-        chi2 = self.calc_chi2(transfo_mtx, f_r, npt) #  eq.6 
-        rlogdet = self.calc_rlogdet(f_r, B, alpha, npt) # part of eq.20
+        transfo_mtx, B, sum_dia = self.get_transformation_matrix(Dmax, npt, all_=True)
+
+        # At this stage, all buffers have been allocated ...   
+        with nogil:
+            #Do some kind of rescaling of the input: 
+            #This would probably better be done on the large intensity region like Imax> I >Imax/2 
+            #c1 = numpy.sum(numpy.sum(transfo_mtx[1:4,1:-1]*p_r[1:-1], axis=1)/self.variance[1:4])
+            #c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
+            #print(c2/c1, self.scale_factor(transfo_mtx, p_r, 1, 4))
+            self.scale_density(transfo_mtx, p_r, f_r, 1, 4, npt, 1.001)
+        
+            # Do the optimization
+            dotsp = self._bift_inner_loop(f_r, p_r, sigma2, B, alpha, npt, sum_dia, xprec=xprec)
+            
+            regularization = self.calc_regularization(p_r, f_r, sigma2, npt) # eq19
+            #chi2 =numpy.sum((numpy.asarray(self.intensity)[1:-1]-numpy.dot(transfo_mtx[1:-1,1:-1], (f_r)[1:-1]))**2/numpy.asarray(self.variance)[1:-1])/self.size 
+            chi2 = self.calc_chi2(transfo_mtx, f_r, npt) #  eq.6 
+            rlogdet = self.calc_rlogdet(f_r, B, alpha, npt, U, eigen, workspace) # part of eq.20
+            
+            # The probablility is described in eq. 17, the evidence is apparently log(P) (
+            evidence = - log(Dmax) \
+                       - alpha*regularization \
+                       - 0.5 * chi2 \
+                       - 0.5 * rlogdet \
+                       - log(alpha)
     
-        # The probablility is described in eq. 17, the evidence is apparently log(P) (
-        evidence = - log(Dmax) \
-                   - alpha*regularization \
-                   - 0.5 * chi2 * self.size \
-                   - 0.5 * rlogdet \
-                   - log(alpha)
-
-        # Some kind of after the fact adjustment
-        if evidence <= 0 and dotsp < xprec:
-            evidence=evidence*30
-        elif dotsp < xprec:
-            evidence = evidence/30.
-
-        key = EvidenceKey(Dmax, alpha, npt)
-        self.evidence_cache[key] = EvidenceResult(evidence, chi2, regularization, numpy.asarray(radius), numpy.asarray(f_r))
-        return evidence
+            # Some kind of after the fact adjustment
+            converged = (dotsp > xprec) # handles the case dotsp is Nan
+            if not converged:
+                # Make result much less likely, why 30 ? 
+                if evidence <= 0:
+                    evidence *= 30.0
+                else:
+                    evidence /= 30.0
+            
+            #Check if those data are valid
+            is_valid = isfinite(evidence)
+            for j in range(npt+1):
+                is_valid &= isfinite(f_r[j])
+        # Store the results into the cache with the GIL
+        if is_valid:
+            key = EvidenceKey(Dmax, alpha, npt)
+            self.evidence_cache[key] = EvidenceResult(evidence, chi2/(self.size - npt), regularization, numpy.asarray(radius), numpy.asarray(f_r), numpy.asarray(eigen))
+            return evidence
+        else:
+            logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
+            return -numpy.inf
     
     @cython.cdivision(True)
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cpdef double  calc_regularization(self,
+    cdef double  calc_regularization(self,
                                       double[::1] p_r,
                                       double[::1] f_r,
                                       double[::1] sigma2,
-                                      int npt):
+                                      int npt) nogil:
         """Calculate the regularization factor as defined in eq. 19:
                 
         regularization = numpy.sum((f[1:-1]-p[1:-1])**2/sigma2[1:-1])  
@@ -446,16 +559,16 @@ cdef class BIFT:
     @cython.cdivision(True)
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cpdef double calc_chi2(self, 
+    cdef double calc_chi2(self, 
                            double[:, ::1] transfo,
                            double[::1] density,
                            int npt
-                           ):
-        """Calculate chi², actually divided by the number of points
+                           )nogil:
+        """Calculate chi²
         
         This is defined in eq.6
         
-        chi² = sum[ (I(q) - Im(q))²/err(q)² ] / len(q)
+        chi² = sum[ (I(q) - Im(q))²/err(q)² ]
         
         where Im = T.dot.p(r)
         
@@ -465,6 +578,7 @@ cdef class BIFT:
         
         Former implementation:
         chi2 = numpy.sum((i[1:-1]-numpy.sum(T[1:-1,1:-1]*f[1:-1], axis=1))**2/err[1:-1])/i.size
+        used to return the reduced chi², now the not reduced one
         """                
         cdef:
             int size, idx_q, idx_r
@@ -473,17 +587,21 @@ cdef class BIFT:
         chi2 = 0.0
         size = self.size - 1 
         for idx_q in range(1, size):
+            # Replace with dot-product
             Im = 0.0
             for idx_r in range(1, npt):
                 Im += transfo[idx_q, idx_r] * density[idx_r]
             chi2 += ((Im - self.intensity[idx_q])**2/self.variance[idx_q]) 
-        return chi2 / self.size 
+        return chi2
        
-    cpdef double calc_rlogdet(self, 
+    cdef double calc_rlogdet(self, 
                              double[::1] f_r,
                              double[:, ::1] B,
                              double alpha,
-                             int npt): 
+                             int npt,
+                             double[:, ::1] U,
+                             double[::1] eigen,
+                             double[::1] work) nogil: 
         """
         Calculate the log of the determinant of the the matrix U.
         This is part of the evidence.
@@ -495,32 +613,47 @@ cdef class BIFT:
         rlogdet = log(fabs(numpy.linalg.det(u)))
 
         :param f_r: density as function of r
-        :param B: 
+        :param B: autocorrelation of the transformation matrix
+        :param alpha: weight of the regularization
+        :param npt: number of points (-1) for the density
+        :param U: squarre matrix (npt-1, npt-1) for calculating the determinant
+        :param eigen: vector with the eigenvalues of matrix U (size npt-1)
+        :param work: some work-space buffer used by LAPACK for the SVD
+        :return:  log(abs(det(U))) where 
         """
         cdef:
             int j, k
-            double[:, ::1] u
-        u = numpy.empty((npt-1, npt-1), dtype=numpy.float64)
+            double rlogdet
         for j in range(1, npt):
-            for k in range(1, j+1):
-                u[j-1, k-1] = u[k-1, j-1] = sqrt(fabs(f_r[j]*f_r[k]))*B[j, k]/alpha + (1.0 if j==k else 0.0)
+            for k in range(1, npt):
+                U[j-1, k-1] = sqrt(fabs(f_r[j]*f_r[k]))*B[j, k]/alpha + (1.0 if j==k else 0.0)
+            
         #u = numpy.sqrt(numpy.abs(numpy.outer(f_r[1:-1], f_r[1:-1])))*B[1:-1, 1:-1]/alpha
         #u[numpy.diag_indices(u.shape[0])] += 1
         #w = numpy.linalg.svd(u, compute_uv = False)
-        return numpy.sum(numpy.log(numpy.abs(numpy.linalg.svd(u, compute_uv = False))))
+        #return numpy.sum(numpy.log(numpy.abs(numpy.linalg.svd(u, compute_uv = False))))
         #return log(fabs(numpy.linalg.det(u)))  
+#         with gil:
+#             eigen = numpy.linalg.svd(U, compute_uv = False)
+        if lapack_svd(U, eigen, work):
+            with gil:
+                raise RuntimeError("SVD failed")
+        rlogdet = 0.0
+        for j in range(npt-1):
+            rlogdet += log(fabs(eigen[j]))
+        return rlogdet
 
     @cython.cdivision(True)
     @cython.wraparound(False)
     @cython.boundscheck(False)    
-    cpdef double scale_density(self, 
+    cdef double scale_density(self, 
                              double[:, ::1] transfo,
                              double[::1] p_r,
                              double[::1] f_r,
                              int start,
                              int stop,
                              int npt,
-                             float factor):
+                             float factor) nogil:
         """
         Do some kind of rescaling of the prior density
         
@@ -543,9 +676,11 @@ cdef class BIFT:
         for j in range(start, stop):
             v = self.variance[j]
             num += self.intensity[j] / v 
-            tmp = 0.0
-            for k in range(1, npt):
-                tmp += transfo[j, k]*p_r[k]
+            # Use a dot product
+            tmp = blas_ddot(transfo[j, 1:npt], p_r[1:npt])
+#             tmp = 0.0
+#             for k in range(1, npt):
+#                 tmp += transfo[j, k]*p_r[k]
             
             denom += tmp/v
 #         with gil:
@@ -583,9 +718,6 @@ cdef class BIFT:
         smooth[npt-1] = smooth[npt-2] * 0.5 # is it p or f on the RHS?
         smooth[npt] = raw[npt] = 0.0     # This enforces the boundary values to be null
 
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
     cdef inline double _bift_inner_loop(self,
                                         double[::1] f_r,
                                         double[::1] p_r,
@@ -617,14 +749,16 @@ cdef class BIFT:
         """
         cdef:
             double dotsp, p_k, f_k, tmp_sum, fx, sigma_k, sum_dia_k, B_kk
-            double sum_s2, sum_c2, sum_sc, s_k, c_k, sc_k, omega, epsilon
+            double sum_s2, sum_c2, sum_sc, s_k, c_k, omega, epsilon
             int j, k, maxit, minit
+            bint is_valid
     
         #Define starting conditions 
         maxit = 2000
         minit = 100
         omega = 0.5
         epsilon = 1e-10
+        
         
         #loop variables
         dotsp = 0.0
@@ -633,7 +767,7 @@ cdef class BIFT:
         for ite in range(maxit):
             if (ite > minit) and (dotsp > xprec):
                 break
-    
+            is_valid = True
             #some kind of renormalization of the f & p vector to ensure positivity
             for k in range(1, npt):
                 p_k = p_r[k]
@@ -657,25 +791,37 @@ cdef class BIFT:
                 B_kk = B[k, k]
     
                 # fsumi = numpy.dot(B[k, 1:N], f[1:N]) - B_kk*f_k
-                tmp_sum = 0.0
-                for j in range(1, npt):
-                    tmp_sum += B[k, j] * f_r[j]
+#                 tmp_sum = 0.0
+#                 for j in range(1, npt):
+#                     tmp_sum += B[k, j] * f_r[j]
+                tmp_sum = blas_ddot(B[k, 1:npt], f_r[1:npt])
+                
                 tmp_sum -= B[k, k]*f_r[k]
     
                 fx = (2.0*alpha* p_k/sigma_k + sum_dia_k - tmp_sum) / (2.0*alpha/sigma_k + B_kk)
+                is_valid &= isfinite(fx)
                 # Finally update the value
                 f_r[k] = f_k = (1.0-omega)*f_k + omega*fx
             #Synchro point
             
+            if not is_valid:
+                with gil:
+                    for i in range(npt+1):
+                        print(i, f_r[i], p_r[i], sigma2[i])
+                return 0.0
             
             # Calculate convergence
             sum_c2 = sum_sc = sum_s2 = 0.0
             for k in range(1, npt):
                 s_k = 2.0 * (p_r[k] - f_r[k]) / sigma2[k] #Check homogeneity
-                tmp_sum = 0.0
-                for j in range(1, npt):
-                    tmp_sum += B[k, j] * f_r[j]
+                
+#                 tmp_sum = 0.0
+#                 for j in range(1, npt):
+#                     tmp_sum += B[k, j] * f_r[j]
+                tmp_sum = blas_ddot(B[k, 1:npt], f_r[1:npt])
+                
                 c_k = 2.0 * (tmp_sum - sum_dia[k])
+                
                 # There are 3 scalar products:
                 sum_c2 += c_k * c_k
                 sum_s2 += s_k * s_k
@@ -696,6 +842,38 @@ cdef class BIFT:
                 dotsp = sum_sc / denom
         return dotsp
 
+    def grid_scan(self, 
+                  double dmax_min, double dmax_max, int dmax_cnt,
+                  double alpha_min, double alpha_max, int alpha_cnt, 
+                  int npt):
+        """Perform a quick scan for Dmax and alpha
+        
+        :param alpha_min, alpha_max, alpha_cnt: parameters for a numpy.geomspace scan in alpha
+        :param dmax_min, dmax_max, dmax_cnt: parameters for a numpy.linspace scan in Dmax
+        :param npt: the number of points in the
+        :return: best combination 
+        """
+        cdef:
+            double[:, ::1] grid 
+            double[::1] results
+            int idx, best, steps = dmax_cnt*alpha_cnt,
+            double Dmax, alpha   
+        dmax_array = numpy.linspace(dmax_min, dmax_max, dmax_cnt)
+        alpha_array = numpy.geomspace(alpha_min, alpha_max, alpha_cnt)
+        grid = numpy.array(list(itertools.product(dmax_array, alpha_array)))
+
+        results = numpy.zeros(steps, dtype=numpy.float64)
+#         for idx in range(steps):
+        with nogil:
+            for idx in prange(steps):
+                Dmax = grid[idx, 0]
+                alpha = grid[idx, 1]
+                results[idx] += self.calc_evidence(Dmax, alpha, npt)
+        best = numpy.argmax(results)   
+#         for i, j in zip(grid, results):
+#             print(j, i[0], i[1], ) 
+        return EvidenceKey(grid[best, 0], grid[best, 1], npt)        
+
     def calc_stats(self):
         """Calculate the statistics on all points encountered so far ....
         
@@ -703,8 +881,9 @@ cdef class BIFT:
         """
         cdef: 
             int samples, npt, best_idx
-            double best_evidence, ev_max
-            
+            double best_evidence, ev_max, evidence_avg, evidence_std, Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std, regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
+            cnumpy.ndarray densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
+
         samples = len(self.evidence_cache)
         if samples < 2:
             raise RuntimeError("Unable to calculate statistics without evidences having been optimized.")
@@ -724,13 +903,19 @@ cdef class BIFT:
             alphas[idx] = key.alpha
             value = self.evidence_cache[key]
             evidences[idx] = value.evidence
-            chi2s[idx] =  value.chi2
+            chi2s[idx] =  value.chi2r
             regularizations[idx] = value.regularization
             densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
 
         #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
         ev_max = evidences.max()
         proba = numpy.exp(evidences - ev_max)**(1./chi2s.min())
+        e2 = evidences.copy()
+        e2.sort()
+        es = numpy.exp(e2-ev_max)
+        print(es)
+        print(chi2s.min())
+        print(es**(1./chi2s.min()))
         proba /= proba.sum()
             
         #Then, calculate the average P(r) function as the weighted sum of the P(r) functions

@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-__date__ = "20/04/2020"
+__date__ = "25/04/2020"
 
 import os
 import argparse
@@ -89,11 +89,14 @@ def main():
             except Exception as err:
                 print("%s %s" % (afile, err))
             else:
+                print(bo.get_best())
                 stats = bo.calc_stats()
+                print(stats)
+                print
                 "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std"
                 res = ["Dmax= %.2f ±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
                        "𝛂= %.1f ±%.2f" % (stats.alpha_avg, stats.alpha_std),
-                       "χ²= %.2f ±%.2f" % (stats.chi2_avg, stats.chi2_std),
+                       "χ²= %.2f ±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
                        "S₀= %.4f ±%.4f" % (stats.regularization_avg, stats.regularization_std),
                        "logP= %.2f ±%.4f" % (stats.evidence_avg, stats.evidence_std),
                        "Rg= %.2f ±%.2f" % (stats.Rg_avg, stats.Rg_std),
