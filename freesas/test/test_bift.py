@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "25/04/2020"
+__date__ = "27/04/2020"
 
 import numpy
 import unittest
@@ -70,7 +70,7 @@ class TestBIFT(unittest.TestCase):
         data = numpy.vstack((self.q, self.I, self.err)).T
         t0 = time.perf_counter()
         bo = auto_bift(data)
-        key, value = bo.get_best()
+        key, value, valid = bo.get_best()
         stats = bo.calc_stats()
         logger.info("Auto_bift time: %s", time.perf_counter() - t0)
         self.assertAlmostEqual(self.DMAX / key.Dmax, 1, 1, "DMax is correct")
@@ -79,6 +79,11 @@ class TestBIFT(unittest.TestCase):
 
     def test_BIFT(self):
         bift = BIFT(self.q, self.I, self.err)
+        # test two scan functions
+        key = bift.grid_scan(9, 11, 5, 10, 100, 5, 100)
+        self.assertAlmostEqual(self.DMAX / key.Dmax, 1, 2, "DMax is correct")
+        res = bift.monte_carlo_sampling(10, 3, 100)
+        self.assertAlmostEqual(self.DMAX / key.Dmax_avg, 1, 4, "DMax is correct")
 
     def test_disributions(self):
         pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))

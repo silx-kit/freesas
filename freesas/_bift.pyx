@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #cython: embedsignature=True, language_level=3
-#cython: profile=True, warn.undeclared=True, warn.unused=True, warn.unused_result=False, warn.unused_arg=True
-#cython: boundscheck=False, wraparound=False, cdivision=True, initializedcheck=False, 
+#cython: boundscheck=False, wraparound=False, cdivision=True, initializedcheck=False,
+#This is for developping
+##cython: profile=True, warn.undeclared=True, warn.unused=True, warn.unused_result=False, warn.unused_arg=True 
 """
 Bayesian Inverse Fourier Transform
 
@@ -13,7 +14,10 @@ https://sourceforge.net/p/bioxtasraw/git/ci/master/tree/bioxtasraw/BIFT.py
 
 This is a major rewrite in Cython 
 """
-
+cdef:
+    list authors
+    str __license__, __copyright__, __date__
+     
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
@@ -41,6 +45,9 @@ EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
 EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density converged")
 StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
 
+################################################################################
+# BLAS / LAPACK wrappers
+################################################################################
 
 cpdef inline double blas_ddot(double[::1] a, double[::1] b) nogil:
     "Wrapper for double precision dot product"
@@ -101,9 +108,10 @@ cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) nogi
         return -1
     return 0
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
+################################################################################
+# Helper functions
+################################################################################
+
 cpdef distribution_sphere(double I0, 
                           double Dmax,
                           int npt):
@@ -148,12 +156,9 @@ cpdef distribution_sphere(double I0,
     return numpy.asarray(p_r)
 
 
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef distribution_parabola(double I0, 
-                            double Dmax,
-                            int npt):
+cpdef inline distribution_parabola(double I0, 
+                                   double Dmax,
+                                   int npt):
     """Creates the initial p(r) function for the prior as a parabola.
 
     p(r) = r * (Dmax - r)
@@ -179,6 +184,94 @@ cpdef distribution_parabola(double I0,
             p_r[j] = norm * r * (Dmax - r) 
     return numpy.asarray(p_r)
 
+
+cpdef inline double  calc_regularization(double[::1] p_r,
+                                         double[::1] f_r,
+                                         double[::1] sigma2) nogil:
+    """Calculate the regularization factor as defined in eq. 19:
+            
+    regularization = numpy.sum((f[1:-1]-p[1:-1])**2/sigma2[1:-1])  
+    
+    :param p_r: smoothed density
+    :param f_r: prior density
+    :param sigma2: variance of density, i.e. deviation on the density squared 
+    
+    Nota: the first and last points are skipped as they are null by construction
+    """
+    cdef:
+        int j, npt
+        double tmp 
+    tmp = 0.0
+    npt = p_r.shape[0] - 1 
+    for j in range(1, npt):
+        tmp += (p_r[j] - f_r[j])**2 / sigma2[j]
+    return tmp
+
+cpdef inline double calc_rlogdet(double[::1] f_r,
+                                 double[:, ::1] B,
+                                 double alpha,
+                                 double[:, ::1] U,
+                                 double[::1] eigen,
+                                 double[::1] work) nogil: 
+        """
+        Calculate the log of the determinant of the the matrix U.
+        This is part of the evidence.
+        
+        u = numpy.sqrt(numpy.abs(numpy.outer(f_r[1:-1], f_r[1:-1])))*B[1:-1, 1:-1]/alpha
+        u[numpy.diag_indices(u.shape[0])] += 1
+        w = numpy.linalg.svd(u, compute_uv = False)
+        rlogdet = numpy.sum(numpy.log(numpy.abs(w)))
+
+        :param f_r: density as function of r
+        :param B: autocorrelation of the transformation matrix
+        :param alpha: weight of the regularization
+        :param npt: number of points (-1) for the density
+        :param U: squarre matrix (npt-1, npt-1) for calculating the determinant
+        :param eigen: vector with the eigenvalues of matrix U (size npt-1)
+        :param work: some work-space buffer used by LAPACK for the SVD
+        :return:  log(abs(det(U))) where 
+        """
+        cdef:
+            int j, k, npt
+            double rlogdet
+        npt = f_r.shape[0]-1
+        for j in range(1, npt):
+            for k in range(1, npt):
+                U[j-1, k-1] = sqrt(fabs(f_r[j]*f_r[k]))*B[j, k]/alpha + (1.0 if j==k else 0.0)
+        if lapack_svd(U, eigen, work):
+            with gil:
+                raise RuntimeError("SVD failed")
+        rlogdet = 0.0
+        for j in range(npt-1):
+            rlogdet += log(fabs(eigen[j]))
+        return rlogdet
+
+
+cpdef inline void smooth_density(double[::1] raw,
+                                 double[::1] smooth) nogil:
+        """This function applies the smoothing of the density plot
+        
+        :param raw: raw density, called *f* in eq.19 
+        :param smooth: smoothed density, called *m* in eq.19
+        
+        The smoothing is performed in place
+        """
+        cdef:
+            int k, npt
+        #assert raw.shape[0] == smooth.shape[0]
+        npt = raw.shape[0] - 1
+        # This enforces the boundary values to be null
+        smooth[0] = raw[0] = 0.0        
+        smooth[npt] = raw[npt] = 0.0        
+        smooth[1] = raw[2] * 0.5
+        for k in range(2, npt-1):
+            smooth[k] = 0.5 * (raw[k-1] + raw[k+1])
+        smooth[npt-1] = smooth[npt-2] * 0.5 # is it p or f on the RHS? does this enforce a smoother tail ?
+
+
+################################################################################
+# Main class
+################################################################################
 
 cdef class BIFT:
     """Bayesian Inverse Fourier Transform
@@ -225,6 +318,8 @@ cdef class BIFT:
 
     def reset(self):
         "rest all caches"
+        cdef:
+            dict cache
         for cache  in (self.prior_cache,  self.evidence_cache, self.radius_cache, self.transfo_cache, self.lapack_cache):
             if cache is not None:
                 for key in list(cache.keys()):
@@ -265,8 +360,8 @@ cdef class BIFT:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
         density = self.prior_distribution(self.I0_guess, self.Dmax_guess, npt)
         smooth = numpy.zeros(npt+1, numpy.float64)
-        self.smooth_density(density, smooth, npt)
-        regularization = self.calc_regularization(density, smooth, density, npt) # eq19
+        smooth_density(density, smooth)
+        regularization = calc_regularization(density, smooth, density) # eq19
         transfo = self.get_transformation_matrix(self.Dmax_guess, npt)
         chi2 = self.calc_chi2(transfo, density, npt)
         return 0.5*chi2/regularization
@@ -430,18 +525,22 @@ cdef class BIFT:
         B[:, 0] = 0.0    
         return 0
     
-    def opti_evidence(self, param, npt):
+    def opti_evidence(self, param, 
+                      int npt):
         """Function made for optimization based on the evidence maximisation
         
         :param parm: 2-tuple containing Dmax, log(alpha)
         :param npt: number of points in the real space (-1)
         :return: -evidence for optimisation 
         """ 
+        cdef:
+            double Dmax, logalpha
         Dmax, logalpha = param
-        key = EvidenceKey(Dmax, exp(logalpha), npt)
+        alpha = exp(logalpha)
+        key = EvidenceKey(Dmax, alpha, npt)
         if key in self.evidence_cache:
             return -self.evidence_cache[key].evidence
-        return -self.calc_evidence(Dmax, exp(logalpha), npt)
+        return -self.calc_evidence(Dmax, alpha, npt)
     
     cpdef double calc_evidence(self,
                                double Dmax, 
@@ -464,7 +563,7 @@ cdef class BIFT:
         cdef:
             double[::1] radius, p_r, f_r, sigma2, sum_dia, workspace, eigen
             double[:, ::1] B, transfo_mtx, U
-            double chi2, regularization, xprec, dotsp
+            double chi2, regularization, xprec, dotsp, rlogdet, evidence
             int j
             bint is_valid, converged
         
@@ -510,10 +609,10 @@ cdef class BIFT:
             # Do the optimization
             dotsp = self._bift_inner_loop(f_r, p_r, sigma2, B, alpha, npt, sum_dia, xprec=xprec)
             
-            regularization = self.calc_regularization(p_r, f_r, sigma2, npt) # eq19
+            regularization = calc_regularization(p_r, f_r, sigma2) # eq19
             #chi2 =numpy.sum((numpy.asarray(self.intensity)[1:-1]-numpy.dot(transfo_mtx[1:-1,1:-1], (f_r)[1:-1]))**2/numpy.asarray(self.variance)[1:-1])/self.size 
             chi2 = self.calc_chi2(transfo_mtx, f_r, npt) #  eq.6 
-            rlogdet = self.calc_rlogdet(f_r, B, alpha, npt, U, eigen, workspace) # part of eq.20
+            rlogdet = calc_rlogdet(f_r, B, alpha, U, eigen, workspace) # part of eq.20
             
             # The probablility is described in eq. 17, the evidence is apparently log(P)
             evidence = - log(Dmax) \
@@ -544,32 +643,6 @@ cdef class BIFT:
             self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
     
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
-    cdef double  calc_regularization(self,
-                                      double[::1] p_r,
-                                      double[::1] f_r,
-                                      double[::1] sigma2,
-                                      int npt) nogil:
-        """Calculate the regularization factor as defined in eq. 19:
-                
-        regularization = numpy.sum((f[1:-1]-p[1:-1])**2/sigma2[1:-1])  
-        
-        :param p_r: smoothed density
-        :param f_r: prior density
-        :param sigma2: variance of density, i.e. deviation on the density squared 
-        
-        Nota: the first and last points are skipped as they are null by construction
-        """
-        cdef:
-            int j
-            double tmp 
-        tmp = 0.0
-        for j in range(1, npt):
-            tmp += (p_r[j] - f_r[j])**2 / sigma2[j]
-        return tmp
-
     @cython.cdivision(True)
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -608,54 +681,6 @@ cdef class BIFT:
             chi2 += ((Im - self.intensity[idx_q])**2/self.variance[idx_q]) 
         return chi2
        
-    cdef double calc_rlogdet(self, 
-                             double[::1] f_r,
-                             double[:, ::1] B,
-                             double alpha,
-                             int npt,
-                             double[:, ::1] U,
-                             double[::1] eigen,
-                             double[::1] work) nogil: 
-        """
-        Calculate the log of the determinant of the the matrix U.
-        This is part of the evidence.
-        
-        u = numpy.sqrt(numpy.abs(numpy.outer(f_r[1:-1], f_r[1:-1])))*B[1:-1, 1:-1]/alpha
-        u[numpy.diag_indices(u.shape[0])] += 1
-        #w = numpy.linalg.svd(u, compute_uv = False)
-        #rlogdet = numpy.sum(numpy.log(numpy.abs(w)))
-        rlogdet = log(fabs(numpy.linalg.det(u)))
-
-        :param f_r: density as function of r
-        :param B: autocorrelation of the transformation matrix
-        :param alpha: weight of the regularization
-        :param npt: number of points (-1) for the density
-        :param U: squarre matrix (npt-1, npt-1) for calculating the determinant
-        :param eigen: vector with the eigenvalues of matrix U (size npt-1)
-        :param work: some work-space buffer used by LAPACK for the SVD
-        :return:  log(abs(det(U))) where 
-        """
-        cdef:
-            int j, k
-            double rlogdet
-        for j in range(1, npt):
-            for k in range(1, npt):
-                U[j-1, k-1] = sqrt(fabs(f_r[j]*f_r[k]))*B[j, k]/alpha + (1.0 if j==k else 0.0)
-            
-        #u = numpy.sqrt(numpy.abs(numpy.outer(f_r[1:-1], f_r[1:-1])))*B[1:-1, 1:-1]/alpha
-        #u[numpy.diag_indices(u.shape[0])] += 1
-        #w = numpy.linalg.svd(u, compute_uv = False)
-        #return numpy.sum(numpy.log(numpy.abs(numpy.linalg.svd(u, compute_uv = False))))
-        #return log(fabs(numpy.linalg.det(u)))  
-#         with gil:
-#             eigen = numpy.linalg.svd(U, compute_uv = False)
-        if lapack_svd(U, eigen, work):
-            with gil:
-                raise RuntimeError("SVD failed")
-        rlogdet = 0.0
-        for j in range(npt-1):
-            rlogdet += log(fabs(eigen[j]))
-        return rlogdet
 
     @cython.cdivision(True)
     @cython.wraparound(False)
@@ -711,27 +736,6 @@ cdef class BIFT:
             f_r[j] = v * scale_f
         return num/denom
     
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
-    cdef inline void smooth_density(self,
-                               double[::1] raw,
-                               double[::1] smooth,
-                               int npt) nogil:
-        """This function applies the smoothing of the density plot
-        
-        :param raw: raw density, called *f* in eq.19 
-        :param smooth: smoothed density, called *m* in eq.19
-        :param npt: number of points in the real space (-1)
-        """
-        cdef:
-            int k
-        for k in range(2, npt-1):
-                smooth[k] = 0.5 * (raw[k-1] + raw[k+1])
-        smooth[0] = raw[0] = 0.0        # This enforces the boundary values to be null
-        smooth[1] = raw[2] * 0.5
-        smooth[npt-1] = smooth[npt-2] * 0.5 # is it p or f on the RHS?
-        smooth[npt] = raw[npt] = 0.0     # This enforces the boundary values to be null
-
     cdef inline double _bift_inner_loop(self,
                                         double[::1] f_r,
                                         double[::1] p_r,
@@ -763,8 +767,8 @@ cdef class BIFT:
         """
         cdef:
             double dotsp, p_k, f_k, tmp_sum, fx, sigma_k, sum_dia_k, B_kk
-            double sum_s2, sum_c2, sum_sc, s_k, c_k, omega, epsilon
-            int j, k, maxit, minit
+            double sum_s2, sum_c2, sum_sc, s_k, c_k, omega, epsilon, denom
+            int ite, k, maxit, minit
             bint is_valid
     
         #Define starting conditions 
@@ -793,7 +797,7 @@ cdef class BIFT:
                     f_r[k] = -f_k + epsilon
     
             #Apply smoothness constraint: p is the smoothed version of f
-            self.smooth_density(f_r, p_r, npt)
+            smooth_density(f_r, p_r)
     
             #Calculate the next correction
             for k in range(1, npt):
@@ -809,10 +813,9 @@ cdef class BIFT:
 #                 for j in range(1, npt):
 #                     tmp_sum += B[k, j] * f_r[j]
                 tmp_sum = blas_ddot(B[k, 1:npt], f_r[1:npt])
-                
                 tmp_sum -= B[k, k]*f_r[k]
     
-                fx = (2.0*alpha* p_k/sigma_k + sum_dia_k - tmp_sum) / (2.0*alpha/sigma_k + B_kk)
+                fx = (2.0*alpha*p_k/sigma_k + sum_dia_k - tmp_sum) / (2.0*alpha/sigma_k + B_kk)
                 is_valid &= isfinite(fx)
                 # Finally update the value
                 f_r[k] = f_k = (1.0-omega)*f_k + omega*fx
@@ -869,7 +872,7 @@ cdef class BIFT:
         """
         cdef:
             double[:, ::1] grid 
-            double[::1] results
+            double[::1] results, dmax_array, alpha_array
             int idx, best, steps = dmax_cnt*alpha_cnt,
             double Dmax, alpha   
         dmax_array = numpy.linspace(dmax_min, dmax_max, dmax_cnt)
@@ -917,7 +920,7 @@ cdef class BIFT:
                 Dmax = Dmax_samples[idx]
                 alpha = alpha_samples[idx]
                 results[idx] = self.calc_evidence(Dmax, alpha, npt)
-        logger.info("Monte-carlo sampling: %i samples at %.2fms per sample", samples, (time.perf_counter()-t0)*1000.0/samples)
+        logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
         return self.calc_stats()
 
 
@@ -928,7 +931,7 @@ cdef class BIFT:
         """
         cdef: 
             int npt, nvalid, idx
-            double area, best_evidence, ev_max, evidence_avg, evidence_std, 
+            double area, ev_max, evidence_avg, evidence_std, 
             double Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std, 
             double regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
             cnumpy.ndarray radius, densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
@@ -960,8 +963,7 @@ cdef class BIFT:
 
         # Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), 
         # normalized by the sum of all result probabilities
-        ev_max = evidences.max()
-        proba = numpy.exp(evidences - ev_max) #**(1./chi2s.min()) why this exponent ?
+        proba = numpy.exp(evidences - best.evidence)**(1./chi2s.min()) 
         proba /= proba.sum()
             
         #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
