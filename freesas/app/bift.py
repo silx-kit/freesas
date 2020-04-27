@@ -29,11 +29,13 @@ __license__ = "MIT"
 __copyright__ = "2017, ESRF"
 __date__ = "27/04/2020"
 
+import sys
 import os
 import argparse
 import logging
 import glob
 import platform
+import traceback
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bift")
 
@@ -61,9 +63,14 @@ def parse():
     """
     version = "bift.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
+    parser.add_argument("file", metavar="FILE", nargs='+', help="I(q) files to convert into p(r)")
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
+    parser.add_argument("-n", "--npt", default=100, type=int, help="number of points in p(r) curve")
+    parser.add_argument("-s", "--scan", default=21, type=int, help="Initial alpha-scan size to guess the start parameter")
+    parser.add_argument("-m", "--mc", default=100, type=int, help="Number of Monte-Carlo samples in post-refinement")
+    parser.add_argument("-t", "--threshold", default=3.0, type=float, help="Sample at average ± threshold*sigma in MC")
+
     args = parser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
@@ -73,11 +80,11 @@ def parse():
         files.sort()
     input_len = len(files)
     logger.debug("%s input files" % input_len)
-    return files
+    return files, args
 
 
 def main():
-    list_files = parse()
+    list_files, args = parse()
     for afile in list_files:
         try:
             data = numpy.loadtxt(afile)
@@ -85,21 +92,22 @@ def main():
             logger.error("Unable to parse file %s", afile)
         else:
             try:
-                bo = bift.auto_bift(data)
+                bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
             except Exception as err:
-                print("%s %s" % (afile, err))
+                print("%s %s %s" % (afile, type(err), err))
+                traceback.print_exc(file=sys.stdout)
             else:
-                print(bo.get_best())
-                stats = bo.calc_stats()
-                print(stats)
+                # print(bo.get_best())
+                stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt,)
+                # print(stats)
                 "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std"
                 res = ["Dmax= %.2f ±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
-                       "𝛂= %.1f ±%.2f" % (stats.alpha_avg, stats.alpha_std),
-                       "χ²= %.2f ±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
-                       "S₀= %.4f ±%.4f" % (stats.regularization_avg, stats.regularization_std),
-                       "logP= %.2f ±%.4f" % (stats.evidence_avg, stats.evidence_std),
-                       "Rg= %.2f ±%.2f" % (stats.Rg_avg, stats.Rg_std),
-                       "I₀= %.2f ±%.2f" % (stats.I0_avg, stats.I0_std),
+                       "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
+                       "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
+                       "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
+                       "logP= %.2f±%.2f" % (stats.evidence_avg, stats.evidence_std),
+                       "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
+                       "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
                        ]
 
                 print(afile + ": " + "; ".join(res))
@@ -108,8 +116,8 @@ def main():
                     out.write("# %s %s" % (afile, os.linesep))
                     for txt in res:
                         out.write("# %s %s" % (txt, os.linesep))
-                    out.write("%s# r p(r) sigma_p(r)%s" % (os.linesep, os.linesep))
-                    for r, p, s in zip(stats.radius, stats.density_avg, stats.density_std):
+                    out.write("%s# r\tp(r)\tsigma_p(r)%s" % (os.linesep, os.linesep))
+                    for r, p, s in zip(stats.radius.astype(numpy.float32), stats.density_avg.astype(numpy.float32), stats.density_std.astype(numpy.float32)):
                         out.write("%s\t%s\t%s%s" % (r, p, s, os.linesep))
 
 

@@ -17,9 +17,9 @@ This is a major rewrite in Cython
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "26/04/2020"
+__date__ = "27/04/2020"
 
-
+import time
 import cython
 from cython.parallel import prange
 from cython.view cimport array as cvarray
@@ -38,7 +38,7 @@ RadiusKey = namedtuple("RadiusKey", "Dmax npt")
 PriorKey = namedtuple("PriorKey", "type npt")
 TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
 EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density, eigen")
+EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density converged")
 StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
 
 
@@ -230,7 +230,7 @@ cdef class BIFT:
                 for key in list(cache.keys()):
                     cache.pop(key)
 
-    def set_Guinier(self, guinier_fit, factor=3.0):
+    def set_Guinier(self, guinier_fit, Dmax_over_Rg=3.0):
         """Set some starting point from Guinier fit like:
         
         Dmax = 3 Rg
@@ -238,13 +238,15 @@ cdef class BIFT:
         Guinier region for high signal with low noise section 
         
         :param guinier_fit: RG_RESULT instance from autorg fit
-        :param factor: guess the Dmax =  factor * Rg
+        :param Dmax_over_Rg: guess the Dmax =  factor * Rg
         :return: guessed Dmax
         """
         self.I0_guess = guinier_fit.I0
         self.high_start = guinier_fit.start_point
         self.high_stop = guinier_fit.end_point
-        self.Dmax_guess = guinier_fit.Rg * factor
+        self.Dmax_guess = guinier_fit.Rg * Dmax_over_Rg
+        return self.Dmax_guess
+        
     
     def guess_alpha_max(self, int npt):
         """This is to define the maximum realistic alpha value to scan for.
@@ -257,7 +259,7 @@ cdef class BIFT:
         """
         cdef:
             double[::1] density, smooth
-            double[:, ::1] tranfo
+            double[:, ::1] transfo
             double regularization, chi2
         if self.Dmax_guess<=0.0:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
@@ -270,15 +272,28 @@ cdef class BIFT:
         return 0.5*chi2/regularization
     
     def get_best(self):
-        """Return the most probable configuration found so far
+        """Return the most probable configuration found so far and the number of valid 
         """
+        cdef:
+            double best_evidence
+            int nvalid
         best_evidence = numpy.finfo(numpy.float64).min
-        best_key = None 
+        best_key = None
+        nvalid = 0
         for key, value in self.evidence_cache.items():
-            if value.evidence>best_evidence:
-                best_key = key
-                best_evidence = value.evidence
-        return best_key, self.evidence_cache.get(best_key)
+            if value.converged:
+                nvalid += 1
+                if value.evidence>best_evidence:
+                    best_key = key
+                    best_evidence = value.evidence
+        if nvalid == 0:
+            "None have converged yet ... take the least worse answer"
+            for key, value in self.evidence_cache.items():
+                if value.evidence>best_evidence:
+                    best_key = key
+                    best_evidence = value.evidence
+                
+        return best_key, self.evidence_cache.get(best_key), nvalid
     
     @cython.cdivision(True)
     @cython.wraparound(False)
@@ -390,7 +405,7 @@ cdef class BIFT:
 
         cdef:
             double tmp, ql, prefactor, delta_r, il, varl 
-            int l, c
+            int l, c, res
             
         delta_r = Dmax / npt
         prefactor = 4.0 * pi * delta_r
@@ -409,8 +424,6 @@ cdef class BIFT:
 
         res = blas_dgemm(transp_matrix, transf_matrix, B)
         if res:
-            with gil:
-                raise RuntimeError("Error during blas_dgemm matrix multiplication")
             return -1
         #B = numpy.dot(TnT, T)
         B[0, :] = 0.0
@@ -450,32 +463,33 @@ cdef class BIFT:
         """
         cdef:
             double[::1] radius, p_r, f_r, sigma2, sum_dia, workspace, eigen
-            double[:, ::1] B, transfo_mtx, transpo_mtx, U
+            double[:, ::1] B, transfo_mtx, U
             double chi2, regularization, xprec, dotsp
             int j
-            bint do_initialization, is_valid, converged
+            bint is_valid, converged
         
         xprec = 0.999
-        
+        key = EvidenceKey(Dmax, alpha, npt)
         #Simple checks: Dmax and alpha need to be positive 
         if Dmax<=0:
             logger.error("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
         if alpha<=0:
             logger.error("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
         
         # Here we perform all memory allocation for the complete function 
         
         radius = self.radius(Dmax, npt) 
-#         radius = numpy.linspace(0, Dmax, npt+1)
         p_r = self.prior_distribution(self.I0_guess, Dmax, npt)
-        #p_r = distribution_sphere(self.I0_guess, Dmax, npt)
-        #Note, here p_r is what Hansen calls m in eq.5
+
+        #here p_r is what Hansen calls m in eq.5
         p_r[0] = 0
-        f_r = numpy.zeros(npt+1, dtype=numpy.float64)
+        f_r = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
         #Note: f_r was called P in the original RAW BIFT code
-        sigma2 = numpy.zeros(npt+1, dtype=numpy.float64)
+        sigma2 = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
         
         #Those are used by the rlogdet function to calculate the determinant 
         U = cvarray(shape=(npt-1, npt-1), itemsize=sizeof(double), format="d")
@@ -501,7 +515,7 @@ cdef class BIFT:
             chi2 = self.calc_chi2(transfo_mtx, f_r, npt) #  eq.6 
             rlogdet = self.calc_rlogdet(f_r, B, alpha, npt, U, eigen, workspace) # part of eq.20
             
-            # The probablility is described in eq. 17, the evidence is apparently log(P) (
+            # The probablility is described in eq. 17, the evidence is apparently log(P)
             evidence = - log(Dmax) \
                        - alpha*regularization \
                        - 0.5 * chi2 \
@@ -523,11 +537,11 @@ cdef class BIFT:
                 is_valid &= isfinite(f_r[j])
         # Store the results into the cache with the GIL
         if is_valid:
-            key = EvidenceKey(Dmax, alpha, npt)
-            self.evidence_cache[key] = EvidenceResult(evidence, chi2/(self.size - npt), regularization, numpy.asarray(radius), numpy.asarray(f_r), numpy.asarray(eigen))
+            self.evidence_cache[key] = EvidenceResult(evidence, chi2/(self.size - npt), regularization, numpy.asarray(radius), numpy.asarray(f_r), converged)
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
     
     @cython.cdivision(True)
@@ -670,7 +684,7 @@ cdef class BIFT:
         c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
         """
         cdef:
-            int j, k
+            int j
             double num, denom, tmp, v, scale_f, scale_p
         num = denom = 0.0
         for j in range(start, stop):
@@ -874,40 +888,78 @@ cdef class BIFT:
 #             print(j, i[0], i[1], ) 
         return EvidenceKey(grid[best, 0], grid[best, 1], npt)        
 
+    def monte_carlo_sampling(self,
+                             int samples, 
+                             double nsigma,
+                             int npt 
+                             ):
+        """Perform a monte-carlo sampling for Dmax and alpha around the optimum to be able to calculate the statistic of observables  
+        
+        The re-uses the results from the steepest descent to guess the std of alpha and Dmax. 
+        
+        :param npt: the number of points in the modelisation
+        :param samples: number of samples to be taken
+        :param nsigma: sample alpha and Dmax at avg ± nx sigma 
+        :return: Statistics calculated over all  
+        """
+        cdef:
+            double[::1] Dmax_samples, alpha_samples
+            double[::1] results
+            int idx
+            double Dmax, alpha, t0
+        stats = self.calc_stats()
+        Dmax_samples = stats.Dmax_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.Dmax_std
+        alpha_samples = stats.alpha_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.alpha_std
+        results = numpy.zeros(samples, dtype=numpy.float64)
+        t0 = time.perf_counter()
+        with nogil:
+            for idx in prange(samples):
+                Dmax = Dmax_samples[idx]
+                alpha = alpha_samples[idx]
+                results[idx] = self.calc_evidence(Dmax, alpha, npt)
+        logger.info("Monte-carlo sampling: %i samples at %.2fms per sample", samples, (time.perf_counter()-t0)*1000.0/samples)
+        return self.calc_stats()
+
+
     def calc_stats(self):
         """Calculate the statistics on all points encountered so far ....
         
         :return: large namedtuple
         """
         cdef: 
-            int samples, npt, best_idx
-            double best_evidence, ev_max, evidence_avg, evidence_std, Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std, regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
-            cnumpy.ndarray densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
+            int npt, nvalid, idx
+            double area, best_evidence, ev_max, evidence_avg, evidence_std, 
+            double Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std, 
+            double regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
+            cnumpy.ndarray radius, densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
 
-        samples = len(self.evidence_cache)
-        if samples < 2:
+        best_key, best, nvalid = self.get_best()
+        if nvalid < 2:
             raise RuntimeError("Unable to calculate statistics without evidences having been optimized.")
 
-        best_key, best = self.get_best()
         radius = best.radius
         npt = radius.size
-        densities = numpy.zeros((samples, npt), dtype=numpy.float64)
-        evidences = numpy.zeros(samples, dtype=numpy.float64)
-        Dmaxs = numpy.zeros(samples, dtype=numpy.float64)
-        alphas = numpy.zeros(samples, dtype=numpy.float64)
-        chi2s = numpy.zeros(samples, dtype=numpy.float64)
-        regularizations = numpy.zeros(samples, dtype=numpy.float64)
+        densities = numpy.zeros((nvalid, npt), dtype=numpy.float64)
+        evidences = numpy.zeros(nvalid, dtype=numpy.float64)
+        Dmaxs = numpy.zeros(nvalid, dtype=numpy.float64)
+        alphas = numpy.zeros(nvalid, dtype=numpy.float64)
+        chi2s = numpy.zeros(nvalid, dtype=numpy.float64)
+        regularizations = numpy.zeros(nvalid, dtype=numpy.float64)
         
-        for idx, key in enumerate(self.evidence_cache):
-            Dmaxs[idx] = key.Dmax
-            alphas[idx] = key.alpha
+        idx = 0
+        for key in self.evidence_cache:
             value = self.evidence_cache[key]
-            evidences[idx] = value.evidence
-            chi2s[idx] =  value.chi2r
-            regularizations[idx] = value.regularization
-            densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
+            if value.converged:
+                Dmaxs[idx] = key.Dmax
+                alphas[idx] = key.alpha
+                evidences[idx] = value.evidence
+                chi2s[idx] =  value.chi2r
+                regularizations[idx] = value.regularization
+                densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
+                idx+=1
 
-        #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
+        # Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), 
+        # normalized by the sum of all result probabilities
         ev_max = evidences.max()
         proba = numpy.exp(evidences - ev_max) #**(1./chi2s.min()) why this exponent ?
         proba /= proba.sum()

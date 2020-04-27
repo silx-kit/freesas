@@ -18,7 +18,7 @@ __date__ = "27/04/2020"
 
 import logging
 logger = logging.getLogger(__name__)
-from collections import namedtuple
+# from collections import namedtuple
 from math import log
 import numpy
 from scipy.optimize import minimize
@@ -26,12 +26,13 @@ from ._bift import BIFT
 from .autorg import autoRg
 from .decorators import timeit
 
-IFT_RESULT = namedtuple("IFT_RESULT", "r p sigma Dmax alpha logP chi2 regularisation")
+# IFT_RESULT = namedtuple("IFT_RESULT", "r p sigma Dmax alpha logP chi2 regularisation")
 
 
 @timeit
-def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=None):
-    """Calculates the inverse Fourier tranform of the data
+def auto_bift(data, Dmax=None, alpha=None, npt=100,
+              start_point=None, end_point=None, scan_size=21, Dmax_over_Rg=3):
+    """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
     
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
     :param Dmax: Maximum diameter of the object, this is the starting point to be refined. Can be guessed
@@ -39,7 +40,9 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=
     :param npt: Number of point for the curve p(r)
     :param start_point: First useable point in the I(q) curve
     :param end_point: Last useable point in the I(q) curve
-    :return: IFT_RESULT instance with the result p(r) in it
+    :param scan_size: size of the initial geometrical scan for alpha values.
+    :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
+    :return: BIFT object. Call the get_best to get the minimization  
     """
     assert data.ndim == 2
     assert data.shape[1] == 3  # enforce q, I, err
@@ -50,20 +53,15 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=
     if Dmax is None:
         # Try to get a reasonable from Rg
         rg = autoRg(data)
-        bo.set_Guinier(rg)
-        Dmax = bo.Dmax_guess
+        Dmax = bo.set_Guinier(rg, Dmax_over_Rg)
     if alpha is None:
-        Niter = 9  # odd value to have 1 in the loop
         alpha_max = bo.guess_alpha_max(npt)
-        alpha = bo.grid_scan(Dmax, Dmax, 1, 1.0 / alpha_max, alpha_max, Niter, npt)[1]
+        alpha = bo.grid_scan(Dmax, Dmax, 1, 1.0 / alpha_max, alpha_max, scan_size, npt)[1]
 
     # Optimization using Bayesian operator:
-    logger.debug("start search at alpha=%s Dmax=%s", alpha, Dmax)
+    logger.info("Start search at alpha=%.2f Dmax=%.2f", alpha, Dmax)
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
-    print(res)
-    print("*"*50)
-    # res = minimize(bo.opti_evidence, res.x, args=(npt,), method="slsqp", options={"eps":1e-2}, bounds=[(1 / bo.q[-1], 1 / bo.delta_q), (0, 2 * alpha_max)])
-    print(bo.calc_stats())
+    logger.info("Result of optimisation:\n  %s", res)
     return bo
 
 
