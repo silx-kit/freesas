@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "26/04/2020"
+__date__ = "27/04/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,10 +24,12 @@ import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
 from .autorg import autoRg
+from .decorators import timeit
 
 IFT_RESULT = namedtuple("IFT_RESULT", "r p sigma Dmax alpha logP chi2 regularisation")
 
 
+@timeit
 def auto_bift(data, Dmax=None, alpha=None, npt=100, start_point=None, end_point=None):
     """Calculates the inverse Fourier tranform of the data
     

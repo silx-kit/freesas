@@ -909,13 +909,7 @@ cdef class BIFT:
 
         #Then, calculate the probability of each result as exp(evidence - evidence_max)**(1/minimum_chisq), normalized by the sum of all result probabilities
         ev_max = evidences.max()
-        proba = numpy.exp(evidences - ev_max)**(1./chi2s.min())
-        e2 = evidences.copy()
-        e2.sort()
-        es = numpy.exp(e2-ev_max)
-        print(es)
-        print(chi2s.min())
-        print(es**(1./chi2s.min()))
+        proba = numpy.exp(evidences - ev_max) #**(1./chi2s.min()) why this exponent ?
         proba /= proba.sum()
             
         #Then, calculate the average P(r) function as the weighted sum of the P(r) functions
