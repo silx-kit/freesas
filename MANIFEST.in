@@ -5,7 +5,7 @@ include LICENSE
 recursive-include freesas *.pxd *.h *.pyx *.pxi
 include MANIFEST.in
 include run_tests.py
-recursive-include testdata *.pdb
+recursive-include testdata *.pdb *.dat
 include run_tests.py
 include version.py
 include stdeb.cfg

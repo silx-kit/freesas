@@ -44,7 +44,7 @@ def create_extension_config(name, extra_sources=None, can_use_openmp=False):
         extra_compile_args = ['-fopenmp']
     else:
         extra_link_args = []
-        extra_compile_args = []
+        extra_compile_args = ["-ftree-vectorize"]
 
     sources = ["%s.pyx" % name]
     if extra_sources is not None:
@@ -69,6 +69,7 @@ def configuration(parent_package='', top_path=None):
         create_extension_config("_distance", can_use_openmp=True),
         create_extension_config("_cormap", can_use_openmp=False),
         create_extension_config("autorg", can_use_openmp=False),
+        create_extension_config("_bift", can_use_openmp=False),
     ]
 
     for ext_config in ext_modules:

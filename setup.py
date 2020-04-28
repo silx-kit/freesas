@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # coding: utf8
 # /*##########################################################################
 #
@@ -26,9 +26,8 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "23/04/2019"
+__date__ = "20/04/2020"
 __license__ = "MIT"
-
 
 import sys
 import os
@@ -44,7 +43,6 @@ import io
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger("freesas.setup")
-
 
 from distutils.command.clean import clean as Clean
 from distutils.command.build import build as _build
@@ -72,9 +70,7 @@ try:
 except ImportError:
     sphinx = None
 
-
 PROJECT = "freesas"
-
 
 if "LANG" not in os.environ and sys.platform == "darwin" and sys.version_info[0] > 2:
     print("""WARNING: the LANG environment variable is not defined,
@@ -125,7 +121,6 @@ classifiers = ["Development Status :: 5 - Production/Stable",
                "Topic :: Scientific/Engineering :: Bio-Informatics"
                ]
 
-
 # ########## #
 # version.py #
 # ########## #
@@ -135,16 +130,17 @@ class build_py(_build_py):
     """
     Enhanced build_py which copies version.py to <PROJECT>._version.py
     """
+
     def find_package_modules(self, package, package_dir):
         modules = _build_py.find_package_modules(self, package, package_dir)
         if package == PROJECT:
             modules.append((PROJECT, '_version', 'version.py'))
         return modules
 
-
 ########
 # Test #
 ########
+
 
 class PyTest(Command):
     """Command to start tests running the script: run_tests.py"""
@@ -164,12 +160,13 @@ class PyTest(Command):
         if errno != 0:
             raise SystemExit(errno)
 
-
 # ################### #
 # build_doc command   #
 # ################### #
 
+
 if sphinx is None:
+
     class SphinxExpectedCommand(Command):
         """Command to inform that sphinx is missing"""
         user_options = []
@@ -318,6 +315,7 @@ class BuildMan(Command):
 
 
 if sphinx is not None:
+
     class BuildDocCommand(BuildDoc):
         """Command to build documentation using sphinx.
 
@@ -351,20 +349,22 @@ if sphinx is not None:
                 self.mkpath(self.builder_target_dir)
                 BuildDoc.run(self)
             sys.path.pop(0)
+
 else:
     BuildDocCommand = SphinxExpectedCommand
-
 
 # ################### #
 # test_doc command    #
 # ################### #
 
 if sphinx is not None:
+
     class TestDocCommand(BuildDoc):
         """Command to test the documentation using sphynx doctest.
 
         http://www.sphinx-doc.org/en/1.4.8/ext/doctest.html
         """
+
         def run(self):
             # make sure the python path is pointing to the newly built
             # code so that the documentation is built on this and not a
@@ -384,10 +384,10 @@ if sphinx is not None:
 else:
     TestDocCommand = SphinxExpectedCommand
 
-
 # ############################# #
 # numpy.distutils Configuration #
 # ############################# #
+
 
 def configuration(parent_package='', top_path=None):
     """Recursive construction of package info to be used in setup().
@@ -699,7 +699,6 @@ class BuildExt(build_ext):
             self.patch_extension(ext)
         build_ext.build_extensions(self)
 
-
 ################################################################################
 # Clean command
 ################################################################################
@@ -799,7 +798,6 @@ class SourceDistWithCython(sdist):
             compile_time_env={"HAVE_OPENMP": False}
         )
 
-
 ################################################################################
 # Debian source tree
 ################################################################################
@@ -863,10 +861,10 @@ class sdist_debian(sdist):
         self.archive_files = [debian_arch]
         print("Building debian .orig.tar.gz in %s" % self.archive_files[0])
 
-
 # ##### #
 # setup #
 # ##### #
+
 
 def get_project_configuration(dry_run):
     """Returns project arguments for setup"""
@@ -913,6 +911,7 @@ def get_project_configuration(dry_run):
                             'autorg.py = freesas.app.autorg:main',
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',
+                            'bift.py = freesas.app.bift:main',
                            ],
         # 'gui_scripts': [],
     }
@@ -954,6 +953,7 @@ def get_project_configuration(dry_run):
                         package_data=package_data,
                         zip_safe=False,
                         entry_points=entry_points,
+                        python_requires='>=3.5',
                         )
 #      packages=["freesas", "freesas.test"],
 #      data_files=glob.glob("testdata/*"),
