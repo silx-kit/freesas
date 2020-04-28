@@ -26,10 +26,7 @@ from ._bift import BIFT
 from .autorg import autoRg
 from .decorators import timeit
 
-# IFT_RESULT = namedtuple("IFT_RESULT", "r p sigma Dmax alpha logP chi2 regularisation")
 
-
-@timeit
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
               start_point=None, end_point=None, scan_size=21, Dmax_over_Rg=3):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
@@ -42,7 +39,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     :param end_point: Last useable point in the I(q) curve
     :param scan_size: size of the initial geometrical scan for alpha values.
     :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
-    :return: BIFT object. Call the get_best to get the minimization  
+    :return: BIFT object. Call the get_best to retrieve the optimal solution  
     """
     assert data.ndim == 2
     assert data.shape[1] == 3  # enforce q, I, err
@@ -63,6 +60,15 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
     logger.info("Result of optimisation:\n  %s", res)
     return bo
+
+
+def extrapolate_q(ift, q):
+    """This probvides a curve I=f(q) with an extrapolated q-range to zero
+    
+    :param ift: an BIFT instance with the best Dmax/alpha couple found.
+    :param
+    """
+    pass
 
 
 if __name__ == "__main__":
