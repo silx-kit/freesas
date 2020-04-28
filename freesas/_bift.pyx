@@ -909,7 +909,8 @@ cdef class BIFT:
             double[::1] Dmax_samples, alpha_samples
             double[::1] results
             int idx
-            double Dmax, alpha, t0
+            double Dmax, alpha, t0, eps
+        eps = 1e-10
         stats = self.calc_stats()
         if samples == 0:
             return stats
@@ -920,8 +921,8 @@ cdef class BIFT:
         with nogil:
             for idx in prange(samples):
                 Dmax = Dmax_samples[idx]
-                if Dmax<0:
-                    Dmax = -Dmax
+                if Dmax<eps:
+                    Dmax = abs(Dmax) + eps
                 alpha = alpha_samples[idx]
                 if alpha<0.0:
                     alpha = exp(alpha)
