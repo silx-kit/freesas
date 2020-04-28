@@ -920,7 +920,11 @@ cdef class BIFT:
         with nogil:
             for idx in prange(samples):
                 Dmax = Dmax_samples[idx]
+                if Dmax<0:
+                    Dmax = -Dmax
                 alpha = alpha_samples[idx]
+                if alpha<0.0:
+                    alpha = exp(alpha)
                 results[idx] = self.calc_evidence(Dmax, alpha, npt)
         logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
         return self.calc_stats()
