@@ -910,22 +910,24 @@ cdef class BIFT:
             double[::1] results
             int idx
             double Dmax, alpha, t0, eps
-        eps = 1e-10
         stats = self.calc_stats()
         if samples == 0:
             return stats
+        if stats.Dmax_avg/stats.Dmax_std < nsigma:
+            nsigma = stats.Dmax_avg/stats.Dmax_std
+            logger.info("Clipping to nsigma=%.2f due to large noise on Dmax: avg=%.2f, std=%.2f", nsigma, stats.Dmax_avg, stats.Dmax_std)
+        if stats.alpha_avg/stats.alpha_std < nsigma:
+            nsigma = stats.alpha_avg/stats.alpha_std
+            logger.info("Clipping to nsigma=%.2f due to large noise on alpha: avg=%.2f, std=%.2f", nsigma, stats.alpha_avg, stats.alpha_std)
+
         Dmax_samples = stats.Dmax_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.Dmax_std
         alpha_samples = stats.alpha_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.alpha_std
         results = numpy.zeros(samples, dtype=numpy.float64)
-        t0 = time.perf_counter()
+        t0 = time.perf_counter()        
         with nogil:
             for idx in prange(samples):
                 Dmax = Dmax_samples[idx]
-                if Dmax<eps:
-                    Dmax = fabs(Dmax) + eps
                 alpha = alpha_samples[idx]
-                if alpha<=0.0:
-                    alpha = exp(alpha)
                 results[idx] = self.calc_evidence(Dmax, alpha, npt)
         logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
         return self.calc_stats()
