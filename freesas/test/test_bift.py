@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "27/04/2020"
+__date__ = "28/04/2020"
 
 import numpy
 import unittest
@@ -50,8 +50,7 @@ class TestBIFT(unittest.TestCase):
         dr = cls.DMAX / cls.NPT
         cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
         q = numpy.linspace(0, 8 * cls.DMAX / 3, cls.SIZE + 1)
-        T = numpy.outer(q, cls.r)
-        sincqr = numpy.where(T == 0, 1, numpy.sin(T) / T)
+        sincqr = numpy.sinc(numpy.outer(q, cls.r / numpy.pi))
         I = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
         err = numpy.sqrt(I)
         cls.I0 = I[0]
