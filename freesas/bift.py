@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "27/04/2020"
+__date__ = "28/04/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -68,7 +68,6 @@ def extrapolate_q(ift, q):
     :param ift: an BIFT instance with the best Dmax/alpha couple found.
     :param
     """
-    pass
 
 
 if __name__ == "__main__":
