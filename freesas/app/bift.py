@@ -99,13 +99,18 @@ def main():
                     traceback.print_exc(file=sys.stdout)
             else:
                 # print(bo.get_best())
-                stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt,)
-                # print(stats)
+                try:
+                    stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt)
+                except RuntimeError as err:
+                    print("%s: %s %s" % (afile, err.__class__.__name__, err))
+                    if logging.root.level < logging.WARNING:
+                        traceback.print_exc(file=sys.stdout)
+
                 "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std"
                 res = ["Dmax= %.2f ±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
                        "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
-                       "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
                        "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
+                       "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
                        "logP= %.2f±%.2f" % (stats.evidence_avg, stats.evidence_std),
                        "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
                        "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
