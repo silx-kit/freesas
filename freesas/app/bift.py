@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-__date__ = "27/04/2020"
+__date__ = "28/04/2020"
 
 import sys
 import os
@@ -36,7 +36,7 @@ import logging
 import glob
 import platform
 import traceback
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
 
 import numpy
@@ -94,8 +94,9 @@ def main():
             try:
                 bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
             except Exception as err:
-                print("%s %s %s" % (afile, type(err), err))
-                traceback.print_exc(file=sys.stdout)
+                print("%s: %s %s" % (afile, type(err), err))
+                if logging.root.level < logging.WARNING:
+                    traceback.print_exc(file=sys.stdout)
             else:
                 # print(bo.get_best())
                 stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt,)
