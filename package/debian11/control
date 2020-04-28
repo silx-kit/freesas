@@ -12,6 +12,7 @@ Build-Depends: cython3,
                python3-scipy,
                python3-sphinx,
                python3-sphinxcontrib.programoutput,
+               python3-nbsphinx,
                openstack-pkg-tools,
                help2man
 Standards-Version: 3.9.8
