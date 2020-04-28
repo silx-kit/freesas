@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "27/04/2020"
+__date__ = "28/04/2020"
 
 import time
 import cython
@@ -571,11 +571,11 @@ cdef class BIFT:
         key = EvidenceKey(Dmax, alpha, npt)
         #Simple checks: Dmax and alpha need to be positive 
         if Dmax<=0:
-            logger.error("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
+            logger.info("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
             self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
         if alpha<=0:
-            logger.error("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
+            logger.info("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
             self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
         
@@ -911,6 +911,8 @@ cdef class BIFT:
             int idx
             double Dmax, alpha, t0
         stats = self.calc_stats()
+        if samples == 0:
+            return stats
         Dmax_samples = stats.Dmax_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.Dmax_std
         alpha_samples = stats.alpha_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.alpha_std
         results = numpy.zeros(samples, dtype=numpy.float64)
