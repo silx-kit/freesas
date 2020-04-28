@@ -886,7 +886,8 @@ def get_project_configuration(dry_run):
 
     setup_requires = ["setuptools",
                       "numpy",
-                      "cython"]
+                      "cython",
+                      "scipy"]
 
     package_data = {
         # Resources files for silx
