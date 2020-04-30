@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-__date__ = "28/04/2020"
+__date__ = "30/04/2020"
 
 import sys
 import os
@@ -67,9 +67,9 @@ def parse():
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
     parser.add_argument("-n", "--npt", default=100, type=int, help="number of points in p(r) curve")
-    parser.add_argument("-s", "--scan", default=21, type=int, help="Initial alpha-scan size to guess the start parameter")
+    parser.add_argument("-s", "--scan", default=27, type=int, help="Initial alpha-scan size to guess the start parameter")
     parser.add_argument("-m", "--mc", default=100, type=int, help="Number of Monte-Carlo samples in post-refinement")
-    parser.add_argument("-t", "--threshold", default=3.0, type=float, help="Sample at average ± threshold*sigma in MC")
+    parser.add_argument("-t", "--threshold", default=2.0, type=float, help="Sample at average ± threshold*sigma in MC")
 
     args = parser.parse_args()
     if args.verbose:
@@ -98,7 +98,6 @@ def main():
                 if logging.root.level < logging.WARNING:
                     traceback.print_exc(file=sys.stdout)
             else:
-                # print(bo.get_best())
                 try:
                     stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt)
                 except RuntimeError as err:
@@ -107,7 +106,7 @@ def main():
                         traceback.print_exc(file=sys.stdout)
                 else:
                     "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std"
-                    res = ["Dmax= %.2f ±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
+                    res = ["Dmax= %.2f±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
                            "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
                            "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
                            "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),

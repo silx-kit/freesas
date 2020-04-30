@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "28/04/2020"
+__date__ = "30/04/2020"
 
 import time
 import cython
@@ -282,7 +282,7 @@ cdef class BIFT:
     cdef:
         readonly int size, high_start, high_stop
         readonly double I0_guess, delta_q, Dmax_guess, alpha_max
-        readonly double[::1] q, intensity, variance
+        readonly double[::1] q, intensity, variance, wisdom
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
      
     def __cinit__(self, q, I, I_std):
@@ -298,6 +298,7 @@ cdef class BIFT:
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
         self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
+        self.wisdom = None
         #We define a region of high signal where the noise is expected to be minimal:
         self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit  
         self.high_start = numpy.argmax(I) # Might be replaced by the guinier region
@@ -390,9 +391,6 @@ cdef class BIFT:
                 
         return best_key, self.evidence_cache.get(best_key), nvalid
     
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
     def prior_distribution(self,
                            double I0, 
                            double Dmax, 
@@ -401,13 +399,15 @@ cdef class BIFT:
         """Calculate the prior distribution for the bayesian analysis
         
         Implements memoizing. 
-        The memoising is performed with I0 = Dmax = 1. Rescaling is performd a posterori 
+        The memoising is performed with I0 = Dmax = 1. Rescaling is performd a posterori  
         
         :param I0: forward scattering intensity, often approximated by th maximum intensity
         :param Dmax: Largest dimention of the object
         :param npt: number of points in the real space (-1)
-        :param dist_type: Implements "sphere" and parabola
-        :return: the distance distribution function p(r) where r = numpy.linspace(0, Dmax, npt+1) 
+        :param dist_type: Implements "sphere" and "parabola". "wisdom" is possible after initialization
+        :return: the distance distribution function p(r) where r = numpy.linspace(0, Dmax, npt+1)
+        
+        Nota: the wisdom is the normalized best density found. It needs to be manually updated with update_wisdom()  
         """
         key = PriorKey(dist_type, npt)
         if key in self.prior_cache:
@@ -420,10 +420,18 @@ cdef class BIFT:
             else:
                 raise RuntimeError("Only 'sphere' is accepted for dist_type")
         return (I0/Dmax) * value 
-    
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
+
+    def update_wisdom(self):
+        best_key, best_value, nvalid  =self.get_best()
+        npt = best_key.npt
+        if nvalid == 0:
+            logger.warning("No converged solution was found. It is not advices to ")
+            density = distribution_sphere(1, 1, npt)
+        else:
+            density = best_value.density / (4.0*pi*numpy.trapz(best_value.density, numpy.linspace(0, 1, npt+1)))
+        key = PriorKey("wisdom", npt)
+        self.prior_cache[key] = density
+            
     def radius(self, Dmax, npt):
         """Calculate the radius array with memoizing
         
@@ -486,9 +494,6 @@ cdef class BIFT:
             self.lapack_cache[npt] = value = lapack._compute_lwork(s_lw, npt, npt)
         return value
             
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
     cdef int initialize_arrays(self,
                             double Dmax, 
                             int npt, 
@@ -526,11 +531,13 @@ cdef class BIFT:
         return 0
     
     def opti_evidence(self, param, 
-                      int npt):
+                      int npt, bint prior=0):
         """Function made for optimization based on the evidence maximisation
         
         :param parm: 2-tuple containing Dmax, log(alpha)
         :param npt: number of points in the real space (-1)
+        :param prior: By default (False) use the sphere density to start with 
+                      Set to True to use the shape of the best found structure 
         :return: -evidence for optimisation 
         """ 
         cdef:
@@ -545,7 +552,8 @@ cdef class BIFT:
     cpdef double calc_evidence(self,
                                double Dmax, 
                                double alpha, 
-                               int npt) with gil:
+                               int npt,
+                               bint prior=False) with gil:
         """
         Calculate the evidence for the given set of parameters
         
@@ -555,6 +563,8 @@ cdef class BIFT:
         :param Dmax: diameter or longest distance in the object
         :param alpha: smoothing factor (>=0, not its log!)
         :param npt: number of points in the real space (-1)
+        :param prior: By default (False) use the sphere density to start with 
+                      Set to True to use the shape of the best found structure 
         :return: evidence (other results are cached) 
         
         All the equation number are refering to 
@@ -582,7 +592,7 @@ cdef class BIFT:
         # Here we perform all memory allocation for the complete function 
         
         radius = self.radius(Dmax, npt) 
-        p_r = self.prior_distribution(self.I0_guess, Dmax, npt)
+        p_r = self.prior_distribution(self.I0_guess, Dmax, npt, dist_type="wisdom" if prior else "sphere")
 
         #here p_r is what Hansen calls m in eq.5
         p_r[0] = 0
@@ -604,7 +614,7 @@ cdef class BIFT:
             #c1 = numpy.sum(numpy.sum(transfo_mtx[1:4,1:-1]*p_r[1:-1], axis=1)/self.variance[1:4])
             #c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
             #print(c2/c1, self.scale_factor(transfo_mtx, p_r, 1, 4))
-            self.scale_density(transfo_mtx, p_r, f_r, 1, 4, npt, 1.001)
+            self.scale_density(transfo_mtx, p_r, f_r, self.high_start, self.high_stop, npt, 1.001)
         
             # Do the optimization
             dotsp = self._bift_inner_loop(f_r, p_r, sigma2, B, alpha, npt, sum_dia, xprec=xprec)
@@ -643,9 +653,6 @@ cdef class BIFT:
             self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
             return -numpy.inf
     
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
     cdef double calc_chi2(self, 
                            double[:, ::1] transfo,
                            double[::1] density,
@@ -681,10 +688,6 @@ cdef class BIFT:
             chi2 += ((Im - self.intensity[idx_q])**2/self.variance[idx_q]) 
         return chi2
        
-
-    @cython.cdivision(True)
-    @cython.wraparound(False)
-    @cython.boundscheck(False)    
     cdef double scale_density(self, 
                              double[:, ::1] transfo,
                              double[::1] p_r,
@@ -821,11 +824,11 @@ cdef class BIFT:
                 f_r[k] = f_k = (1.0-omega)*f_k + omega*fx
             #Synchro point
             
-            if not is_valid:
-                with gil:
-                    for i in range(npt+1):
-                        print(i, f_r[i], p_r[i], sigma2[i])
-                return 0.0
+#             if not is_valid:
+#                 with gil:
+#                     for i in range(npt+1):
+#                         print(i, f_r[i], p_r[i], sigma2[i])
+#                 return 0.0
             
             # Calculate convergence
             sum_c2 = sum_sc = sum_s2 = 0.0
@@ -894,16 +897,21 @@ cdef class BIFT:
     def monte_carlo_sampling(self,
                              int samples, 
                              double nsigma,
-                             int npt 
+                             int npt
                              ):
-        """Perform a monte-carlo sampling for Dmax and alpha around the optimum to be able to calculate the statistic of observables  
+        """Perform a monte-carlo sampling for Dmax and alpha around the optimum to be able to calculate the statistic of observables
         
-        The re-uses the results from the steepest descent to guess the std of alpha and Dmax. 
+        Dmax is sampled linearly
+        alpha is sampled in log-scale  
+        
+        Re-uses the results from the steepest descent to guess the std of alpha and Dmax.
+        
+        Re use the best density as prior for the density  
         
         :param npt: the number of points in the modelisation
         :param samples: number of samples to be taken
         :param nsigma: sample alpha and Dmax at avg ± nx sigma 
-        :return: Statistics calculated over all  
+        :return: Statistics calculated over all explored space 
         """
         cdef:
             double[::1] Dmax_samples, alpha_samples
@@ -913,25 +921,23 @@ cdef class BIFT:
         stats = self.calc_stats()
         if samples == 0:
             return stats
+        self.update_wisdom()
         if stats.Dmax_avg/stats.Dmax_std < nsigma:
             nsigma = stats.Dmax_avg/stats.Dmax_std
             logger.info("Clipping to nsigma=%.2f due to large noise on Dmax: avg=%.2f, std=%.2f", nsigma, stats.Dmax_avg, stats.Dmax_std)
-        if stats.alpha_avg/stats.alpha_std < nsigma:
-            nsigma = stats.alpha_avg/stats.alpha_std
-            logger.info("Clipping to nsigma=%.2f due to large noise on alpha: avg=%.2f, std=%.2f", nsigma, stats.alpha_avg, stats.alpha_std)
-
+        log_alpha = log(stats.alpha_avg)
+        dlog_alpha = stats.alpha_std/stats.alpha_avg
         Dmax_samples = stats.Dmax_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.Dmax_std
-        alpha_samples = stats.alpha_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.alpha_std
+        alpha_samples = numpy.exp(log_alpha + nsigma*(2.0*numpy.random.random(samples)-1.0)*dlog_alpha)
         results = numpy.zeros(samples, dtype=numpy.float64)
         t0 = time.perf_counter()        
         with nogil:
             for idx in prange(samples):
                 Dmax = Dmax_samples[idx]
                 alpha = alpha_samples[idx]
-                results[idx] = self.calc_evidence(Dmax, alpha, npt)
+                results[idx] = self.calc_evidence(Dmax, alpha, npt, prior=1)
         logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
         return self.calc_stats()
-
 
     def calc_stats(self):
         """Calculate the statistics on all points encountered so far ....

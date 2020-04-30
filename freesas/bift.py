@@ -14,21 +14,20 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "28/04/2020"
+__date__ = "30/04/2020"
 
 import logging
 logger = logging.getLogger(__name__)
 # from collections import namedtuple
-from math import log
+from math import log, ceil
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
 from .autorg import autoRg
-from .decorators import timeit
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None, scan_size=21, Dmax_over_Rg=3):
+              start_point=None, end_point=None, scan_size=27, Dmax_over_Rg=3):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
     
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
@@ -43,6 +42,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     """
     assert data.ndim == 2
     assert data.shape[1] == 3  # enforce q, I, err
+    use_wisdom = False
     data = data[slice(start_point, end_point)]
     q, I, err = data.T
     npt = min(npt, q.size)  # no chance for oversampling !
@@ -50,14 +50,21 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     if Dmax is None:
         # Try to get a reasonable from Rg
         rg = autoRg(data)
+        if rg.Rg <= 0:
+            raise RuntimeError("No Guinier region was found in experimental data")
         Dmax = bo.set_Guinier(rg, Dmax_over_Rg)
     if alpha is None:
         alpha_max = bo.guess_alpha_max(npt)
-        alpha = bo.grid_scan(Dmax, Dmax, 1, 1.0 / alpha_max, alpha_max, scan_size, npt)[1]
+        key = bo.grid_scan(max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg), Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg, 3,
+                                 1.0 / alpha_max, alpha_max, ceil(scan_size / 3), npt)
+        Dmax, alpha = key[:2]
+        if bo.evidence_cache[key].converged:
+            bo.update_wisdom()
+            use_wisdom = True
 
     # Optimization using Bayesian operator:
-    logger.info("Start search at alpha=%.2f Dmax=%.2f", alpha, Dmax)
-    res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt,), method="powell")
+    logger.info("Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom)
+    res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
     logger.info("Result of optimisation:\n  %s", res)
     return bo
 
