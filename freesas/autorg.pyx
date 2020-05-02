@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-#cython: boundscheck=False, wraparound=False, cdivision=True, embedsignature=True
+#cython: boundscheck=False, wraparound=False, cdivision=True, embedsignature=True, language_level=3
 # 
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2017-2020  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,8 @@ class InsufficientDataError(Error):
         self.message = "Not enough data do determine Rg"
 
 from collections import namedtuple
-RG_RESULT = namedtuple("RG_RESULT", ["Rg", "sigma_Rg", "I0", "sigma_I0", "start_point", "end_point", "quality", "aggregated"])
+RG_RESULT = namedtuple("RG_RESULT", "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated")
+FIT_RESULT = namedtuple("FIT_RESULT", "slope sigma_slope intercept sigma_intercept")
 
 cimport numpy as cnumpy
 import numpy as numpy 
@@ -70,7 +71,11 @@ ctypedef cnumpy.float64_t DTYPE_t
 cdef: 
     DTYPE_t[::1] WEIGHTS
     int RATIO_INTENSITY = 10  # start with range from Imax -> Imax/10
-
+    DTYPE_t RG_MIN = 0.0098   # minimum value ever found in Atsas
+    # TODO: finish
+    DTYPE_t Q_RG_MIN = 1      # minimum value ever found in Atsas
+    DTYPE_t Q_RG_MAX = 1      # minimum value ever found in Atsas
+    
 qmaxrg_weight = 1.0
 qminrg_weight = 0.1
 rg_frac_err_weight = 1.0
@@ -86,14 +91,14 @@ WEIGHTS = numpy.ascontiguousarray(_weights / _weights.sum(), DTYPE)
 
 
 def currate_data(floating[:, :] data, 
-                 DTYPE_t[::1] q, 
-                 DTYPE_t[::1] intensity,
-                 DTYPE_t[::1] sigma,
-                 DTYPE_t[::1] q2,
-                 DTYPE_t[::1] log_intensity,
-                 DTYPE_t[::1] weights,
-                 int[::1] offsets,
-                 int[::1] data_range):
+                   DTYPE_t[::1] q, 
+                   DTYPE_t[::1] intensity,
+                   DTYPE_t[::1] sigma,
+                   DTYPE_t[::1] q2,
+                   DTYPE_t[::1] log_intensity,
+                   DTYPE_t[::1] weights,
+                   cnumpy.int32_t[::1] offsets,
+                   cnumpy.int32_t[::1] data_range):
     """Clean up the input (data, 2D array of q, i, sigma)
     
     It removed negatives q, intensity, sigmas and also NaNs and infinites
@@ -116,16 +121,16 @@ def currate_data(floating[:, :] data,
         
     size_in = data.shape[0]
     
-    # it may work with more then 3 col and discard subsequent columns
-    # assert data.shape[1] == 3, "data has 3 columns" 
-    assert q.size >= size_in, "size of q_array is valid"
-    assert intensity.size >= size_in, "size of intensity array is valid"
-    assert sigma.size >= size_in, "size of sigma array is valid"
-    assert q2.size >= size_in, "size of q2 array is valid"
-    assert log_intensity.size >= size_in, "size of log_intensity array is valid"
-    assert weights.size >= size_in, "size of weights array is valid" 
-    assert offsets.size >= size_in, "size of offsets array is valid"
-    assert data_range.size >= 3, "data range holds enough space"
+#     # it may work with more then 3 col and discard subsequent columns
+#     # assert data.shape[1] == 3, "data has 3 columns" 
+#     assert q.shape[0] >= size_in, "size of q_array is valid"
+#     assert intensity.shape[0] >= size_in, "size of intensity array is valid"
+#     assert sigma.shape[0] >= size_in, "size of sigma array is valid"
+#     assert q2.shape[0] >= size_in, "size of q2 array is valid"
+#     assert log_intensity.shape[0] >= size_in, "size of log_intensity array is valid"
+#     assert weights.shape[0] >= size_in, "size of weights array is valid" 
+#     assert offsets.shape[0] >= size_in, "size of offsets array is valid"
+#     assert data_range.shape[0] >= 3, "data range holds enough space"
     
     # For safety: memset the arrays
     q[:] = 0.0
@@ -177,22 +182,29 @@ def currate_data(floating[:, :] data,
             log_intensity[idx] = log(one_i)
             # w = (i/sigma)**2
             one_sigma = sigma[idx]
-            tmp = one_i / one_sigma
-            weights[idx] = tmp * tmp
+            weights[idx] = one_i / (one_sigma*one_sigma)
         
     data_range[0] = start        
     data_range[1] = end
     data_range[2] = idx_out   
              
 
-cdef DTYPE_t weighted_linear_fit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t[::1] weight, 
-                                 int data_start, int data_end, 
-                                 DTYPE_t[:, ::1] fit_mv, int position) nogil:
+cdef int weighted_linear_fit(DTYPE_t[::1] datax, 
+                                 DTYPE_t[::1] datay, 
+                                 DTYPE_t[::1] weight, 
+                                 int data_start, 
+                                 int data_end, 
+                                 DTYPE_t[:, ::1] fit_mv, 
+                                 int position) nogil:
     """Calculates a fit to intercept-slope*x, weighted by w. s
         Input:
-        x, y: The dataset to be fitted.
-        w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
-        data_start and data_end: start and end for this fit
+        :param x, y: two dataset to be fitted.
+        :param w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
+        :param data_start: first valid point in arrays
+        :param data_end: last valid point in arrays
+        :param fit_mv: output array with result: has to be an array of nx4
+        :param position: the index in fit_mv where result should be written  
+        
         Returns results: intercept, sigma_intercept, slope, sigma_slope
                         in the array fit_mv at the given position 
     """
@@ -245,44 +257,51 @@ cdef DTYPE_t weighted_linear_fit(DTYPE_t[::1] datax, DTYPE_t[::1] datay, DTYPE_t
         # xopt = (intercept, slope)
         # dx = (sigma_intercept, sigma_slope)
         # Returns results: intercept, sigma_intercept, slope, sigma_slope
-        fit_mv[position, 4] = slope
-        fit_mv[position, 5] = sigma_slope
-        fit_mv[position, 6] = intercept
-        fit_mv[position, 7] = sigma_intercept
-#     else:
-#         fit_mv[position, 4:8] = 0.0
-    return intercept
+        fit_mv[position, 0] = slope
+        fit_mv[position, 1] = sigma_slope
+        fit_mv[position, 2] = intercept
+        fit_mv[position, 3] = sigma_intercept
+        return 0
+    else:
+        return -1
 
-def linFit(x,y,w):
-    """wrapper for testing of weighted_linear_fit
-        x, y: The dataset to be fitted.
-        w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
-        Returns results: tuple (intercept,slope)
+
+def linear_fit(x, y, w):
+    """Wrapper for testing of weighted_linear_fit from Python
+    
+    :param x, y: The dataset to be fitted.
+    :param w: The weight fot the individual points in x,y. Typically w would be 1/yerr² or 1/(yerr²+a²xerr²)
+    :return: FIT_RESULT namedtuple with slope, sigma_slope intercept, sigma_intercept 
     """
     cdef:
-        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr  
         DTYPE_t[::1] datax, datay, weight 
-        int data_start, data_end, position, size
+        int size, er
         DTYPE_t[:, ::1] fit_mv
-        
-    size = len(x)
     
-    datax= numpy.empty(size, dtype=DTYPE)
-    datay= numpy.empty(size, dtype=DTYPE)
-    weight= numpy.empty(size, dtype=DTYPE)
-    fit_mv = numpy.zeros((1, 13), dtype=DTYPE)
-    for i in range(size):
-        datax[i] = x[i]
-        datay[i] = y[i]
-        weight[i] = w[i]
-        
-    intercept = weighted_linear_fit(datax, datay, weight, 0, 15, fit_mv, 0)   
+    datax = numpy.ascontiguousarray(x, dtype=DTYPE) 
+    datay = numpy.ascontiguousarray(y, dtype=DTYPE)
+    weight= numpy.ascontiguousarray(w, dtype=DTYPE)
+    size = datax.shape[0]
+    assert datay.shape[0] == size, "y size matches"
+    assert weight.shape[0] == size
+    fit_mv = numpy.zeros((1, 4), dtype=DTYPE)
+    with nogil:
+        er = weighted_linear_fit(datax, datay, weight, 0, size, fit_mv, 0)
+    if er != 0:
+        raise ArithmeticError("Null determinant in linear regression") 
      
-    return (fit_mv[0,6], fit_mv[0,4])    
+    return FIT_RESULT(*fit_mv[0])    
 
-cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
-                      int start, int end, DTYPE_t offset, DTYPE_t slope,
-                      DTYPE_t[:, ::1] fit_mv, int position) nogil:
+
+cdef DTYPE_t calc_chi(DTYPE_t[::1] x, 
+                      DTYPE_t[::1]y, 
+                      DTYPE_t[::1] w,
+                      int start, 
+                      int end, 
+                      DTYPE_t offset, 
+                      DTYPE_t slope,
+                      DTYPE_t[:, ::1] fit_mv, 
+                      int position) nogil:
     """Calculate the r_sqr, chi_sqr and reduced_chi_sqr to be saved in fit_data"""
     cdef: 
         int idx, size
@@ -324,33 +343,34 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x, DTYPE_t[::1]y, DTYPE_t[::1] w,
     #    chi_sqr = (diff2*yw).sum()
     reduced_chi_sqr = chi_sqr / (size - 2)
     
-    fit_mv[position, 10] = r_sqr
-    fit_mv[position, 11] = chi_sqr
-    fit_mv[position, 12] = reduced_chi_sqr
+    fit_mv[position, 0] = r_sqr
+    fit_mv[position, 1] = chi_sqr
+    fit_mv[position, 2] = reduced_chi_sqr
     return r_sqr
 
-
-def autoRg(sasm):
-    """This function automatically calculates the radius of gyration and scattering intensity at zero angle
-    from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
-    Input:
-    sasm: An array of q, I(q), dI(q)
+def quality_fit(sasm, 
+                int start=0,
+                int stop=-1):
+    """A function to calculate all the parameter vector (used to asses the quality) 
+    
+    :param sasm: An array of q, I(q), dI(q)
+    :param start: first point of the Guinier region
+    :param stop: last point of the Guinier region
+    :return: a 13-vector of floats, used as criteria to find the guinier region 
+     
+    0:4 start, window_size, q_ary[start], q_ary[end - 1], 
+    4:8 slope, sigma_slope, intercept, sigma_intercept
+    8:10 q2_ary[start] * slope. q2_ary[ststop] * slope
+    10:13: R², chi², reduced_chi²
     """
     cdef:
-        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr
-        bint aggregated = 0
-        cnumpy.ndarray qualities
-        DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
-        DTYPE_t[::1] fit_data
-        int[::1] offsets, data_range
-        int raw_size, currated_size, data_start, data_end, data_step
-        int min_window, max_window, window_size, window_step 
-        int start, end, nb_fit, array_size, block_size=39 #page of 4k
-        int idx_min, idx_max, idx
-        DTYPE_t[:, ::1] fit_mv, tmp_mv
-        cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
-        
-    raw_size = len(sasm)
+        int nb_fit = 0
+        DTYPE_t[:, ::1] result 
+        DTYPE_t[::1] q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary
+        cnumpy.int32_t[::1] offsets, data_range
+
+    result = numpy.zeros(1, 13, dtype=DTYPE)
+    raw_size = sasm.shape[0]
     q_ary = numpy.empty(raw_size, dtype=DTYPE)
     i_ary = numpy.empty(raw_size, dtype=DTYPE)
     sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
@@ -362,37 +382,89 @@ def autoRg(sasm):
     
     currate_data(sasm, q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary, offsets, data_range)
     
-    data_start, data_end, currated_size = data_range
+    result[nb_fit, 0] = start
+    result[nb_fit, 1] = stop - start 
+    result[nb_fit, 2] = q_ary[start]
+    result[nb_fit, 3] = q_ary[stop - 1]
+
+    err = weighted_linear_fit(q2_ary, lgi_ary, wg_ary, start, stop, result[:, 4:8], nb_fit)
+
+    if (err != 0):
+            logger.error("Null determinant in linear regression")
+            return []
+    slope = result[nb_fit, 4] 
+    sigma_slope = result[nb_fit, 5] 
+    intercept = result[nb_fit, 6]
+    lower = q2_ary[start] * slope
+    upper = q2_ary[stop - 1] * slope
+
+    result[nb_fit, 8] = lower 
+    result[nb_fit, 9] = upper
+    calc_chi(q2_ary, lgi_ary, wg_ary, start, stop, 
+             intercept, slope, result[:, 10:], nb_fit)
+    return result[0]
+
+def autoRg(sasm):
+    """This function automatically calculates the radius of gyration and scattering intensity at zero angle
+    from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
     
-    logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
-   
-    if (data_end - data_start) < 10:
-        raise InsufficientDataError()
-  
-    # Pick a minimum fitting window size. 10 is consistent with atsas autorg.
-    min_window = 10
-    max_window = data_end - data_start
-
-    # It is very time consuming to search every possible window size and every 
-    # possible starting point.
-    # Here we define a subset to search.
-    window_step = max_window // 10
-    data_step = max_window // 50
-
-    if window_step == 0:
-        window_step = 1
-    if data_step == 0:
-        data_step = 1
-
+    :param sasm: An array of q, I(q), dI(q)
+    :return: RG_RESULT named tuple with the result of the fit
+    """
+    cdef:
+        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr
+        bint aggregated = 0
+        cnumpy.ndarray qualities
+        DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
+        DTYPE_t[::1] fit_data
+        cnumpy.int32_t[::1] offsets, data_range
+        int raw_size, currated_size, data_start, data_end, data_step
+        int min_window, max_window, window_size, window_step 
+        int start, end, nb_fit, array_size, block_size=39 #page of 4k
+        int idx_min, idx_max, idx, err
+        DTYPE_t[:, ::1] fit_mv, tmp_mv
+        cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
+        
+    raw_size = sasm.shape[0]
+    q_ary = numpy.empty(raw_size, dtype=DTYPE)
+    i_ary = numpy.empty(raw_size, dtype=DTYPE)
+    sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
+    q2_ary = numpy.empty(raw_size, dtype=DTYPE)
+    lgi_ary = numpy.empty(raw_size, dtype=DTYPE)
+    wg_ary = numpy.empty(raw_size, dtype=DTYPE)
+    offsets = numpy.empty(raw_size, dtype=numpy.int32)
+    data_range = numpy.zeros(3, dtype=numpy.int32)
     array_size = block_size
-    nb_fit = 0
     fit_mv = numpy.zeros((array_size, 13), dtype=DTYPE)
+
+    currate_data(sasm, q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary, offsets, data_range)
+    with nogil:
+        nb_fit = 0
+        data_start = data_range[0]
+        data_end = data_range[1]
+        currated_size = data_range[2]
+#     with gil:
+#         logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
+    
+        # Pick a minimum fitting window size. 10 is consistent with atsas autorg.   
+        min_window = 10
+        max_window = data_end - data_start
+    
+        if (data_end - data_start) < min_window:
+            with gil:
+                raise InsufficientDataError("Length of linear region, from %s to %s, is less than %s points long"%(data_end, data_start, min_window))
+  
+    
     # This function takes every window size in the window list, stepts it through 
     # the data range, and fits it to get the RG and I0. If basic conditions are 
     # met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
     # We keep the fit.
-    with nogil:
-        #for window_size in range(min_window, max_window + 1 , window_step):
+#     with nogil:
+        # It is very time consuming to search every possible window size and every 
+        # possible starting point.
+        # Here we define a subset to search.
+        window_step = max(max_window // 10, 1)
+        data_step = max(max_window // 50, 1)
         for window_size from min_window <= window_size < max_window + 1 by window_step:
             #for start in range(data_start, data_end - window_size, data_step):
             for start from data_start <= start < data_end - window_size by data_step:
@@ -403,16 +475,16 @@ def autoRg(sasm):
                 fit_mv[nb_fit, 2] = q_ary[start]
                 fit_mv[nb_fit, 3] = q_ary[end - 1]
 
-                intercept = weighted_linear_fit(q2_ary, lgi_ary, wg_ary, start, end, fit_mv, nb_fit)
+                err = weighted_linear_fit(q2_ary, lgi_ary, wg_ary, start, end, fit_mv[:, 4:8], nb_fit)
 
-                if (intercept == 0):
+                if (err != 0):
                     with gil:
-                        logger.error("Null determiant")
+                        logger.error("Null determinant in linear regression")
                         continue
     
                 slope = fit_mv[nb_fit, 4] 
                 sigma_slope = fit_mv[nb_fit, 5] 
-
+                intercept = fit_mv[nb_fit, 6]
                 lower = q2_ary[start] * slope
                 upper = q2_ary[start + window_size - 1] * slope
 
@@ -424,7 +496,7 @@ def autoRg(sasm):
                 if (slope > 3e-5) and (lower < 0.33) and (upper < 0.6075) \
                         and (sigma_slope / slope <= 1):
                     r_sqr = calc_chi(q2_ary, lgi_ary, wg_ary, start, end, 
-                                     intercept, slope, fit_mv, nb_fit)
+                                     intercept, slope, fit_mv[:, 10:13], nb_fit)
                     if r_sqr > .15:
                         nb_fit += 1
                         if nb_fit >= array_size:
@@ -435,13 +507,10 @@ def autoRg(sasm):
                                 fit_mv = tmp_mv
                     else:
                         #reset data
-                        for idx in range(13):
-                            fit_mv[nb_fit, idx] = 0.0
+                        fit_mv[nb_fit, :] = 0.0
                 else:
-                    for idx in range(13):
-                        fit_mv[nb_fit, idx] = 0.0
+                        fit_mv[nb_fit, :] = 0.0
     
-
     logger.debug("Number of valid fits: %s ", nb_fit)
                     
     if nb_fit == 0:
@@ -497,8 +566,8 @@ def autoRg(sasm):
                 i0er = i0 * daer
                 idx_min = int(fit_array[idx, 0])
                 idx_max = int(fit_array[idx, 0] + fit_array[idx, 1] - 1.0)
-                idx_min_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 3]))
-                idx_max_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 4]))
+#                 idx_min_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 3]))
+#                 idx_max_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 4]))
             except:
                 
                 idx = qualities.argmax()

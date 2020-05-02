@@ -25,12 +25,12 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "30/04/2020"
+__date__ = "02/05/2020"
 
 import numpy
 import unittest
 from .utilstests import get_datafile
-from ..autorg import autoRg, RG_RESULT, linFit
+from ..autorg import autoRg, RG_RESULT, linear_fit
 from .._bift import distribution_sphere
 from math import sqrt, pi
 import logging
@@ -101,10 +101,10 @@ class TestFit(unittest.TestCase):
         # logger.debug("Reference version: %s" % atsas_result.pop("Version"))
         # atsas_result = RG_RESULT(**atsas_result)
         # free_result = autoRg(data)
-        fit_result = linFit(self.testx, self.testy, self.testw)
+        fit_result = linear_fit(self.testx, self.testy, self.testw)
         # print(fit_result)
-        self.assertAlmostEqual(fit_result[0], self.testintercept, 5, "Intercept fits wihtin 4(?) digits")
-        self.assertAlmostEqual(fit_result[1], self.testslope, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.intercept, self.testintercept, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, self.testslope, 5, "Intercept fits wihtin 4(?) digits")
 
 
 def suite():
