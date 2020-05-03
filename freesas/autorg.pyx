@@ -73,8 +73,8 @@ cdef:
     int RATIO_INTENSITY = 10  # start with range from Imax -> Imax/10
     DTYPE_t RG_MIN = 0.0098   # minimum value ever found in Atsas
     # TODO: finish
-    DTYPE_t Q_RG_MIN = 1      # minimum value ever found in Atsas
-    DTYPE_t Q_RG_MAX = 1      # minimum value ever found in Atsas
+    DTYPE_t Q_MIN_RG = 1      # minimum value ever found in Atsas
+    DTYPE_t Q_MAX_RG = 1      # minimum value ever found in Atsas
     
 qmaxrg_weight = 1.0
 qminrg_weight = 0.1
@@ -369,7 +369,7 @@ def quality_fit(sasm,
         DTYPE_t[::1] q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary
         cnumpy.int32_t[::1] offsets, data_range
 
-    result = numpy.zeros(1, 13, dtype=DTYPE)
+    result = numpy.zeros((1, 13), dtype=DTYPE)
     raw_size = sasm.shape[0]
     q_ary = numpy.empty(raw_size, dtype=DTYPE)
     i_ary = numpy.empty(raw_size, dtype=DTYPE)
@@ -402,7 +402,7 @@ def quality_fit(sasm,
     result[nb_fit, 9] = upper
     calc_chi(q2_ary, lgi_ary, wg_ary, start, stop, 
              intercept, slope, result[:, 10:], nb_fit)
-    return result[0]
+    return numpy.asarray(result[0])
 
 def autoRg(sasm):
     """This function automatically calculates the radius of gyration and scattering intensity at zero angle
