@@ -70,11 +70,14 @@ ctypedef cnumpy.float64_t DTYPE_t
 # Definition of a few constants
 cdef: 
     DTYPE_t[::1] WEIGHTS
-    int RATIO_INTENSITY = 10  # start with range from Imax -> Imax/10
-    DTYPE_t RG_MIN = 0.0098   # minimum value ever found in Atsas
-    # TODO: finish
-    DTYPE_t Q_MIN_RG = 1      # minimum value ever found in Atsas
-    DTYPE_t Q_MAX_RG = 1      # minimum value ever found in Atsas
+    int RATIO_INTENSITY = 10   # start with range from Imax -> Imax/10
+    DTYPE_t RG_MIN = 0.0098    # minimum acceptable value
+    DTYPE_t Q_MIN_RG_MAX = 1.0 # maximum acceptable values
+    DTYPE_t Q_MAX_RG_MAX = 1.3 # maximum acceptable values
+    # DERIVED VALUES
+    DTYPE_t RG2_MIN = RG_MIN*RG_MIN
+    DTYPE_t Q2_MIN_RG2_MAX = Q_MIN_RG_MAX*Q_MIN_RG_MAX
+    DTYPE_t Q2_MAX_RG2_MAX = Q_MAX_RG_MAX*Q_MAX_RG_MAX
     
 qmaxrg_weight = 1.0
 qminrg_weight = 0.1
@@ -190,16 +193,16 @@ def currate_data(floating[:, :] data,
              
 
 cdef int weighted_linear_fit(DTYPE_t[::1] datax, 
-                                 DTYPE_t[::1] datay, 
-                                 DTYPE_t[::1] weight, 
-                                 int data_start, 
-                                 int data_end, 
-                                 DTYPE_t[:, ::1] fit_mv, 
-                                 int position) nogil:
+                             DTYPE_t[::1] datay, 
+                             DTYPE_t[::1] weight, 
+                             int data_start, 
+                             int data_end, 
+                             DTYPE_t[:, ::1] fit_mv, 
+                             int position) nogil:
     """Calculates a fit to intercept-slope*x, weighted by w. s
         Input:
         :param x, y: two dataset to be fitted.
-        :param w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2.
+        :param w: The weight fot the individual points in x,y. Typically w would be 1/yerr**2 or 1/(yerr²+a²xerr²).
         :param data_start: first valid point in arrays
         :param data_end: last valid point in arrays
         :param fit_mv: output array with result: has to be an array of nx4
@@ -245,7 +248,7 @@ cdef int weighted_linear_fit(DTYPE_t[::1] datax,
     if fabs(detA) > 1e-100:
         # x = [-sigma_wxx*sigma_wy + sigma_wx*sigma_wxy,-sigma_wx*sigma_wy+sigma_w*sigma_wxy]/detA
         intercept = (-sigma_wxx * sigma_wy + sigma_wx * sigma_wxy) / detA
-        slope = (-sigma_wx * sigma_wy + sigma_w * sigma_wxy) / detA
+        slope = (+sigma_wx * sigma_wy - sigma_w * sigma_wxy) / detA
         xmean = sigma_ux / size
         ymean = sigma_uy / size
         xmean2 = xmean * xmean
@@ -324,7 +327,7 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
     chi_sqr = 0.0
     for idx in range(start, end):
         one_y = y[idx]
-        value = (one_y - (offset - slope * x[idx]))
+        value = (one_y - (offset + slope * x[idx]))
         value2 = value * value
         sum_n += value2
         sum_y += one_y
@@ -343,9 +346,9 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
     #    chi_sqr = (diff2*yw).sum()
     reduced_chi_sqr = chi_sqr / (size - 2)
     
-    fit_mv[position, 0] = r_sqr
-    fit_mv[position, 1] = chi_sqr
-    fit_mv[position, 2] = reduced_chi_sqr
+    fit_mv[position, 0] = r_sqr           #8
+    fit_mv[position, 1] = chi_sqr         #
+    fit_mv[position, 2] = reduced_chi_sqr #
     return r_sqr
 
 def quality_fit(sasm, 
@@ -395,11 +398,11 @@ def quality_fit(sasm,
     slope = result[nb_fit, 4] 
     sigma_slope = result[nb_fit, 5] 
     intercept = result[nb_fit, 6]
-    lower = q2_ary[start] * slope
-    upper = q2_ary[stop - 1] * slope
+    q2Rg2_lower = q2_ary[start] * slope
+    q2Rg2_upper = q2_ary[stop - 1] * slope
 
-    result[nb_fit, 8] = lower 
-    result[nb_fit, 9] = upper
+    result[nb_fit, 8] = q2Rg2_lower 
+    result[nb_fit, 9] = q2Rg2_upper
     calc_chi(q2_ary, lgi_ary, wg_ary, start, stop, 
              intercept, slope, result[:, 10:], nb_fit)
     return numpy.asarray(result[0])
@@ -412,7 +415,7 @@ def autoRg(sasm):
     :return: RG_RESULT named tuple with the result of the fit
     """
     cdef:
-        DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr
+        DTYPE_t quality, intercept, slope, sigma_slope, q2Rg2_lower, q2_Rg2_upper, r_sqr
         bint aggregated = 0
         cnumpy.ndarray qualities
         DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
@@ -485,20 +488,20 @@ def autoRg(sasm):
                 slope = fit_mv[nb_fit, 4] 
                 sigma_slope = fit_mv[nb_fit, 5] 
                 intercept = fit_mv[nb_fit, 6]
-                lower = q2_ary[start] * slope
-                upper = q2_ary[start + window_size - 1] * slope
+                q2Rg2_lower = -q2_ary[start] * slope
+                q2_Rg2_upper = -q2_ary[start + window_size - 1] * slope
 
-                fit_mv[nb_fit, 8] = lower 
-                fit_mv[nb_fit, 9] = upper
-                
+                fit_mv[nb_fit, 8] = q2Rg2_lower 
+                fit_mv[nb_fit, 9] = q2_Rg2_upper
                 # check the validity of the model with some physics
                 # i. e qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
-                if (slope > 3e-5) and (lower < 0.33) and (upper < 0.6075) \
-                        and (sigma_slope / slope <= 1):
+                if (-slope > RG2_MIN) and (q2Rg2_lower <Q2_MIN_RG2_MAX) and (q2_Rg2_upper < Q2_MAX_RG2_MAX) \
+                        and (-sigma_slope / slope <= 1):
                     r_sqr = calc_chi(q2_ary, lgi_ary, wg_ary, start, end, 
                                      intercept, slope, fit_mv[:, 10:13], nb_fit)
                     if r_sqr > .15:
                         nb_fit += 1
+                        # Allocate some more memory if needed
                         if nb_fit >= array_size:
                             array_size *= 2
                             with gil:
@@ -557,7 +560,7 @@ def autoRg(sasm):
                 idx = qualities.argmax()
                 #rg = fit_array[:,4][qualities>qualities[idx]-.1].mean()
                 
-                rg = sqrt(3. * fit_array[idx, 4])
+                rg = sqrt(-3. * fit_array[idx, 4])
                 dber = fit_array[:, 5][qualities > qualities[idx] - .1].std()
                 rger = 0.5 * sqrt(3. / rg) * dber
                 i0 = exp(fit_array[idx, 6])
@@ -571,7 +574,7 @@ def autoRg(sasm):
             except:
                 
                 idx = qualities.argmax()
-                rg = sqrt(3. * fit_array[idx, 4])
+                rg = sqrt(-3. * fit_array[idx, 4])
                 rger = 0.5 * sqrt(3. / rg) * fit_array[idx, 5]
                 i0 = exp(fit_array[idx, 6])
                 i0er = i0 * fit_array[idx, 7]

@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "02/05/2020"
+__date__ = "04/05/2020"
 
 import numpy
 import unittest
@@ -33,6 +33,7 @@ from .utilstests import get_datafile
 from ..autorg import autoRg, RG_RESULT, linear_fit
 from .._bift import distribution_sphere
 from math import sqrt, pi
+from scipy.stats import linregress
 import logging
 logger = logging.getLogger(__name__)
 
@@ -89,29 +90,47 @@ class TestAutoRg(unittest.TestCase):
 
 class TestFit(unittest.TestCase):
     # Testcase originally comes from wikipedia article on linear regression, expected results from scipy.stats.linregress
-    testx = [1.47, 1.5, 1.52, 1.55, 1.57, 1.6, 1.63, 1.65, 1.68, 1.7, 1.73, 1.75, 1.78, 1.80, 1.83]
-    testy = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.1, 69.92, 72.19, 74.46]
-    testw = [1.0] * 15
-    testintercept = -39.061956
-    testslope = -61.2721865
 
-    def test_linFit(self):
-        print("Testing Linear Fitting")
-        # fit_result = self.atsas_autorg.copy()
-        # logger.debug("Reference version: %s" % atsas_result.pop("Version"))
-        # atsas_result = RG_RESULT(**atsas_result)
-        # free_result = autoRg(data)
-        fit_result = linear_fit(self.testx, self.testy, self.testw)
+    def test_linear_fit_static(self):
+        testx = [1.47, 1.5, 1.52, 1.55, 1.57, 1.6, 1.63, 1.65, 1.68, 1.7, 1.73, 1.75, 1.78, 1.80, 1.83]
+        testy = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.1, 69.92, 72.19, 74.46]
+        testw = [1.0] * 15
+        testintercept = -39.061956
+        testslope = +61.2721865
+        fit_result = linear_fit(testx, testy, testw)
         # print(fit_result)
-        self.assertAlmostEqual(fit_result.intercept, self.testintercept, 5, "Intercept fits wihtin 4(?) digits")
-        self.assertAlmostEqual(fit_result.slope, self.testslope, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.intercept, testintercept, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, testslope, 5, "Intercept fits wihtin 4(?) digits")
+
+    def test_linspace(self):
+        size = 100
+        x = numpy.linspace(-10, 10, size)
+        y = numpy.linspace(10, 0, size)
+        w = numpy.random.random(size)
+        fit_result = linear_fit(x, y, w)
+        # print(fit_result)
+        self.assertAlmostEqual(fit_result.intercept, 5, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, -0.5, 5, "Intercept fits wihtin 4(?) digits")
+
+    def test_random(self):
+        size = 100
+        x = numpy.random.random(size)
+        y = 1.6 * x + 5 + numpy.random.random(size)
+        w = numpy.ones(size)
+        fit_result = linear_fit(x, y, w)
+        ref = linregress(x, y)
+        # print(fit_result)
+        self.assertAlmostEqual(fit_result.intercept, ref[1], 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, ref[0], 5, "Intercept fits wihtin 4(?) digits")
 
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAutoRg("test_atsas"))
     testSuite.addTest(TestAutoRg("test_synthetic"))
-    testSuite.addTest(TestFit("test_linFit"))
+    testSuite.addTest(TestFit("test_linear_fit_static"))
+    testSuite.addTest(TestFit("test_linspace"))
+    testSuite.addTest(TestFit("test_linear_fit_static"))
     return testSuite
 
 
