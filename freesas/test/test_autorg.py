@@ -22,6 +22,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from _weakref import ref
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
@@ -119,9 +120,10 @@ class TestFit(unittest.TestCase):
         w = numpy.ones(size)
         fit_result = linear_fit(x, y, w)
         ref = linregress(x, y)
-        # print(fit_result)
+#         print(ref, fit_result)
         self.assertAlmostEqual(fit_result.intercept, ref[1], 5, "Intercept fits wihtin 4(?) digits")
         self.assertAlmostEqual(fit_result.slope, ref[0], 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.R2, ref.rvalue ** 2, 5, "R² value matcheswihtin 4(?) digits")
 
 
 def suite():
