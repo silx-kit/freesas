@@ -470,9 +470,9 @@ cdef class AutoRG:
                     calc_chi(q2_ary, lnI_ary, wg_ary, s, e, 
                              intercept, slope, result[:, 12:16], nb_fit)
                     #Calculate the descriptor ...
-                    result[nb_fit, 16] = (e-s)/(stop)                       # 16: window_size_score = (e-s)/(stop-start) [0 - 1]
+                    result[nb_fit, 16] = <double>(e-s)/<double>stop                  # 16: window_size_score = (e-s)/(stop-start) [0 - 1]
                     result[nb_fit, 17] = Rg2 - self.rg2_min                 # 17: Rg_score = Rg² - Rg_min²
-                    result[nb_fit, 18] = 1.0 / result[nb_fit, 15]           # 18: rmsd_score = 1.0 / rmsd
+                    result[nb_fit, 18] = 1.0 - result[nb_fit, 15]           # 18: rmsd_score = 1.0 / rmsd
                     result[nb_fit, 19] = result[nb_fit, 15] ** 4            # 19: R²_score = (R²-value) ** 4 
                     result[nb_fit, 20] = 1.0 - q2Rg2_upper/self.q2maxrg2max # 20: qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
                     result[nb_fit, 21] = 1.0 - q2Rg2_lower/self.q2minrg2max # 21: qminrg_score =  #quadratic penalty for qmin_Rg > 1 value is 1 at 0 and 0 at 1
