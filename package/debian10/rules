@@ -42,10 +42,7 @@ override_dh_installman:
 	dh_installman -p freesas build/man/*.1
 
 override_dh_sphinxdoc:
-#ifeq (,$(findstring nodocs, $(DEB_BUILD_OPTIONS)))
-#	mkdir -p -m 700 $(XDG_RUNTIME_DIR)
-#	pybuild --build -s custom -p $(PY3VER) --build-args="cd doc && env PYTHONPATH={build_dir} http_proxy='127.0.0.1:9' xvfb-run -a --server-args=\"-screen 0 1024x768x24\" {interpreter} -m sphinx -N -bhtml source build/html"
+	python3 setup.py build build_man build_doc
 	dh_installdocs "build/sphinx/html" -p python-freesas-doc --doc-main-package=python3-freesas
 	dh_sphinxdoc -O--buildsystem=pybuild
-#endif
 

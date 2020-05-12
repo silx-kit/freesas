@@ -24,7 +24,7 @@
 
 __authors__ = ["V. Valls"]
 __license__ = "MIT"
-__date__ = "06/05/2020"
+__date__ = "12/05/2020"
 
 from numpy.distutils.misc_util import Configuration
 import platform
@@ -68,7 +68,7 @@ def configuration(parent_package='', top_path=None):
     ext_modules = [
         create_extension_config("_distance", can_use_openmp=True),
         create_extension_config("_cormap", can_use_openmp=False),
-        create_extension_config("autorg", can_use_openmp=False),
+        create_extension_config("_autorg", can_use_openmp=False),
         create_extension_config("_bift", can_use_openmp=False),
     ]
 
