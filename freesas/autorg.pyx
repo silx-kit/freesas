@@ -55,7 +55,7 @@ FIT_RESULT = namedtuple("FIT_RESULT", "slope sigma_slope intercept sigma_interce
 import cython
 cimport numpy as cnumpy
 import numpy as numpy 
-from libc.math cimport sqrt, log, fabs, exp
+from libc.math cimport sqrt, log, fabs, exp, atanh
 from .isnan cimport isfinite 
 from cython cimport floating
 import logging
@@ -286,7 +286,7 @@ cdef class AutoRG:
         weights: those parameters are used to measure the best region
         :param 
         """
-        self.storage_size = 24
+        self.storage_size = 20
         self.weight_size = 7
         self.min_size = min_size
         self.ratio_intensity = ratio_intensity
@@ -365,6 +365,12 @@ cdef class AutoRG:
                 if (idx-start)<=self.min_size:
                     i_min = i_max = 0.0
                     start = - self.min_size -1
+        #Extend the range to stlightly below the max value
+        for idx in range(start, start - self.min_size, -1):
+            if isfinite(q[idx]):
+                start = idx;
+            else:
+                break
         return start, end+1
 
     cpdef guinier_space(self, 
@@ -469,15 +475,20 @@ cdef class AutoRG:
                     result[nb_fit, 11] = exp(intercept)
                     calc_chi(q2_ary, lnI_ary, wg_ary, s, e, 
                              intercept, slope, result[:, 12:16], nb_fit)
+                    if result[nb_fit, 13]<=0:  # R² <0
+                        result[nb_fit, :] = 0.0
+                        continue
                     #Calculate the descriptor ...
                     result[nb_fit, 16] = <double>(e-s)/<double>stop                  # 16: window_size_score = (e-s)/(stop-start) [0 - 1]
-                    result[nb_fit, 17] = Rg2 - self.rg2_min                 # 17: Rg_score = Rg² - Rg_min²
-                    result[nb_fit, 18] = 1.0 - result[nb_fit, 15]           # 18: rmsd_score = 1.0 / rmsd
-                    result[nb_fit, 19] = result[nb_fit, 15] ** 4            # 19: R²_score = (R²-value) ** 4 
-                    result[nb_fit, 20] = 1.0 - q2Rg2_upper/self.q2maxrg2max # 20: qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
-                    result[nb_fit, 21] = 1.0 - q2Rg2_lower/self.q2minrg2max # 21: qminrg_score =  #quadratic penalty for qmin_Rg > 1 value is 1 at 0 and 0 at 1
-                    result[nb_fit, 22] = 1.0 - sigma_slope/slope            # 22: rg_error_score = 1.0 - sigma_Rg/Rg
-                    result[nb_fit, 23] = 1.0 - sigma_intercept/intercept    # 23: I0_error_score = 1.0 - sigma_I0/I0
+                    #result[nb_fit, 17] = -<double>s/<double>stop
+                    #result[nb_fit, 17] = Rg2 - self.rg2_min                 # 17: Rg_score = Rg² - Rg_min²
+                    #result[nb_fit, 18] = -result[nb_fit, 15]           # 18: rmsd_score = 1.0 / rmsd
+                    result[nb_fit, 17] = (result[nb_fit, 13])**4            # 19: R²_score = (R²-value) ** 4 
+                    result[nb_fit, 18] = 1.0 - (self.q2maxrg2max/q2Rg2_upper)   # 20: qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
+                    result[nb_fit, 19] = (Rg2/self.rg2_min) - 1.0
+                    #result[nb_fit, 21] = - q2Rg2_lower/self.q2minrg2max # 21: qminrg_score =  #quadratic penalty for qmin_Rg > 1 value is 1 at 0 and 0 at 1
+                    #result[nb_fit, 22] = 1.0 - sigma_slope/slope            # 22: rg_error_score = 1.0 - sigma_Rg/Rg
+                    #result[nb_fit, 23] = 1.0 - sigma_intercept/intercept    # 23: I0_error_score = 1.0 - sigma_I0/I0
                     
                     nb_fit +=1
                     if nb_fit >= array_size:
