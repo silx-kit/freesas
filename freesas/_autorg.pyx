@@ -172,59 +172,49 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
                       DTYPE_t[::1] w,
                       int start, 
                       int end, 
-                      DTYPE_t offset, 
+                      DTYPE_t intercept, 
                       DTYPE_t slope,
                       DTYPE_t[:, ::1] fit_mv, 
                       int position) nogil:
-    """Calculate the rvalue, r², chi² and reduced_chi² to be saved in fit_data"""
+    """Calculate the rvalue, r², chi² and weigted RMSD to be saved in fit_data"""
     cdef: 
         int idx, size
-        DTYPE_t residual, sum_n, sum_y, sum_d, one_y, r_sqr, mean_y, residual2, sum_w
-        DTYPE_t reduced_chi_sqr, chi_sqr, one_w
+        DTYPE_t residual, sum_n, sum_y, sum_d, one_y, R2, mean_y, residual2, sum_w
+        DTYPE_t chi2, one_w, pred_y
     
-
     size = end - start
-
     sum_n = 0.0
     sum_y = 0.0
     sum_d = 0.0
     sum_w = 0.0
-    chi_sqr = 0.0
-    
+    chi2 = 0.0
     for idx in range(start, end):
         one_y = y[idx]
         one_w = w[idx]
-        residual = (one_y - (offset + slope * x[idx]))
+        pred_y = slope * x[idx] + intercept 
+        residual = one_y - pred_y
         residual2 = residual * residual
         sum_n += residual2
         sum_y += one_y
         sum_w += one_w  
-        chi_sqr += residual2 * one_w
+        chi2 += residual2 * one_w
     mean_y = sum_y / size
-    
     for idx in range(start, end):
         one_y = y[idx]
         residual = one_y - mean_y
         sum_d += residual * residual
-
-    r_sqr = 1.0 - sum_n / sum_d
-    #r_sqr = 1 - diff2.sum()/((y-y.mean())*(y-y.mean())).sum()
+    R2 = 1.0 - sum_n / sum_d
     
-    #if r_sqr > .15:
-    #    chi_sqr = (diff2*yw).sum()
-    reduced_chi_sqr = chi_sqr / (size - 2)
-    
-    fit_mv[position, 0] = sqrt(r_sqr)           #r_value
-    fit_mv[position, 1] = r_sqr                 #r²_value
-    fit_mv[position, 2] = chi_sqr               # chi²
-    #fit_mv[position, 3] = reduced_chi_sqr      # reduces chi²
-    fit_mv[position, 3] = sqrt(chi_sqr/sum_w)   # weigted RMSD
-    return r_sqr
+    fit_mv[position, 0] = sqrt(R2)           #r_value
+    fit_mv[position, 1] = R2                 #r²_value
+    fit_mv[position, 2] = chi2               # chi²
+    fit_mv[position, 3] = sqrt(chi2/sum_w)   # weigted RMSD
+    return R2
 
 
 def linear_fit(x, y, w, 
                int start=0, 
-               int stop=-1):
+               int stop=0):
     """Wrapper for testing of weighted_linear_fit from Python
     
     :param x, y: The dataset to be fitted.
@@ -237,7 +227,6 @@ def linear_fit(x, y, w,
         DTYPE_t[::1] datax, datay, weight 
         int size, er
         DTYPE_t[:, ::1] fit_mv
-    
     datax = numpy.ascontiguousarray(x, dtype=DTYPE) 
     datay = numpy.ascontiguousarray(y, dtype=DTYPE)
     weight= numpy.ascontiguousarray(w, dtype=DTYPE)
@@ -246,7 +235,7 @@ def linear_fit(x, y, w,
     assert weight.shape[0] == size
     fit_mv = numpy.zeros((1, 8), dtype=DTYPE)
     if stop<=0:
-        stop = size - stop
+        stop = size + stop
     with nogil:
         er = weighted_linear_fit(datax, datay, weight, start, size, fit_mv[:, :4], 0)
         if er != 0:
@@ -256,7 +245,6 @@ def linear_fit(x, y, w,
             calc_chi(datax, datay, weight,
                      start, stop, fit_mv[0, 2], fit_mv[0, 0], 
                      fit_mv[:, 4:], 0)
-        
     return FIT_RESULT(*fit_mv[0])    
 
 

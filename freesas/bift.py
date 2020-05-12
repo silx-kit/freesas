@@ -23,7 +23,7 @@ from math import log, ceil
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import auto_gpa
+from .autorg import auto_gpa, autoRg
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
@@ -54,6 +54,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
         except:
             logger.error("GPA analysis failed !")
             raise
+#         print(Guinier)
         if Guinier.Rg <= 0:
             raise RuntimeError("No Guinier region was found in experimental data")
         Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
