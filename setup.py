@@ -810,7 +810,7 @@ def get_project_configuration(dry_run):
     }
 
     entry_points = {
-        'console_scripts': ['auto_gpa.py = freesas.app.auto_gpa:main'
+        'console_scripts': ['auto_gpa.py = freesas.app.auto_gpa:main',
                             'autorg.py = freesas.app.autorg:main',
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',
