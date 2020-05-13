@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "12/05/2020"
+__date__ = "13/05/2020"
 
 import numpy
 import unittest
@@ -88,6 +88,7 @@ class TestAutoRg(unittest.TestCase):
         self.assertLess(I0, Rg.I0 + Rg.sigma_I0, "I0 matches for a sphere")
 
         gpa = auto_gpa(data)
+        logger.debug("%s", gpa)
         self.assertAlmostEqual(gpa.Rg / (R0 * sqrt(3 / 5)), 1.00, 0, "Rg matches for a sphere")
         self.assertAlmostEqual(gpa.I0 / I0, 1.0, 1, "I0 matches for a sphere")
         # Error bars are pretty poor with GPA

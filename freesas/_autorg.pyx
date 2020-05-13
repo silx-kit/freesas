@@ -256,7 +256,7 @@ cdef class AutoRG:
         readonly DTYPE_t qmaxrgmax, q2maxrg2max
         public DTYPE_t[::1] weights
     
-    def __cinit__(self, int min_size=3, 
+    def __cinit__(self, int min_size=5, 
                   DTYPE_t ratio_intensity=10.0,
                   DTYPE_t rg_min=1.0,
                   DTYPE_t qmin_rgmax=1.0,
@@ -274,7 +274,7 @@ cdef class AutoRG:
         weights: those parameters are used to measure the best region
         :param 
         """
-        self.storage_size = 20
+        self.storage_size = 27
         self.weight_size = 7
         self.min_size = min_size
         self.ratio_intensity = ratio_intensity
@@ -354,11 +354,11 @@ cdef class AutoRG:
                     i_min = i_max = 0.0
                     start = - self.min_size -1
         #Extend the range to stlightly below the max value
-        for idx in range(start, start - self.min_size, -1):
-            if isfinite(q[idx]):
-                start = idx;
-            else:
-                break
+        #for idx in range(start, start - self.min_size, -1):
+        #    if isfinite(q[idx]):
+        #        start = idx;
+        #    else:
+        #        break
         return start, end+1
 
     cpdef guinier_space(self, 
@@ -414,7 +414,7 @@ cdef class AutoRG:
             DTYPE_t[:, ::1] result 
             DTYPE_t[::1] q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary
             DTYPE_t slope, sigma_slope, intercept, sigma_intercept, q2Rg2_lower, q2Rg2_upper
-            DTYPE_t Rg2, Rg
+            DTYPE_t Rg2, Rg, Rg_std, I0_std
 
         nb_fit = 0
         array_size = 4096/(sizeof(DTYPE_t)*self.storage_size) #This correspond to one 4k page 
@@ -433,50 +433,58 @@ cdef class AutoRG:
         if 1: #with gil:with nogil:
             for s in range(start, stop-self.min_size):
                 for e in range(s+self.min_size, stop):
-                    result[nb_fit, 0] = s
-                    result[nb_fit, 1] = e 
-                    result[nb_fit, 2] = q_ary[s]
-                    result[nb_fit, 3] = q_ary[e - 1]
+                    # The 8 first parameters corresponds to the RG_RESULT
+                    #result[nb_fit, 0] = Rg
+                    #result[nb_fit, 1] = Rg_std
+                    #result[nb_fit, 2] = I0
+                    #result[nb_fit, 3] = I0_std
+                    result[nb_fit, 4] = s
+                    result[nb_fit, 5] = e 
+#                     result[nb_fit, 6] = quality
+#                     result[nb_fit, 7] = coef of the second order
+                    result[nb_fit, 8] = q_ary[s]
+                    result[nb_fit, 9] = q_ary[e - 1]
                     
-                    err = weighted_linear_fit(q2_ary, lnI_ary, wg_ary, s, e, result[:, 4:8], nb_fit)
+                    # Coef 10-14 correspond to the linear regression
+                    err = weighted_linear_fit(q2_ary, lnI_ary, wg_ary, s, e, result[:, 10:14], nb_fit)
                     if (err != 0):
                         if 1: #with gil:with gil:
                             logger.debug("position (%i,%i): Null determinant in linear regression", s, e)
                         result[nb_fit, :] = 0.0
-                        continue
-                    slope = result[nb_fit, 4]
-                    sigma_slope = result[nb_fit, 5] 
-                    intercept = result[nb_fit, 6]
-                    sigma_intercept = result[nb_fit, 7]
+                        continue                    
+                    
+                    slope = result[nb_fit, 10]
+                    sigma_slope = result[nb_fit, 11] 
+                    intercept = result[nb_fit, 12]
+                    sigma_intercept = result[nb_fit, 13]
                     if slope >= 0:
                         result[nb_fit, :] = 0.0
-                        if 1: #with gil:with gil:
+                        if 1: #with gil
                             logger.debug("position (%i,%i): Negative Rg²", s, e)
                         continue
-                    Rg2 = -3.0*slope
-                    Rg = sqrt(Rg2)
-                    q2Rg2_lower = q2_ary[s] * Rg2
-                    q2Rg2_upper = q2_ary[e - 1] * Rg2
-                    result[nb_fit, 8] = q2Rg2_lower 
-                    result[nb_fit, 9] = q2Rg2_upper
-                    result[nb_fit, 10] = Rg
-                    result[nb_fit, 11] = exp(intercept)
-                    calc_chi(q2_ary, lnI_ary, wg_ary, s, e, 
-                             intercept, slope, result[:, 12:16], nb_fit)
-                    if result[nb_fit, 13]<=0:  # R² <0
+                    # Coef 14-18 correspond to the assessement of the linear regression quality
+                    if calc_chi(q2_ary, lnI_ary, wg_ary, s, e, 
+                             intercept, slope, result[:, 14:18], nb_fit) <=0:
+                        # R² <0
                         result[nb_fit, :] = 0.0
                         continue
+                    # Extract physical parameters:
+                    Rg2 = -3.0*slope
+                    result[nb_fit, 0] = Rg = sqrt(Rg2)
+                    result[nb_fit, 1] = Rg_std = 0.5*sqrt(-3.0/slope)*sigma_slope
+                    result[nb_fit, 2] = I0 = exp(intercept)
+                    result[nb_fit, 3] = I0_std = I0 * sigma_intercept
+
                     #Calculate the descriptor ...
-                    result[nb_fit, 16] = <double>(e-s)/<double>stop                  # 16: window_size_score = (e-s)/(stop-start) [0 - 1]
-                    #result[nb_fit, 17] = -<double>s/<double>stop
-                    #result[nb_fit, 17] = Rg2 - self.rg2_min                 # 17: Rg_score = Rg² - Rg_min²
-                    #result[nb_fit, 18] = -result[nb_fit, 15]           # 18: rmsd_score = 1.0 / rmsd
-                    result[nb_fit, 17] = (result[nb_fit, 13])**4            # 19: R²_score = (R²-value) ** 4 
-                    result[nb_fit, 18] = 1.0 - (self.q2maxrg2max/q2Rg2_upper)   # 20: qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
-                    result[nb_fit, 19] = (Rg2/self.rg2_min) - 1.0
-                    #result[nb_fit, 21] = - q2Rg2_lower/self.q2minrg2max # 21: qminrg_score =  #quadratic penalty for qmin_Rg > 1 value is 1 at 0 and 0 at 1
-                    #result[nb_fit, 22] = 1.0 - sigma_slope/slope            # 22: rg_error_score = 1.0 - sigma_Rg/Rg
-                    #result[nb_fit, 23] = 1.0 - sigma_intercept/intercept    # 23: I0_error_score = 1.0 - sigma_I0/I0
+                    result[nb_fit, 18] = q2Rg2_lower = q2_ary[s] * Rg2
+                    result[nb_fit, 19] = q2Rg2_upper = q2_ary[e - 1] * Rg2
+                    result[nb_fit, 20] = <double>(e-s)/<double>stop                  # 0 window_size_score: 
+                    result[nb_fit, 21] = result[nb_fit, 20]**2*intercept / (result[nb_fit, 15]) # 1 fit_score: intercept/RMDS
+                    result[nb_fit, 22] = 1.0 - q2Rg2_upper/self.q2maxrg2max          # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
+                    result[nb_fit, 23] = 1.0 - q2Rg2_lower/self.q2minrg2max          # 3 qminrg_score =  #quadratic penalty for qmin_Rg > 1.0
+                    result[nb_fit, 24] = Rg2/self.rg2_min - 1.0                      # 4 Rg_min score
+                    result[nb_fit, 25] = 1.0 - Rg_std/Rg                             # 5 rg_error_score = 1.0 - sigma_Rg/Rg
+                    result[nb_fit, 26] = 1.0 - I0_std/I0                             # 6 I0_error_score = 1.0 - sigma_I0/I0
                     
                     nb_fit +=1
                     if nb_fit >= array_size:
@@ -966,7 +974,7 @@ def autoRg(sasm):
             except:
                 idx = qualities.argmax()
                 rg = sqrt(-3. * fit_array[idx, 4])
-                rger = 0.5 * sqrt(3. / rg) * fit_array[idx, 5]
+                rger = 0.5 * sqrt(-3. / fit_array[idx, 4]) * fit_array[idx, 5]
                 i0 = exp(fit_array[idx, 6])
                 i0er = i0 * fit_array[idx, 7]
                 idx_min = int(fit_array[idx, 0])
