@@ -37,6 +37,7 @@ class SASModel:
     """
     Tools for Dummy Atoms Model manipulation
     """
+
     def __init__(self, molecule=None):
         """
         :param molecule: if str, name of a pdb file, else if 2d-array, coordinates of atoms of a molecule
@@ -47,7 +48,7 @@ class SASModel:
             self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
             self.header = ""  # header of the PDB file
             self.rfactor = None
-        self.radius = 1.0 #unused at the moment
+        self.radius = 1.0  # unused at the moment
         self.com = []
         self._fineness = None
         self._Rg = None
@@ -70,15 +71,16 @@ class SASModel:
         """
         header = []
         atoms = []
-        for line in open(filename):
-            if line.startswith("ATOM"):
-                x = float(line[30:38])
-                y = float(line[38:46])
-                z = float(line[46:54])
-                atoms.append([x, y, z])
-            if line.startswith("REMARK 265  Final R-factor"):#very dependent of the pdb file format !
-                self.rfactor = float(line[43:56])
-            header.append(line)
+        with open(filename) as fd:
+            for line in fd:
+                if line.startswith("ATOM"):
+                    x = float(line[30:38])
+                    y = float(line[38:46])
+                    z = float(line[46:54])
+                    atoms.append([x, y, z])
+                if line.startswith("REMARK 265  Final R-factor"):  # very dependent of the pdb file format !
+                    self.rfactor = float(line[43:56])
+                header.append(line)
         self.header = header
         atom3 = numpy.array(atoms)
         self.atoms = numpy.append(atom3, numpy.ones((atom3.shape[0], 1), dtype="float"), axis=1)
@@ -224,7 +226,6 @@ class SASModel:
                 if self._Dmax is None:
                     self._fineness, self._Rg, self._Dmax = self.calc_invariants()
         return self._Dmax
-
 
     def dist(self, other, molecule1, molecule2, use_cython=True):
         """
