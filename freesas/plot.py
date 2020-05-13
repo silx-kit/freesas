@@ -6,7 +6,7 @@ Functions to generating graphs related to
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "12/05/2020"
+__date__ = "13/05/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,8 +14,9 @@ import numpy
 from matplotlib.pyplot import subplots
 
 
-def scatter_plot(data, filename=None, format="svg", unit="nm",
-                 Guinier=None, ift=None, title="Scattering curve",
+def scatter_plot(data, Guinier=None, ift=None,
+                 filename=None, format="svg", unit="nm",
+                 title="Scattering curve",
                  ax=None, labelsize=None, fontsize=None):
     """
     Generate a scattering plot I = f(q) in semi_log_y.
@@ -119,17 +120,18 @@ def scatter_plot(data, filename=None, format="svg", unit="nm",
     return fig
 
 
-def Kratky_plot(data, filename=None, format="svg", unit="nm",
-                 Guinier, title="Dimensionless Kratky plot - $R_{g}$ ",
-                 ax=None, labelsize=None, fontsize=None):
+def Kratky_plot(data, Guinier,
+                filename=None, format="svg", unit="nm",
+                title="Dimensionless Kratky plot - $R_{g}$ ",
+                ax=None, labelsize=None, fontsize=None):
     """
     Generate a Kratky plot q²Rg²I/I₀ = f(q·Rg)
     
     :param data: data read from an ASCII file, 3 column (q,I,err)
+    :param Guinier: output of autoRg
     :param filename: name of the file where the cuve should be saved
     :param format: image format
     :param unit: Unit name for Rg and 1/q
-    :param Guinier: output of autoRg
     :param ax: subplot where the plot shall go in
     :return: the matplotlib figure
     """
