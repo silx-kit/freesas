@@ -6,7 +6,7 @@ Functions to generating graphs related to
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "13/05/2020"
+__date__ = "14/05/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ import numpy
 from matplotlib.pyplot import subplots
 
 
-def scatter_plot(data, Guinier=None, ift=None,
+def scatter_plot(data, guinier=None, ift=None,
                  filename=None, format="svg", unit="nm",
                  title="Scattering curve",
                  ax=None, labelsize=None, fontsize=None):
@@ -25,7 +25,7 @@ def scatter_plot(data, Guinier=None, ift=None,
     :param filename: name of the file where the cuve should be saved
     :param format: image format
     :param unit: Unit name for Rg and 1/q
-    :param Guinier: output of autoRg
+    :param guinier: output of autoRg
     :param ift: converged instance of BIFT (output of auto_bift)
     :param ax: subplot where the plot shall go in
     :return: the matplotlib figure
@@ -56,20 +56,20 @@ def scatter_plot(data, Guinier=None, ift=None,
     first = q[0] - extra_q * delta_q
     q_ext = numpy.linspace(first, q[-1], extra_q + len(q))
 
-    if (Guinier is None):
+    if (guinier is None):
         if (ift is not None):
             # best = ift.calc_stats()[0]
-            I0 = Guinier.I0
-            rg = Guinier.rg
+            I0 = guinier.I0
+            rg = guinier.rg
             first_point = ift.high_start
             last_point = ift.high.stop
         else:
             rg = I0 = first_point = last_point = None
     else:
-        I0 = Guinier.I0
-        rg = Guinier.Rg
-        first_point = Guinier.start_point
-        last_point = Guinier.end_point
+        I0 = guinier.I0
+        rg = guinier.Rg
+        first_point = guinier.start_point
+        last_point = guinier.end_point
 
     if (rg is None) and (ift is None):
         if err is not None:
@@ -87,19 +87,26 @@ def scatter_plot(data, Guinier=None, ift=None,
         ax.plot(q_guinier, I_guinier, label=label_guinier, color=guinier_color, linewidth=5)
 
     if ift:
-        stats = ift.calc_stats()
+        from ._bift import BIFT, StatsResult
+        if isinstance(ift, BIFT):
+            stats = ift.calc_stats()
+        elif isinstance(ift, StatsResult):
+            stats = ift
+        else:
+            raise TypeError("ift is expected to be a BIFT object")
+
         r = stats.radius
         T = numpy.outer(q_ext, r / numpy.pi)
         T = (4 * numpy.pi * (r[-1] - r[0]) / (len(r) - 1)) * numpy.sinc(T)
         p = stats.density_avg
-        label_ift += ": $D_{max}=$%.2f %s, $R_g=$%.2f %s, $I_0=$%.2f" % (stats.Dmax_avg, unit, stats.Rg_avg, unit, stats.I0_avg)
+        label_ift += ": $D_{max}=$%.2f %s,\n    $R_g=$%.2f %s, $I_0=$%.2f" % (stats.Dmax_avg, unit, stats.Rg_avg, unit, stats.I0_avg)
         ax.plot(q_ext, T.dot(p), label=label_ift, color=ift_color)
 
     ax.set_ylabel('$I(q)$ (log scale)', fontsize=fontsize)
     ax.set_xlabel('$q$ (%s$^{-1}$)' % unit, fontsize=fontsize)
     ax.set_title(title)
     ax.set_yscale("log")
-#     ax.set_ylim(ymin=I.min() * 10, ymax=I.max() * 1.1)
+#     ax.set_ylim(ymin=I.min() * 10, top=I.max() * 1.1)
 
     # Re-order labels ...
     crv, lab = ax.get_legend_handles_labels()
@@ -120,15 +127,15 @@ def scatter_plot(data, Guinier=None, ift=None,
     return fig
 
 
-def Kratky_plot(data, Guinier,
+def kratky_plot(data, guinier,
                 filename=None, format="svg", unit="nm",
-                title="Dimensionless Kratky plot - $R_{g}$ ",
+                title="Dimensionless Kratky plot",
                 ax=None, labelsize=None, fontsize=None):
     """
     Generate a Kratky plot q²Rg²I/I₀ = f(q·Rg)
     
     :param data: data read from an ASCII file, 3 column (q,I,err)
-    :param Guinier: output of autoRg
+    :param guinier: output of autoRg
     :param filename: name of the file where the cuve should be saved
     :param format: image format
     :param unit: Unit name for Rg and 1/q
@@ -148,8 +155,8 @@ def Kratky_plot(data, Guinier,
         fig = ax.figure
     else:
         fig, ax = subplots()
-    Rg = Guinier.Rg
-    I0 = Guinier.I0
+    Rg = guinier.Rg
+    I0 = guinier.I0
 
     xdata = q * Rg
     ydata = xdata * xdata * I / I0
@@ -164,8 +171,8 @@ def Kratky_plot(data, Guinier,
 
     ax.hlines(3.0 * numpy.exp(-1), xmin=-0.05, xmax=max(xdata), color='0.75', linewidth=1.0)
     ax.vlines(numpy.sqrt(3.0), ymin=-0.01, ymax=max(ydata), color='0.75', linewidth=1.0)
-    ax.set_xlim(xmin=-0.05, xmax=8.5)
-    ax.set_ylim(ymin=-0.01, ymax=3.5)
+    ax.set_xlim(left=-0.05, right=8.5)
+    ax.set_ylim(bottom=-0.01, top=(min(3.5, max(ydata))))
     ax.set_title(title)
 #     ax.legend([dplot[0]], [dplot[0].get_label()], loc=0)
     ax.legend(loc=0)
@@ -180,13 +187,13 @@ def Kratky_plot(data, Guinier,
     return fig
 
 
-def guinier_plot(data, Guinier, filename=None,
+def guinier_plot(data, guinier, filename=None,
                  format="png", unit="nm", ax=None, labelsize=None, fontsize=None):
     """
-    Generate a Guinier plot: ln(I) = f(q²)
+    Generate a guinier plot: ln(I) = f(q²)
     
     :param data: data read from an ASCII file, 3 column (q,I,err)
-    :param Guinier: A RG_RESULT object from AutoRg
+    :param guinier: A RG_RESULT object from AutoRg
     :param  filename: name of the file where the cuve should be saved
     :param format: image format
     :param: ax: subplot where to plot in
@@ -201,32 +208,35 @@ def guinier_plot(data, Guinier, filename=None,
     if err is not None:
         mask &= (err > 0.0) & numpy.isfinite(err)
     mask = mask.astype(bool)
-    Rg = Guinier.Rg
-    I0 = Guinier.I0
-    first_point = Guinier.start_point
-    last_point = Guinier.end_point
+    Rg = guinier.Rg
+    I0 = guinier.I0
+    first_point = guinier.start_point
+    last_point = guinier.end_point
     intercept = numpy.log(I0)
     slope = -Rg * Rg / 3.0
     end = numpy.where(q > 1.5 / Rg)[0][0]
+    mask[end:] = False
 
-    q2 = q[:end] ** 2
-    logI = numpy.log(I[:end])
+    q2 = q[mask] ** 2
+    logI = numpy.log(I[mask])
 
     if ax:
         fig = ax.figure
     else:
         fig, ax = subplots(figsize=(12, 10))
     if err is not None:
-        dlogI = err[:end] / logI
-        ax.errorbar(q2[mask], logI[mask], dlogI[mask], label="Experimental curve",
-                    capsize=0, color="blue", ecolor="lightblue")
+        dlogI = err[mask] / logI
+        ax.errorbar(q2, logI, dlogI, label="Experimental curve",
+                    capsize=0, color="blue", ecolor="lightblue",
+                    alpha=0.5)
     else:
-        ax.plot(q2[mask], logI[mask], label="Experimental curve", color="blue")
-    # ax.plot(q2[first_point:last_point], logI[first_point:last_point], marker='D', markersize=5, label="Guinier region")
-    xmin = q2[first_point]
-    xmax = q2[last_point]
-    ymax = logI[first_point]
-    ymin = logI[last_point]
+        ax.plot(q2[mask], logI[mask], label="Experimental curve", color="blue",
+                alpha=0.5)
+    # ax.plot(q2[first_point:last_point], logI[first_point:last_point], marker='D', markersize=5, label="guinier region")
+    xmin = q[first_point] ** 2
+    xmax = q[last_point] ** 2
+    ymax = numpy.log(I[first_point])
+    ymin = numpy.log(I[last_point])
     dy = (ymax - ymin) / 2.0
     ax.vlines(xmin, ymin=ymin, ymax=ymax + dy, color='0.75', linewidth=1.0)
     ax.vlines(xmax, ymin=ymin - dy, ymax=ymin + dy, color='0.75', linewidth=1.0)
@@ -236,11 +246,14 @@ def guinier_plot(data, Guinier, filename=None,
                 xytext=None, xycoords='data', textcoords='data')
     ax.annotate("Guinier region", (xmin, ymin - dy),
                 xytext=None, xycoords='data', textcoords='data')
-    ax.plot(q2, intercept + slope * q2, label="ln[$I(q)$] = %.2f %.2f * $q^2$" % (intercept, slope), color="red")
+    ax.plot(q2[:end], intercept + slope * q2[:end], label="ln[$I(q)$] = %.2f %.2f * $q^2$" % (intercept, slope), color="crimson")
     ax.set_ylabel('ln[$I(q)$]', fontsize=fontsize)
     ax.set_xlabel('$q^2$ (%s$^{-2}$)' % unit, fontsize=fontsize)
-    ax.set_title("Guinier plot: $R_{g}=$%.1f %s $I_{0}=$%.1f" % (Rg, unit, I0))
+    ax.set_title("Guinier plot: $R_{g}=$%.2f %s $I_{0}=$%.2f" % (Rg, unit, I0))
     ax.legend()
+    ax.tick_params(axis='x', labelsize=labelsize)
+    ax.tick_params(axis='y', labelsize=labelsize)
+
     if filename:
         if format:
             fig.savefig(filename, format=format)
@@ -265,11 +278,24 @@ def density_plot(ift, filename=None, format="png", unit="nm",
     else:
         fig, ax = subplots(figsize=(12, 10))
 
-    ax.errorbar(ift.radius, ift.density, out["P(r)_err"], label="Density", capsize=0, color="blue", ecolor="lightblue")
-    ax.set_ylabel('$\\rho (r)$')
-    ax.set_xlabel('$r$ (%s)' % unit)
+    from ._bift import BIFT, StatsResult
+    if isinstance(ift, BIFT):
+        stats = ift.calc_stats()
+    elif isinstance(ift, StatsResult):
+        stats = ift
+    else:
+        raise TypeError("ift is expected to be a BIFT object")
+
+    ax.errorbar(ift.radius, ift.density_avg, ift.density_std,
+                label="BIFT: χ$_{r}^{2}=$%.2f\n $D_{max}=$%.2f %s\n $R_{g}=$%.2f %s\n $I_{0}=$%.2f" % (stats.chi2r_avg, stats.Dmax_avg, unit, stats.Rg_avg, unit, stats.I0_avg),
+                capsize=0, color="blue", ecolor="lightblue")
+    ax.set_ylabel('$\\rho (r)$', fontsize=fontsize)
+    ax.set_xlabel('$r$ (%s)' % unit, fontsize=fontsize)
     ax.set_title("Pair distribution function")
     ax.legend()
+    ax.tick_params(axis='x', labelsize=labelsize)
+    ax.tick_params(axis='y', labelsize=labelsize)
+
     if filename:
         if format:
             fig.savefig(filename, format=format)
@@ -278,4 +304,21 @@ def density_plot(ift, filename=None, format="png", unit="nm",
     return fig
 
 
-densityPlot = density_plot
+def plot_all(data, filename=None, format=None, unit="nm", labelsize=None, fontsize=None):
+    from . import bift, autorg
+    guinier = autorg.autoRg(data)
+    logger.debug(guinier)
+    bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
+    ift = bo.calc_stats()
+    logger.debug(ift)
+    fig, ax = subplots(2, 2, figsize=(12, 10))
+    scatter_plot(data, guinier=guinier, ift=ift, ax=ax[0, 0], unit=unit, labelsize=labelsize, fontsize=fontsize)
+    guinier_plot(data, guinier, filename=None, format=None, unit=unit, ax=ax[0, 1], labelsize=labelsize, fontsize=fontsize)
+    kratky_plot(data, guinier, filename=None, format=None, unit=unit, ax=ax[1, 0], labelsize=labelsize, fontsize=fontsize)
+    density_plot(ift, filename=None, format=None, unit=unit, ax=ax[1, 1], labelsize=labelsize, fontsize=fontsize)
+    if filename is not None:
+        if format:
+            fig.savefig(filename, format=format)
+        else:
+            fig.savefig(filename)
+    return fig

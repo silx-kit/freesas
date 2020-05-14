@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "13/05/2020"
+__date__ = "14/05/2020"
 __license__ = "MIT"
 
 import sys
@@ -39,6 +39,9 @@ import glob
 # Without this, the system io module is not loaded from numpy.distutils.
 # The silx.io module seems to be loaded instead.
 import io
+
+if sys.version_info[0] < 3:
+    raise SystemError("Freesas requires Python3 !")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -815,6 +818,7 @@ def get_project_configuration(dry_run):
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',
                             'bift.py = freesas.app.bift:main',
+                            'freesas = freesas.app.plot_sas:main'
                            ],
         # 'gui_scripts': [],
     }

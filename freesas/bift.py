@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "12/05/2020"
+__date__ = "14/05/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     :param Dmax: Maximum diameter of the object, this is the starting point to be refined. Can be guessed
     :param alpha: Regularisation parameter, let it to None for automatic scan
     :param npt: Number of point for the curve p(r)
-    :param start_point: First useable point in the I(q) curve
+    :param start_point: First useable point in the I(q) curve, this is not the start of the Guinier region
     :param end_point: Last useable point in the I(q) curve
     :param scan_size: size of the initial geometrical scan for alpha values.
     :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
@@ -77,17 +77,3 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
     logger.info("Result of optimisation:\n  %s", res)
     return bo
-
-
-def extrapolate_q(ift, q):
-    """This probvides a curve I=f(q) with an extrapolated q-range to zero
-    
-    :param ift: an BIFT instance with the best Dmax/alpha couple found.
-    :param
-    """
-
-
-if __name__ == "__main__":
-    import sys
-    data = numpy.loadtxt(sys.argv[1])
-
