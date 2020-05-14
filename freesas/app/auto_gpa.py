@@ -93,7 +93,6 @@ def main():
         else:
             try:
                 rg = autorg.auto_gpa(data)
-                "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated"
             except Exception as err:
                 sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
             else:

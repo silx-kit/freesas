@@ -4,7 +4,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2017-2020  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,10 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2017, ESRF"
+__copyright__ = "2017-2020, ESRF"
 __date__ = "20/04/2020"
 
+import sys
 import os
 import argparse
 import logging
@@ -40,6 +41,9 @@ logger = logging.getLogger("autorg")
 import numpy
 import freesas
 from freesas import autorg
+
+if sys.version_info < (3, 6):
+    logger.error("This code uses F-strings and requires Python 3.6+")
 
 
 def parse():
@@ -55,9 +59,15 @@ def parse():
     version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
+    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
+    parser.add_argument("-f", "--format", action='store', help="Output format: native, csv, ssf", default="native", type=str)
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     files = [i for i in args.file if os.path.exists(i)]
@@ -66,12 +76,16 @@ def parse():
         files.sort()
     input_len = len(files)
     logger.debug("%s input files" % input_len)
-    return files
 
+    if args.output:
+        dst = open(args.output, "w")
+    else:
+        dst = sys.stdout
 
-def main():
-    list_files = parse()
-    for afile in list_files:
+    if args.format == "csv":
+        dst.write("File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated" + os.linesep)
+
+    for afile in files:
         try:
             data = numpy.loadtxt(afile)
         except:
@@ -80,9 +94,19 @@ def main():
             try:
                 rg = autorg.autoRg(data)
             except Exception as err:
-                print("%s %s" % (afile, err))
+                sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
             else:
-                print("%s %s" % (afile, rg))
+                if args.format == "csv":
+                    res = f"{afile},{rg.Rg},{rg.sigma_Rg},{rg.I0},{rg.sigma_I0},{rg.start_point},{rg.end_point},{rg.quality},{rg.aggregated}"
+                elif args.format == "ssv":
+                    res = f"{rg.Rg} {rg.sigma_Rg} {rg.I0} {rg.sigma_I0} {rg.start_point} {rg.end_point} {rg.quality} {rg.aggregated} {afile}"
+                else:
+                    res = "%s %s"%(afile, rg)
+                dst.write(res)
+                dst.write(os.linesep)
+                dst.flush()
+    if args.output:
+        dst.close()
 
 
 if __name__ == "__main__":
