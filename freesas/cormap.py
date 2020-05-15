@@ -4,8 +4,8 @@ __copyright__ = "2017, ESRF"
 
 import numpy
 from math import log
-from collections import namedtuple
-GOF = namedtuple("GOF", ["n", "c", "P"])
+from collections import GOF
+
 from ._cormap import measure_longest
 
 
@@ -15,6 +15,7 @@ class LongestRunOfHeads(object):
     
     See: http://www.maa.org/sites/default/files/pdf/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
     """
+
     def __init__(self):
         "We store already calculated values for (n,c)"
         self.knowledge = {}

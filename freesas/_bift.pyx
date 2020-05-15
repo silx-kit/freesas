@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "30/04/2020"
+__date__ = "15/05/2020"
 
 import time
 import cython
@@ -30,7 +30,7 @@ from cython.view cimport array as cvarray
 import numpy
 cimport numpy as cnumpy
 from libc.math cimport sqrt, fabs, pi, sin, log, exp, isfinite
-from collections import namedtuple
+
 from scipy.linalg import lapack
 from scipy.linalg.cython_lapack cimport dgesvd
 from scipy.linalg.cython_blas cimport dgemm, ddot
@@ -38,12 +38,7 @@ import logging
 import itertools
 logger = logging.getLogger(__name__)
 
-RadiusKey = namedtuple("RadiusKey", "Dmax npt")
-PriorKey = namedtuple("PriorKey", "type npt")
-TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
-EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density converged")
-StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
+from .collections import RadiusKey, PriorKey, TransfoValue, EvidenceKey, EvidenceResult, StatsResult
 
 ################################################################################
 # BLAS / LAPACK wrappers

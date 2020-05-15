@@ -48,10 +48,6 @@ class InsufficientDataError(Error):
         self.expression = ""
         self.message = "Not enough data do determine Rg"
 
-from collections import namedtuple
-RG_RESULT = namedtuple("RG_RESULT", "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated")
-FIT_RESULT = namedtuple("FIT_RESULT", "slope sigma_slope intercept sigma_intercept, R, R2, chi2, RMSD")
-
 import cython
 cimport numpy as cnumpy
 import numpy as numpy 
@@ -60,7 +56,7 @@ from .isnan cimport isfinite
 from cython cimport floating
 import logging
 logger = logging.getLogger(__name__)
-
+from .collections import RG_RESULT, FIT_RESULT
 
 DTYPE = numpy.float64
 ctypedef cnumpy.float64_t DTYPE_t
