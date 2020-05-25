@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "15/05/2020"
+__date__ = "25/05/2020"
 
 import time
 import cython
@@ -917,7 +917,7 @@ cdef class BIFT:
         if samples == 0:
             return stats
         self.update_wisdom()
-        if stats.Dmax_avg/stats.Dmax_std < nsigma:
+        if stats.Dmax_std>0 and stats.Dmax_avg/stats.Dmax_std < nsigma:
             nsigma = stats.Dmax_avg/stats.Dmax_std
             logger.info("Clipping to nsigma=%.2f due to large noise on Dmax: avg=%.2f, std=%.2f", nsigma, stats.Dmax_avg, stats.Dmax_std)
         log_alpha = log(stats.alpha_avg)
