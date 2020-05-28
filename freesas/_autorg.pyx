@@ -23,6 +23,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from builtins import None
 
 """
 Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
@@ -176,7 +177,7 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
     cdef: 
         int idx, size
         DTYPE_t residual, sum_n, sum_y, sum_d, one_y, R2, mean_y, residual2, sum_w
-        DTYPE_t chi2, one_w, pred_y
+        DTYPE_t chi2, one_w, pred_y, sum_dev2
     
     size = end - start
     sum_n = 0.0
@@ -184,6 +185,7 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
     sum_d = 0.0
     sum_w = 0.0
     chi2 = 0.0
+    sum_dev2 = 0.0
     for idx in range(start, end):
         one_y = y[idx]
         one_w = w[idx]
@@ -194,6 +196,7 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
         sum_y += one_y
         sum_w += one_w  
         chi2 += residual2 * one_w
+        sum_dev2 += residual2 * one_w / (sum_y * sum_y)
     mean_y = sum_y / size
     for idx in range(start, end):
         one_y = y[idx]
@@ -201,10 +204,11 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
         sum_d += residual * residual
     R2 = 1.0 - sum_n / sum_d
     
-    fit_mv[position, 0] = sqrt(R2)           #r_value
-    fit_mv[position, 1] = R2                 #r²_value
-    fit_mv[position, 2] = chi2               # chi²
-    fit_mv[position, 3] = sqrt(chi2/sum_w)   # weigted RMSD
+    fit_mv[position, 0] = sqrt(R2)               #r_value
+    fit_mv[position, 1] = R2                     #r²_value
+    fit_mv[position, 2] = chi2                   # chi²
+    fit_mv[position, 3] = sqrt(sum_dev2/sum_w)   # weigted RMSD
+    
     return R2
 
 
@@ -248,42 +252,45 @@ cdef class AutoRG:
     "Calculate the radius of gyration based on Guinier's formula. This class holds all constants"
     cdef:
         readonly int min_size, weight_size, storage_size
-        readonly DTYPE_t ratio_intensity, rg_min, rg2_min, qminrgmax, q2minrg2max, error_slope
+        readonly DTYPE_t ratio_intensity, Rg_min, rg2_min, qminrgmax, q2minrg2max, relax, error_slope
         readonly DTYPE_t qmaxrgmax, q2maxrg2max
         public DTYPE_t[::1] weights
     
     def __cinit__(self, int min_size=5, 
                   DTYPE_t ratio_intensity=10.0,
-                  DTYPE_t rg_min=1.0,
+                  DTYPE_t Rg_min=1.0,
                   DTYPE_t qmin_rgmax=1.0,
                   DTYPE_t qmax_rgmax=1.3,
+                  DTYPE_t relax=1.2,
                   DTYPE_t error_slope=1.0):
         
         """Constructor of the class with:
         
         :param min_size: minimal size for the Guinier region in number of points (3, so that one can fit a parabola)
         :param ratio_intensity: search the Guinier region between Imax and Imax/ratio_intensity (10)
-        :param rg_min: minimum acceptable value for the radius of gyration (1nm)
-        :param qmin_rgmax: maximum acceptable value for the begining of Guinier region. This is the soft threshold (1.0 as default)
-        :param qmax_rgmax: maximum acceptable value for the end of Guinier region. Note this is the hard threshold (1.3 as default)
+        :param Rg_min: minimum acceptable value for the radius of gyration (1nm)
+        :param qmin_Rgmax: maximum acceptable value for the begining of Guinier region.
+        :param qmax_Rgmax: maximum acceptable value for the end of Guinier region.
+        :param relax: relax the qmax_rgmax constrain by this value for reduced quality data      
         :param error_slope: discard any point with relative error on the slope (sigma_slope/slope)>=threhold, (1.0)
-        weights: those parameters are used to measure the best region
-        :param 
+        #weights: those parameters are used to measure the best region
+        #:param 
         """
         self.storage_size = 27
         self.weight_size = 7
         self.min_size = min_size
         self.ratio_intensity = ratio_intensity
-        self.rg_min = rg_min
-        self.rg2_min = rg_min*rg_min
+        self.Rg_min = Rg_min
+        self.rg2_min = Rg_min*Rg_min
         self.qminrgmax = qmin_rgmax
         self.q2minrg2max = qmin_rgmax*qmin_rgmax
         self.qmaxrgmax = qmax_rgmax
         self.q2maxrg2max = qmax_rgmax*qmax_rgmax
         self.error_slope = error_slope
+        self.relax = relax
         
         self.weights = numpy.empty(self.weight_size, dtype=DTYPE)
-        self.weights
+        #self.weights
     
     def __dealloc__(self):
         self.weights = None
@@ -297,7 +304,10 @@ cdef class AutoRG:
                        data, 
                        DTYPE_t[::1] q, 
                        DTYPE_t[::1] intensity,
-                       DTYPE_t[::1] sigma):
+                       DTYPE_t[::1] sigma,
+                       DTYPE_t Rg_min=-1.0,
+                       DTYPE_t qRg_max=-1.0,
+                       DTYPE_t relax=-1.0):
         """Clean up the input (data, 2D array of q, i, sigma)
         
         It removed negatives q, intensity, sigmas and also NaNs and infinites
@@ -314,7 +324,18 @@ cdef class AutoRG:
         cdef:
             int idx, size, start, end
             DTYPE_t one_q, one_i, one_sigma, i_max, i_min
-            
+        
+        if qRg_max < 0.0:
+            qRg_max = self.qmaxrgmax
+        #qRg_max is now a hard threshold.
+        if relax < 0.0:
+            qRg_max *= self.relax
+        else:
+            qRg_max *= relax
+        
+        if Rg_min < 0.0:
+            Rg_min = self.Rg_min
+        
         size = data.shape[0]
         q[:] = 0.0
         intensity[:] = 0.0
@@ -338,7 +359,7 @@ cdef class AutoRG:
                     start = idx
                 if (idx-start)<=self.min_size:
                     i_min = min(i_min, one_i)
-                if one_q*self.rg_min <self.qmaxrgmax:
+                if one_q*Rg_min < qRg_max:
                     end = idx
                 else:
                     break
@@ -349,12 +370,6 @@ cdef class AutoRG:
                 if (idx-start)<=self.min_size:
                     i_min = i_max = 0.0
                     start = - self.min_size -1
-        #Extend the range to stlightly below the max value
-        #for idx in range(start, start - self.min_size, -1):
-        #    if isfinite(q[idx]):
-        #        start = idx;
-        #    else:
-        #        break
         return start, end+1
 
     cpdef guinier_space(self, 
@@ -385,37 +400,43 @@ cdef class AutoRG:
                 one_sigma = sigma[idx]
                 I2_over_sigma2[idx] = (one_i/one_sigma)**2
                  
-    def quality_fit(self, sasm):
+    def quality_fit(self, 
+                    data, 
+                    DTYPE_t Rg_min=-1.0, 
+                    DTYPE_t qRg_max=-1.0, 
+                    DTYPE_t relax=-1.0):
         """A function to calculate all the parameter vector (used to asses the quality) 
         
-        :param sasm: An array of q, I(q), dI(q)
-        :return: an array of 14-vector of floats, used as criteria to find the guinier region 
-         
-        0:4 start, window_size, q[start], q[end - 1], 
-        4:8 slope, sigma_slope, intercept, sigma_intercept
-        8:10 q²[start]Rg² <1²; q²[stop-1] * Rg²<1.3²
-        10:12: Rg, I0
-        12:16: R, R², chi², RMDS
-        16: window_size_score = (e-s)/(stop) [0 - 1]
-        17: Rg_score = Rg² - Rgmin²
-        18: rmsd_score = 1.0 / rmsd
-        19: R²_score = (R²-value) ** 4 
-        20: qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
-        21: qminrg_score =  #quadratic penalty for qmin_Rg > 1 value is 1 at 0 and 0 at 1
-        22: rg_error_score = 1.0 - sigma_slope/slope
-        23: I0_error_score = 1.0 - sigma_intercept/intercept
+        :param data: An array of q, I(q), dI(q)
+        :param Rg_min: Minimum acceptable radius of gyration (by default, the one from the class)
+        :param qRg_max: End on the Guinier region (by default, the one from the class)
+        :param relax: relax the qRg_max constrain by this value for reduced quality (by default, the one from the class)
+        :return: an array of XXX-vector of floats, used as criteria to find the guinier region 
+        
+        0: Rg
+        1: Rg_std
+        2: I0
+        3: I0_std
+        4: start_point
+        5: end_point
+        6: quality
+        7: agregated
+        8: qRg_start 
+        9: qRg_end
+        10:14 slope, sigma_slope, intercept, sigma_intercept
+        14:18 R, R², chi², RMDS
         """
         cdef:
             int nb_fit, start, stop, array_size, s, e
             DTYPE_t[:, ::1] result 
             DTYPE_t[::1] q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary
             DTYPE_t slope, sigma_slope, intercept, sigma_intercept, q2Rg2_lower, q2Rg2_upper
-            DTYPE_t Rg2, Rg, Rg_std, I0_std
+            DTYPE_t Rg2, Rg, Rg_std, I0_std, qRg_lower, qRg_upper
 
         nb_fit = 0
         array_size = 4096/(sizeof(DTYPE_t)*self.storage_size) #This correspond to one 4k page 
         result = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)
-        raw_size = sasm.shape[0]
+        raw_size = data.shape[0]
         q_ary = numpy.empty(raw_size, dtype=DTYPE)
         i_ary = numpy.empty(raw_size, dtype=DTYPE)
         sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
@@ -423,8 +444,20 @@ cdef class AutoRG:
         lnI_ary = numpy.empty(raw_size, dtype=DTYPE)
         wg_ary = numpy.empty(raw_size, dtype=DTYPE)
         
-        start, stop = autorg_instance.currate_data(sasm, q_ary, i_ary, sigma_ary)
-        autorg_instance.guinier_space(start, stop, q_ary, i_ary,sigma_ary,
+        if qRg_max<0.0:
+            qRg_max = self.qmaxrgmax
+        #qRg_max is now a hard threshold.
+        if relax<0.0:
+            qRg_max *= self.relax
+        else:
+            qRg_max *= relax
+        
+        if Rg_min<0.0:
+            Rg_min = self.Rg_min
+        
+        start, stop = self.currate_data(data, q_ary, i_ary, sigma_ary,
+                                        Rg_min, qRg_max, relax)
+        self.guinier_space(start, stop, q_ary, i_ary,sigma_ary,
                                       q2_ary, lnI_ary, wg_ary)
         if 1: #with gil:with nogil:
             for s in range(start, stop-self.min_size):
@@ -436,10 +469,10 @@ cdef class AutoRG:
                     #result[nb_fit, 3] = I0_std
                     result[nb_fit, 4] = s
                     result[nb_fit, 5] = e 
-#                     result[nb_fit, 6] = quality
-#                     result[nb_fit, 7] = coef of the second order
-                    result[nb_fit, 8] = q_ary[s]
-                    result[nb_fit, 9] = q_ary[e - 1]
+                    #result[nb_fit, 6] = quality
+                    #result[nb_fit, 7] = coef of the second order
+                    #result[nb_fit, 8] = qRg_lower 
+                    #result[nb_fit, 9] = qRg_upper
                     
                     # Coef 10-14 correspond to the linear regression
                     err = weighted_linear_fit(q2_ary, lnI_ary, wg_ary, s, e, result[:, 10:14], nb_fit)
@@ -470,17 +503,24 @@ cdef class AutoRG:
                     result[nb_fit, 1] = Rg_std = 0.5*sqrt(-3.0/slope)*sigma_slope
                     result[nb_fit, 2] = I0 = exp(intercept)
                     result[nb_fit, 3] = I0_std = I0 * sigma_intercept
+                    
+                    result[nb_fit, 8] = qRg_lower = q_ary[s] * Rg 
+                    result[nb_fit, 9] = qRg_upper = q_ary[e-1] *Rg
+                    if (Rg<Rg_min) or (qRg_upper>qRg_max):
+                        # This is interval is way out of range.
+                        result[nb_fit, :] = 0.0
+                        continue                        
 
                     #Calculate the descriptor ...
-                    result[nb_fit, 18] = q2Rg2_lower = q2_ary[s] * Rg2
-                    result[nb_fit, 19] = q2Rg2_upper = q2_ary[e - 1] * Rg2
-                    result[nb_fit, 20] = <double>(e-s)/<double>stop                  # 0 window_size_score: 
-                    result[nb_fit, 21] = result[nb_fit, 20]**2*intercept / (result[nb_fit, 15]) # 1 fit_score: intercept/RMDS
-                    result[nb_fit, 22] = 1.0 - q2Rg2_upper/self.q2maxrg2max          # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
-                    result[nb_fit, 23] = 1.0 - q2Rg2_lower/self.q2minrg2max          # 3 qminrg_score =  #quadratic penalty for qmin_Rg > 1.0
-                    result[nb_fit, 24] = Rg2/self.rg2_min - 1.0                      # 4 Rg_min score
-                    result[nb_fit, 25] = 1.0 - Rg_std/Rg                             # 5 rg_error_score = 1.0 - sigma_Rg/Rg
-                    result[nb_fit, 26] = 1.0 - I0_std/I0                             # 6 I0_error_score = 1.0 - sigma_I0/I0
+                    result[nb_fit, 18] = q2Rg2_lower = qRg_lower*qRg_lower
+                    result[nb_fit, 19] = q2Rg2_upper = qRg_upper*qRg_upper
+                    result[nb_fit, 20] = result[nb_fit, 17]                          # 0 fit_score:  RMDS, normed
+                    result[nb_fit, 21] = 1.0 - <double>(e-s)/<double>(stop-start)    # 1 window_size_score: 
+                    result[nb_fit, 22] = q2Rg2_upper/self.q2maxrg2max                # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
+                    result[nb_fit, 23] = q2Rg2_lower/self.q2minrg2max                # 3 qminrg_score =  #quadratic penalty for qmin_Rg > 1.0
+                    result[nb_fit, 24] = self.rg2_min/Rg2                            # 4 Rg_min score
+                    result[nb_fit, 25] = Rg_std/Rg                                   # 5 rg_error_score = 1.0 - sigma_Rg/Rg
+                    result[nb_fit, 26] = I0_std/I0                                   # 6 I0_error_score = 1.0 - sigma_I0/I0
                     
                     nb_fit +=1
                     if nb_fit >= array_size:
@@ -490,11 +530,42 @@ cdef class AutoRG:
                             tmp_mv[:nb_fit, :] = result[:, :]
                             result = tmp_mv
         return numpy.asarray(result[:nb_fit])
+    
+    @staticmethod
+    def check_aggregation(DTYPE_t[::1] q2, 
+                          DTYPE_t[::1] lnI, 
+                          DTYPE_t[::1] I2_over_sigma2, 
+                          int start=0,
+                          int end=-1,
+                          threshold=0.1):
+        """
+        This function analyzes the curvature of a parabola fitted to the Guinier region 
+        to check if the data indicate protein aggragation
+        
+        A clear upwards curvature indicates aggregation.
+        By lazyness we use the polyfit from numpy which use the weights not squarred.
+        
+        :param q2: scattering vector squared
+        :param lnI: logarithm if the intensity
+        :param I2_over_sigma2: weight squared 
+        :param start: the begining of the scan zone, argmax(I) is a good option, as early as possible
+        :param end: the end of the scan zone, i.e. the end of the Guinier region
+        :param threshold: the value above which data are considered aggregated 
+        :return: True if the protein is likely to be aggregated 
+        if the threshold is None, return the value of the curvature
+        """
+        cdef DTYPE_t[::1] weight
+        weight = numpy.sqrt(I2_over_sigma2[start: end])
+        try:
+            coef = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)[0]
+        except Exception as err:
+            logger.error("Unable to fit parabola, %s: %s", type(err), err)
+            return True
+        if threshold is not None:
+            return coef>threshold
+        else:
+            return coef
 
-
-#     def calc_
-#     def fit_polynom(self, 
-#                     DTYPE_t ):
     def fit(self, sasm):
         """This function automatically calculates the radius of gyration and scattering intensity at zero angle
         from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
@@ -1003,7 +1074,8 @@ def autoRg(sasm):
 
     #We could add another function here, if not good quality fits are found, either reiterate through the
     #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
-    
+
+    aggregated = autorg_instance.check_aggregation(q2_ary, lgi_ary, wg_ary, data_start, offsets[idx_max])
     return RG_RESULT(rg, rger, i0, i0er, offsets[idx_min], offsets[idx_max], quality, aggregated)
 
 autorg_instance = AutoRG() 
