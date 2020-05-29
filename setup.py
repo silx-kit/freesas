@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "14/05/2020"
+__date__ = "29/05/2020"
 __license__ = "MIT"
 
 import sys
@@ -814,6 +814,7 @@ def get_project_configuration(dry_run):
 
     entry_points = {
         'console_scripts': ['auto_gpa.py = freesas.app.auto_gpa:main',
+                            'auto_guinier.py = freesas.app.auto_guinier:main',
                             'autorg.py = freesas.app.autorg:main',
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',

@@ -23,7 +23,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from builtins import None
+from builtins import None, NotImplementedError
 
 """
 Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
@@ -49,10 +49,17 @@ class InsufficientDataError(Error):
         self.expression = ""
         self.message = "Not enough data do determine Rg"
 
+
+class NoGuinierRegionError(Error):
+    def __init__(self, qRg_max=None):
+        self.expression = ""
+        self.message = "No Guinier region found with reasonnable qRg < %s"%qRg_max
+
+
 import cython
 cimport numpy as cnumpy
 import numpy as numpy 
-from libc.math cimport sqrt, log, fabs, exp, atanh
+from libc.math cimport sqrt, log, fabs, exp, atanh, ceil
 from .isnan cimport isfinite 
 from cython cimport floating
 import logging
@@ -60,7 +67,7 @@ logger = logging.getLogger(__name__)
 from .collections import RG_RESULT, FIT_RESULT
 
 DTYPE = numpy.float64
-ctypedef cnumpy.float64_t DTYPE_t
+ctypedef double DTYPE_t
 
 # Definition of a few constants
 cdef: 
@@ -248,7 +255,7 @@ def linear_fit(x, y, w,
     return FIT_RESULT(*fit_mv[0])    
 
 
-cdef class AutoRG:
+cdef class AutoGuinier:
     "Calculate the radius of gyration based on Guinier's formula. This class holds all constants"
     cdef:
         readonly int min_size, weight_size, storage_size
@@ -400,14 +407,22 @@ cdef class AutoRG:
                 one_sigma = sigma[idx]
                 I2_over_sigma2[idx] = (one_i/one_sigma)**2
                  
-    def quality_fit(self, 
-                    data, 
-                    DTYPE_t Rg_min=-1.0, 
-                    DTYPE_t qRg_max=-1.0, 
-                    DTYPE_t relax=-1.0):
-        """A function to calculate all the parameter vector (used to asses the quality) 
+    def many_fit(self, 
+                 DTYPE_t[::1] q2_ary, 
+                 DTYPE_t[::1] lnI_ary, 
+                 DTYPE_t[::1] wg_ary,
+                 int start,
+                 int stop,  
+                 DTYPE_t Rg_min=-1.0, 
+                 DTYPE_t qRg_max=-1.0, 
+                 DTYPE_t relax=-1.0):
+        """Perform the linear regression for all reasonnably possible Guinier regions  
         
-        :param data: An array of q, I(q), dI(q)
+        :param q2_ary: array with q-squared (output of guinier_space)
+        :param guinier_space: array with the log of the intensity (output of guinier_space)
+        :param wg_ary: array with the weights (I²_over_sigma²)
+        :param start: first valid point
+        :param stop: last reasonnable valid point.
         :param Rg_min: Minimum acceptable radius of gyration (by default, the one from the class)
         :param qRg_max: End on the Guinier region (by default, the one from the class)
         :param relax: relax the qRg_max constrain by this value for reduced quality (by default, the one from the class)
@@ -421,45 +436,37 @@ cdef class AutoRG:
         5: end_point
         6: quality
         7: agregated
-        8: qRg_start 
-        9: qRg_end
+        8: qRg_lower 
+        9: qRg_upper
         10:14 slope, sigma_slope, intercept, sigma_intercept
         14:18 R, R², chi², RMDS
+        18:20 q2Rg2_lower, q2Rg2_upper
+        ...
         """
         cdef:
-            int nb_fit, start, stop, array_size, s, e
+            int nb_fit, array_size, s, e
             DTYPE_t[:, ::1] result 
-            DTYPE_t[::1] q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary
             DTYPE_t slope, sigma_slope, intercept, sigma_intercept, q2Rg2_lower, q2Rg2_upper
             DTYPE_t Rg2, Rg, Rg_std, I0_std, qRg_lower, qRg_upper
-
+            bint debug
+        
+        debug = logger.level<=logging.DEBUG
         nb_fit = 0
         array_size = 4096/(sizeof(DTYPE_t)*self.storage_size) #This correspond to one 4k page 
-        result = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)
-        raw_size = data.shape[0]
-        q_ary = numpy.empty(raw_size, dtype=DTYPE)
-        i_ary = numpy.empty(raw_size, dtype=DTYPE)
-        sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
-        q2_ary = numpy.empty(raw_size, dtype=DTYPE)
-        lnI_ary = numpy.empty(raw_size, dtype=DTYPE)
-        wg_ary = numpy.empty(raw_size, dtype=DTYPE)
-        
-        if qRg_max<0.0:
-            qRg_max = self.qmaxrgmax
-        #qRg_max is now a hard threshold.
-        if relax<0.0:
-            qRg_max *= self.relax
-        else:
-            qRg_max *= relax
-        
-        if Rg_min<0.0:
-            Rg_min = self.Rg_min
-        
-        start, stop = self.currate_data(data, q_ary, i_ary, sigma_ary,
-                                        Rg_min, qRg_max, relax)
-        self.guinier_space(start, stop, q_ary, i_ary,sigma_ary,
-                                      q2_ary, lnI_ary, wg_ary)
-        if 1: #with gil:with nogil:
+        result = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)        
+
+        with nogil:
+            if qRg_max<0.0:
+                qRg_max = self.qmaxrgmax
+            #qRg_max is now a hard threshold.
+            if relax<0.0:
+                qRg_max *= self.relax
+            else:
+                qRg_max *= relax
+            
+            if Rg_min<0.0:
+                Rg_min = self.Rg_min
+
             for s in range(start, stop-self.min_size):
                 for e in range(s+self.min_size, stop):
                     # The 8 first parameters corresponds to the RG_RESULT
@@ -477,8 +484,9 @@ cdef class AutoRG:
                     # Coef 10-14 correspond to the linear regression
                     err = weighted_linear_fit(q2_ary, lnI_ary, wg_ary, s, e, result[:, 10:14], nb_fit)
                     if (err != 0):
-                        if 1: #with gil:with gil:
-                            logger.debug("position (%i,%i): Null determinant in linear regression", s, e)
+                        if debug:
+                            with gil:
+                                logger.debug("position (%i,%i): Null determinant in linear regression", s, e)
                         result[nb_fit, :] = 0.0
                         continue                    
                     
@@ -488,12 +496,16 @@ cdef class AutoRG:
                     sigma_intercept = result[nb_fit, 13]
                     if slope >= 0:
                         result[nb_fit, :] = 0.0
-                        if 1: #with gil
-                            logger.debug("position (%i,%i): Negative Rg²", s, e)
+                        if debug:
+                            with gil:
+                                logger.debug("position (%i,%i): Negative Rg²", s, e)
                         continue
                     # Coef 14-18 correspond to the assessement of the linear regression quality
                     if calc_chi(q2_ary, lnI_ary, wg_ary, s, e, 
                              intercept, slope, result[:, 14:18], nb_fit) <=0:
+                        if debug:
+                            with gil:
+                                logger.debug("error in deviation calculation (%i, %i)", s, e)
                         # R² <0
                         result[nb_fit, :] = 0.0
                         continue
@@ -504,16 +516,20 @@ cdef class AutoRG:
                     result[nb_fit, 2] = I0 = exp(intercept)
                     result[nb_fit, 3] = I0_std = I0 * sigma_intercept
                     
-                    result[nb_fit, 8] = qRg_lower = q_ary[s] * Rg 
-                    result[nb_fit, 9] = qRg_upper = q_ary[e-1] *Rg
+                    result[nb_fit, 18] = q2Rg2_lower = q2_ary[s] * Rg2
+                    result[nb_fit, 19] = q2Rg2_upper = q2_ary[e-1] * Rg2
+                    result[nb_fit, 8] = qRg_lower = sqrt( q2Rg2_lower )
+                    result[nb_fit, 9] = qRg_upper = sqrt( q2Rg2_upper )
+
                     if (Rg<Rg_min) or (qRg_upper>qRg_max):
-                        # This is interval is way out of range.
+                        if debug:
+                            with gil:
+                                logger.debug("Invalid qRg range (%i, %i) Rg %s > %s, qRg %s<%s", e, s, Rg, Rg_min, qRg_upper, qRg_max)
                         result[nb_fit, :] = 0.0
                         continue                        
 
-                    #Calculate the descriptor ...
-                    result[nb_fit, 18] = q2Rg2_lower = qRg_lower*qRg_lower
-                    result[nb_fit, 19] = q2Rg2_upper = qRg_upper*qRg_upper
+
+                    #Claculate the descriptor for the quality
                     result[nb_fit, 20] = result[nb_fit, 17]                          # 0 fit_score:  RMDS, normed
                     result[nb_fit, 21] = 1.0 - <double>(e-s)/<double>(stop-start)    # 1 window_size_score: 
                     result[nb_fit, 22] = q2Rg2_upper/self.q2maxrg2max                # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
@@ -525,7 +541,7 @@ cdef class AutoRG:
                     nb_fit +=1
                     if nb_fit >= array_size:
                         array_size *= 2
-                        if 1: #with gil:
+                        with gil:
                             tmp_mv = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)
                             tmp_mv[:nb_fit, :] = result[:, :]
                             result = tmp_mv
@@ -554,7 +570,9 @@ cdef class AutoRG:
         :return: True if the protein is likely to be aggregated 
         if the threshold is None, return the value of the curvature
         """
-        cdef DTYPE_t[::1] weight
+        cdef:
+            DTYPE_t[::1] weight
+            
         weight = numpy.sqrt(I2_over_sigma2[start: end])
         try:
             coef = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)[0]
@@ -566,6 +584,153 @@ cdef class AutoRG:
         else:
             return coef
 
+    def count_valid(self,
+                    DTYPE_t[:, ::1] fit_result,
+                    DTYPE_t qRg_max=-1.0, 
+                    DTYPE_t relax=-1.0):
+        """Count the number of valid Guinier intervals considering the qRg limit.  
+        If no region is found, the constrain may be relaxed.
+        
+        Also searches for the maximum slope (absolute) value.
+
+        :param fit_result: output of quality_fit: all possible Guinier reguions already fitted 
+        :param qRg_max: upper bound of the Guinier region (1.3 is the standard value)
+        :param relax: relax the qRg_max by this amount if no region are found.
+        :return: number of regions, relaxed, actual qRg_max used, maximum slope
+        """ 
+        cdef:
+            int i, j, size, cnt
+            bint relaxed=0
+            DTYPE_t aslope, aslope_max, qRg
+
+        
+        size = fit_result.shape[0]
+        assert fit_result.shape[1] == self.storage_size, "fit_result shape is correct"
+        with nogil:
+            if qRg_max<0.0:
+                qRg_max = self.qmaxrgmax
+    
+            #Start with strict mode, qRg_max being a soft-threshold
+            aslope_max = 0.0
+            cnt = 0
+            for i in range(size):
+                qRg = fit_result[i, 9]
+                if qRg < qRg_max:
+                    cnt += 1
+                    aslope = -fit_result[i, 10] # slope is always negative by construction
+                    if aslope>aslope_max:
+                        aslope_max = aslope
+            
+            if cnt == 0:
+                # There are not Guinier region whith reasonable qRg, let's relax the constrains
+                relaxed = 1            
+                if relax < 0.0:
+                    qRg_max *= self.relax
+                else:
+                    qRg_max *= relax
+                #qRg_max is now a hard threshold. 
+                #Start with strict mode, qRg_max being a soft-threshold
+                aslope_max = 0.0
+                cnt = 0
+                for i in range(size):
+                    qRg = fit_result[i, 9]
+                    if qRg < qRg_max:
+                        cnt += 1
+                        aslope = -fit_result[i, 10] # slope is always negative by construction
+                        if aslope>aslope_max:
+                            aslope_max = aslope
+#         if cnt == 0:
+#             logger.error("No Guinier region found with qRg_max < %s in relaxed mode", qRg_max)
+#             raise NoGuinierRegionError(qRg_max)
+        return cnt, relaxed, qRg_max, aslope_max
+     
+    def slope_distribution(self,
+                           DTYPE_t[:, ::1] fit_result,
+                           int npt=1000,
+                           DTYPE_t resolution=0.01,
+                           DTYPE_t qRg_max=-1.0):
+        """Find the most likely Guinier Region with updated parameters
+        
+        This function uses a 1D heat map of the |slope| values (with their errors) to assess the most likely Guinier region.
+        This heat map is built of the sum of all gaussian curves, weighted by the q²Rg² range extension.
+        
+        Once the most likely |slope| has been found, the guinier region providing the nearest |slope| can be selected    
+        
+        :param fit_result: output of quality_fit: all possible Guinier reguions already fitted 
+        :param npt: size of the distribution 
+        :param resolution: The step size of the |slope|, from 0 to max(|slope|). Finer values provide better precision
+        :param qRg_max: maximum allowed value for the upper limit of the Guinier region
+        :return: the distribution of slopes.
+        """
+        cdef:
+            int i, j, size
+            DTYPE_t qRg, x, y, weight, aslope, sigma
+            DTYPE_t[::1] distribution
+
+        size = fit_result.shape[0]
+        assert fit_result.shape[1] == self.storage_size, "fit_result shape is correct"
+
+        distribution = numpy.zeros(npt, dtype=DTYPE)
+        with nogil:
+            for i in range(size):
+                qRg = fit_result[i, 9]
+                if qRg < qRg_max:
+                    aslope = -fit_result[i, 10] # slope is always negative by contruction
+                    sigma = fit_result[i, 11]
+                    weight = (fit_result[i, 19]-fit_result[i, 18])/qRg_max
+                    for j in range(npt):
+                        x = j*resolution
+                        y = weight*exp(-(x-aslope)**2/(2.0*sigma**2))/sigma
+                        distribution[j] += y
+        return numpy.asarray(distribution)
+    
+    def average_values(self,
+                       DTYPE_t[:, ::1] fit_result,
+                       int start,
+                       int stop
+                       ):
+        """Average out Rg and I0 and propagate errors from all sub-regions present in the main Guinier region
+        
+        :param: fit_result: output of quality_fit: all possible Guinier reguions already fitted 
+        :paran start: the first index of the Guinier region
+        :paran stop: the last index of the Guinier region
+        :return: Rg_avg, Rg_std, I0_avg, I0_std, number of valid regions 
+        """
+        cdef:
+            int i, j, good, size
+            DTYPE_t wi, wr, swi, swr, srw, siw, Rg_avg, Rg_std, I0_avg, I0_std
+        
+        size = fit_result.shape[0]
+        assert fit_result.shape[1] == self.storage_size, "fit_result shape is correct"
+        with nogil:
+            swi = swr = srw = siw = 0.0
+            good = 0
+            for i in range(size):
+                if fit_result[i, 4]>=start and fit_result[i, 5]<=stop:
+                    good +=1 
+                    wr = 1/fit_result[i, 1]**2 # sigma_Rg
+                    wi = 1/fit_result[i, 3]**2 # sigma_I0
+                    swr += wr
+                    swi += wi
+                    srw += wr * fit_result[i,0] # Rg
+                    siw += wi * fit_result[i,2] # I0
+            Rg_avg = srw/swr
+            I0_avg = siw/swi 
+            swi = swr = srw = siw = 0.0
+            good = 0
+            for i in range(size):
+                if fit_result[i, 4]>=start and fit_result[i, 5]<=stop:
+                    good +=1 
+                    wr = 1/fit_result[i, 1]**2 # sigma_Rg
+                    wi = 1/fit_result[i, 3]**2 # sigma_I0
+                    swr += wr
+                    swi += wi
+                    srw += wr * (fit_result[i,0]-Rg_avg)**2 # Rg
+                    siw += wi * (fit_result[i,2]-I0_avg)**2 # I0
+            Rg_std = sqrt(srw/swr)
+            I0_std = sqrt(siw/swi)
+        return Rg_avg, Rg_std, I0_avg, I0_std, good
+    
     def fit(self, sasm):
         """This function automatically calculates the radius of gyration and scattering intensity at zero angle
         from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
@@ -573,197 +738,7 @@ cdef class AutoRG:
         :param sasm: An array of q, I(q), dI(q)
         :return: RG_RESULT named tuple with the result of the fit
         """
-        cdef:
-            DTYPE_t quality, intercept, slope, sigma_slope, q2Rg2_lower, q2_Rg2_upper, r_sqr, rg2
-            bint aggregated = 0
-            cnumpy.ndarray qualities
-            DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
-            DTYPE_t[::1] fit_data
-            cnumpy.int32_t[::1] offsets, data_range
-            int raw_size, currated_size, data_start, data_end, data_step
-            int min_window, max_window, window_size, window_step 
-            int start, end, nb_fit, array_size, block_size=39 #page of 4k
-            int idx_min, idx_max, idx, err
-            DTYPE_t[:, ::1] fit_mv, tmp_mv
-            cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
-            
-        raw_size = sasm.shape[0]
-        q_ary = numpy.empty(raw_size, dtype=DTYPE)
-        i_ary = numpy.empty(raw_size, dtype=DTYPE)
-        sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
-        q2_ary = numpy.empty(raw_size, dtype=DTYPE)
-        lgi_ary = numpy.empty(raw_size, dtype=DTYPE)
-        wg_ary = numpy.empty(raw_size, dtype=DTYPE)
-        offsets = numpy.empty(raw_size, dtype=numpy.int32)
-        array_size = block_size
-        fit_mv = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)
-    
-        data_start, data_end = self.currate_data(sasm, q_ary, i_ary, sigma_ary)
-        
-#                                        #q2_ary, lgi_ary, wg_ary, offsets, data_range)
-#         with nogil:
-#             # Pick a minimum fitting window size. 10 is consistent with atsas autorg.   
-#             min_window = self.min_size
-#             max_window = data_end - data_start
-#         
-#             if (data_end - data_start) < min_window:
-#                 with gil:
-#                     raise InsufficientDataError("Length of linear region, from %s to %s, is less than %s points long"%(data_end, data_start, min_window))
-#       
-#         
-#         # This function takes every window size in the window list, stepts it through 
-#         # the data range, and fits it to get the RG and I0. If basic conditions are 
-#         # met, qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
-#         # We keep the fit.
-#     #     with nogil:
-#             # It is very time consuming to search every possible window size and every 
-#             # possible starting point.
-#             # Here we define a subset to search.
-#             window_step = max(max_window // 10, 1)
-#             data_step = max(max_window // 50, 1)
-#             for window_size from min_window <= window_size < max_window + 1 by window_step:
-#                 #for start in range(data_start, data_end - window_size, data_step):
-#                 for start from data_start <= start < data_end - window_size by data_step:
-#                     end = start + window_size
-#                     #logger.debug("Fitting: %s , %s ", start,end)
-#                     fit_mv[nb_fit, 0] = start
-#                     fit_mv[nb_fit, 1] = window_size 
-#                     fit_mv[nb_fit, 2] = q_ary[start]
-#                     fit_mv[nb_fit, 3] = q_ary[end - 1]
-#     
-#                     err = weighted_linear_fit(q2_ary, lgi_ary, wg_ary, start, end, fit_mv[:, 4:8], nb_fit)
-#     
-#                     if (err != 0):
-#                         with gil:
-#                             logger.error("Null determinant in linear regression")
-#                             continue
-#         
-#                     slope = fit_mv[nb_fit, 4] 
-#                     rg2 = -slope
-#                     sigma_slope = fit_mv[nb_fit, 5] 
-#                     intercept = fit_mv[nb_fit, 6]
-#                     q2Rg2_lower = q2_ary[start] * rg2
-#                     q2_Rg2_upper = q2_ary[start + window_size - 1] * rg2
-#     
-#                     fit_mv[nb_fit, 8] = q2Rg2_lower 
-#                     fit_mv[nb_fit, 9] = q2_Rg2_upper
-#                     # check the validity of the model with some physics
-#                     # i. e qmin*RG<1 and qmax*RG<1.35, and RG>0.1,
-#                     if (rg2 > self.rg2_min) and (q2_Rg2_upper < self.q2rg2max) and (sigma_slope / rg2 <= self.error_slope):
-#                         r_sqr = calc_chi(q2_ary, lgi_ary, wg_ary, start, end, 
-#                                          intercept, slope, fit_mv[:, 10:14], nb_fit)
-#                         if r_sqr > .15:
-#                             nb_fit += 1
-#                             # Allocate some more memory if needed
-#                             if nb_fit >= array_size:
-#                                 array_size *= 2
-#                                 with gil:
-#                                     tmp_mv = numpy.zeros((array_size, self.storage_size), dtype=DTYPE)
-#                                     tmp_mv[:nb_fit, :] = fit_mv[:, :]
-#                                     fit_mv = tmp_mv
-#                         else:
-#                             #reset data
-#                             fit_mv[nb_fit, :] = 0.0
-#                     else:
-#                             fit_mv[nb_fit, :] = 0.0
-#         
-#         logger.debug("Number of valid fits: %s ", nb_fit)
-#                         
-#         if nb_fit == 0:
-#             #Extreme cases: may need to relax the parameters.
-#             pass
-#         
-#         if nb_fit > 0:
-#             fit_array = numpy.asarray(fit_mv)[:nb_fit, :]
-#     
-#             #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
-#     
-#             #all_scores = []
-#             qmaxrg_score = 1.0 - numpy.absolute((fit_array[:, 9]-0.56)/0.56)
-#             qminrg_score = 1.0 - fit_array[:, 8]
-#             rg_frac_err_score = 1.0 - fit_array[:, 5]/fit_array[:, 4]
-#             i0_frac_err_score = 1.0 - fit_array[:, 7]/fit_array[:, 6]
-#             r_sqr_score = fit_array[:, 10]**4
-#             reduced_chi_sqr_score = 1.0 / fit_array[:,12] #Not right
-#             window_size_score = fit_array[:, 1] / max_window #float dividion forced by fit_array dtype 
-#             scores = numpy.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
-#                                   reduced_chi_sqr_score, window_size_score])
-#             qualities = numpy.dot(WEIGHTS, scores)
-#            
-#             #I have picked an aribtrary threshold here. Not sure if 0.6 is a good qualities cutoff or not.
-#             if qualities.max() > 0:# 0.5:
-#                 # idx = qualities.argmax()
-#                 # rg = fit_array[idx,4]
-#                 # rger1 = fit_array[idx,5]
-#                 # i0 = fit_array[idx,6]
-#                 # i0er = fit_array[idx,7]
-#                 # idx_min = fit_array[idx,0]
-#                 # idx_max = fit_array[idx,0]+fit_array[idx,1]
-#     
-#                 # try:
-#                 #     #This adds in uncertainty based on the standard deviation of values with high qualities scores
-#                 #     #again, the range of the qualities score is fairly aribtrary. It should be refined against real
-#                 #     #data at some point.
-#                 #     rger2 = fit_array[:,4][qualities>qualities[idx]-.1].std()
-#                 #     rger = rger1 + rger2
-#                 # except:
-#                 #     rger = rger1
-#     
-#                 try:
-#                     idx = qualities.argmax()
-#                     #rg = fit_array[:,4][qualities>qualities[idx]-.1].mean()
-#                     
-#                     rg = sqrt(-3. * fit_array[idx, 4])
-#                     dber = fit_array[:, 5][qualities > qualities[idx] - .1].std()
-#                     rger = 0.5 * sqrt(3. / rg) * dber
-#                     i0 = exp(fit_array[idx, 6])
-#                     #i0 = fit_array[:,6][qualities>qualities[idx]-.1].mean()
-#                     daer = fit_array[:, 7][qualities > qualities[idx] - .1].std()
-#                     i0er = i0 * daer
-#                     idx_min = int(fit_array[idx, 0])
-#                     idx_max = int(fit_array[idx, 0] + fit_array[idx, 1] - 1.0)
-#     #                 idx_min_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 3]))
-#     #                 idx_max_corr = numpy.argmin(numpy.absolute(sasm[:, 0] - fit_array[idx, 4]))
-#                 except:
-#                     
-#                     idx = qualities.argmax()
-#                     rg = sqrt(-3. * fit_array[idx, 4])
-#                     rger = 0.5 * sqrt(3. / rg) * fit_array[idx, 5]
-#                     i0 = exp(fit_array[idx, 6])
-#                     i0er = i0 * fit_array[idx, 7]
-#                     idx_min = int(fit_array[idx, 0])
-#                     idx_max = int(fit_array[idx, 0] + fit_array[idx, 1] - 1.0)
-#                 quality = qualities[idx]
-#             else:
-#               
-#                 rg = -1
-#                 rger = -1
-#                 i0 = -1
-#                 i0er = -1
-#                 idx_min = -1
-#                 idx_max = -1
-#                 quality = 0
-#     
-#         else:
-#            
-#             rg = -1
-#             rger = -1
-#             i0 = -1
-#             i0er = -1
-#             idx_min = -1
-#             idx_max = -1
-#             quality = 0
-#             all_scores = []
-#     
-#         # managed by offsets
-#         # idx_min = idx_min + data_start
-#         # idx_max = idx_max + data_start
-#     
-#         #We could add another function here, if not good quality fits are found, either reiterate through the
-#         #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
-#     
-#         return RG_RESULT(rg, rger, i0, i0er, offsets[idx_min], offsets[idx_max], quality, aggregated)
-#     __call__ = fit
+        raise NotImplementedError()
     
 ################################################################################
 # Old implementation from Matha    
@@ -1075,9 +1050,9 @@ def autoRg(sasm):
     #We could add another function here, if not good quality fits are found, either reiterate through the
     #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
 
-    aggregated = autorg_instance.check_aggregation(q2_ary, lgi_ary, wg_ary, data_start, offsets[idx_max])
+    aggregated = AutoGuinier.check_aggregation(q2_ary, lgi_ary, wg_ary, data_start, offsets[idx_max])
     return RG_RESULT(rg, rger, i0, i0er, offsets[idx_min], offsets[idx_max], quality, aggregated)
 
-autorg_instance = AutoRG() 
-autoRg_ng = autorg_instance.fit
+guinier = AutoGuinier() 
+
 
