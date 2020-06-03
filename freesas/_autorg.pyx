@@ -547,43 +547,6 @@ cdef class AutoGuinier:
                             result = tmp_mv
         return numpy.asarray(result[:nb_fit])
     
-    @staticmethod
-    def check_aggregation(DTYPE_t[::1] q2, 
-                          DTYPE_t[::1] lnI, 
-                          DTYPE_t[::1] I2_over_sigma2, 
-                          int start=0,
-                          int end=-1,
-                          threshold=0.1):
-        """
-        This function analyzes the curvature of a parabola fitted to the Guinier region 
-        to check if the data indicate protein aggragation
-        
-        A clear upwards curvature indicates aggregation.
-        By lazyness we use the polyfit from numpy which use the weights not squarred.
-        
-        :param q2: scattering vector squared
-        :param lnI: logarithm if the intensity
-        :param I2_over_sigma2: weight squared 
-        :param start: the begining of the scan zone, argmax(I) is a good option, as early as possible
-        :param end: the end of the scan zone, i.e. the end of the Guinier region
-        :param threshold: the value above which data are considered aggregated 
-        :return: True if the protein is likely to be aggregated 
-        if the threshold is None, return the value of the curvature
-        """
-        cdef:
-            DTYPE_t[::1] weight
-            
-        weight = numpy.sqrt(I2_over_sigma2[start: end])
-        try:
-            coef = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)[0]
-        except Exception as err:
-            logger.error("Unable to fit parabola, %s: %s", type(err), err)
-            return True
-        if threshold is not None:
-            return coef>threshold
-        else:
-            return coef
-
     def count_valid(self,
                     DTYPE_t[:, ::1] fit_result,
                     DTYPE_t qRg_max=-1.0, 
@@ -643,6 +606,72 @@ cdef class AutoGuinier:
 #             logger.error("No Guinier region found with qRg_max < %s in relaxed mode", qRg_max)
 #             raise NoGuinierRegionError(qRg_max)
         return cnt, relaxed, qRg_max, aslope_max
+
+    cpdef (int, int) find_region(self, 
+                                 DTYPE_t[:, ::1] fits, 
+                                 DTYPE_t qRg_max=-1):
+        """This function tries to extract the boundaries of the Guinier region from all fits.
+        
+        Each `start` and `stop` position is evaluated independantly, based on the average score of all contributing
+        regions. Each region contributes with a weight calculated by:   
+        * (q_max·Rg - q_min·Rg)/qRg_max --> in favor of large ranges
+        * 1 / RMSD                      --> in favor of good quality data 
+        
+        For each start and end point, the contribution of all ranges are averaged out (using histograms-like techniques)
+        The best solution is the (start,stop) couple position with the maximum score.
+        
+        To ensure start<stop, the stop is searched first (often less noisy) and the start is searched before stop.   
+        
+        :param fits: an array with all fits. Fits with q_max·Rg>qRg_max are ignored 
+        :param qRg_max: the upper limit for searching the Guinier region. 
+        :return 2-tuple with start-stop.
+        """
+        cdef:
+            int start, stop, end, size, lower, upper, i
+            cnumpy.int32_t[::1] unweigted_start, unweigted_stop
+            DTYPE_t[::1] weigted_start,weigted_stop
+            DTYPE_t max_weight, weight, qmin_Rg, qmax_Rg, RMSD 
+        end = <int> numpy.max(fits[:,5])
+        unweigted_start = numpy.zeros(end+1, dtype=numpy.int32)
+        unweigted_stop = numpy.zeros(end+1, dtype=numpy.int32)
+        weigted_start = numpy.zeros(end+1, dtype=DTYPE)
+        weigted_stop = numpy.zeros(end+1, dtype=DTYPE)
+        size = fits.shape[0]
+        assert fits.shape[1] == self.storage_size, "size of fits matches"
+        with nogil:
+            if qRg_max<0.0:
+                qRg_max = self.qmaxrgmax
+            for i in range(size):
+                qmax_Rg = fits[i, 9] #end of Guinier zone
+                if qmax_Rg>qRg_max:
+                    continue
+                lower = <int> (fits[i, 4]) #lower index of the Guinier 
+                upper = <int> (fits[i, 5]) #upperlower index of the Guinier
+                qmin_Rg = fits[i, 8] #qRg at begining of Guinier zone
+                RMSD = fits[i, 17]
+                weight = (qmax_Rg - qmin_Rg)/RMSD # Empirically definied ... fits pretty well
+                unweigted_start[lower] += 1
+                unweigted_stop[upper] += 1
+                weigted_start[lower] += weight
+                weigted_stop[upper] += weight
+            stop = 0
+            max_weight = 0.0
+            for i in range(end+1):
+                if unweigted_stop[i]>0:
+                    weight = weigted_stop[i]/unweigted_stop[i]
+                    if weight>max_weight:
+                        max_weight = weight
+                        stop = i
+            start=0
+            max_weight = 0.0     
+            for i in range(stop):
+                if unweigted_start[i]>0:
+                    weight = weigted_start[i]/unweigted_start[i]
+                    if weight>max_weight:
+                        max_weight = weight
+                        start = i
+
+        return start, stop
      
     def slope_distribution(self,
                            DTYPE_t[:, ::1] fit_result,
@@ -730,6 +759,44 @@ cdef class AutoGuinier:
             Rg_std = sqrt(srw/swr)
             I0_std = sqrt(siw/swi)
         return Rg_avg, Rg_std, I0_avg, I0_std, good
+
+    @staticmethod
+    def check_aggregation(DTYPE_t[::1] q2, 
+                          DTYPE_t[::1] lnI, 
+                          DTYPE_t[::1] I2_over_sigma2, 
+                          int start=0,
+                          int end=-1,
+                          threshold=0.1):
+        """
+        This function analyzes the curvature of a parabola fitted to the Guinier region 
+        to check if the data indicate protein aggragation
+        
+        A clear upwards curvature indicates aggregation.
+        By lazyness we use the polyfit from numpy which use the weights not squarred.
+        
+        :param q2: scattering vector squared
+        :param lnI: logarithm if the intensity
+        :param I2_over_sigma2: weight squared 
+        :param start: the begining of the scan zone, argmax(I) is a good option, as early as possible
+        :param end: the end of the scan zone, i.e. the end of the Guinier region
+        :param threshold: the value above which data are considered aggregated 
+        :return: True if the protein is likely to be aggregated 
+        if the threshold is None, return the value of the curvature
+        """
+        cdef:
+            DTYPE_t[::1] weight
+            
+        weight = numpy.sqrt(I2_over_sigma2[start: end])
+        try:
+            coef = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)[0]
+        except Exception as err:
+            logger.error("Unable to fit parabola, %s: %s", type(err), err)
+            return True
+        if threshold is not None:
+            return coef>threshold
+        else:
+            return coef
+
     
     def fit(self, sasm):
         """This function automatically calculates the radius of gyration and scattering intensity at zero angle

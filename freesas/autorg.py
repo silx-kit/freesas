@@ -6,7 +6,7 @@ Functions to generating graphs related to
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "29/05/2020"
+__date__ = "03/06/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -80,12 +80,25 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2, resolution=0.01):
     """
     Yet another implementation of the Guinier fit
     
+    The idea:
+    * extract the reasonable range
+    * convert to the Guinier space (ln(I) = f(q²)
+    * scan all possible intervall
+    * keep any with qRg_max<1.3 (or 1.5 in relaxed mode)
+    * select the begining and the end of the guinier region according to histograms weighted by two parameters:
+      - (q_max·Rg - q_min·Rg)/qRg_max --> in favor of large ranges
+      - 1 / RMSD                      --> in favor of good quality data 
+    For each start and end point, the contribution of all ranges are averaged out (using histograms)
+    The best solution is the start/end position with the maximum average.  
+    
     :param data: 2D array with (q,I,err)
     :param Rg_min: minimum value for Rg
     :param qRg_max: upper bound of the Guinier region
     :param relax: relaxation factor for the upper bound
     :param resolution: step size of the slope histogram
     :return: autRg result 
+    
+    
     """
 
     raw_size = data.shape[0]
@@ -104,32 +117,35 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2, resolution=0.01):
     fits = guinier.many_fit(q2_ary, lnI_ary, wg_ary, start0, stop0, Rg_min, qRg_max, relax)
 
     cnt, relaxed, qRg_max, aslope_max = guinier.count_valid(fits, qRg_max, relax)
-    valid_fits = fits[fits[:, 9] < qRg_max]
+    # valid_fits = fits[fits[:, 9] < qRg_max]
     if cnt == 0:
         raise NoGuinierRegionError(qRg_max)
 
-    npt = math.ceil(aslope_max / resolution) + 1
-    distribution = guinier.slope_distribution(fits, npt, resolution, qRg_max)
+#     npt = math.ceil(aslope_max / resolution) + 1
+#     distribution = guinier.slope_distribution(fits, npt, resolution, qRg_max)
+#
+#     best = numpy.argmax(distribution)
+#     if best >= 1 and best < npt - 1:
+#         gradient = 0.5 * (distribution[best + 1] - distribution[best - 1])
+#         hessian = distribution[best + 1] + distribution[best - 1] - 2 * distribution[best]
+#         if hessian == 0:
+#             best_corr = 0
+#         else:
+#             best_corr = -gradient / hessian
+#             if abs(best_corr) > 1:
+#                 best_corr = 0
+#     aslope = resolution * (best + best_corr)
+#
+#     drg = abs(aslope + valid_fits[:, 10])
+#     # drg2 = drg * drg
+#     # w2 = (valid_fits[:, 19] - valid_fits[:, 18]) / qRg_max ** 2
+#     w = (valid_fits[:, 9] - valid_fits[:, 8]) / qRg_max
+#     solution = numpy.argmin(drg / w)
+#
+#     start, stop = valid_fits[solution][4:6]
+    # select the Guinier region based on all fits:
+    start, stop = guinier.find_region(fits, qRg_max)
 
-    best = numpy.argmax(distribution)
-    if best >= 1 and best < npt - 1:
-        gradient = 0.5 * (distribution[best + 1] - distribution[best - 1])
-        hessian = distribution[best + 1] + distribution[best - 1] - 2 * distribution[best]
-        if hessian == 0:
-            best_corr = 0
-        else:
-            best_corr = -gradient / hessian
-            if abs(best_corr) > 1:
-                best_corr = 0
-    aslope = resolution * (best + best_corr)
-
-    drg = abs(aslope + valid_fits[:, 10])
-    # drg2 = drg * drg
-    # w2 = (valid_fits[:, 19] - valid_fits[:, 18]) / qRg_max ** 2
-    w = (valid_fits[:, 9] - valid_fits[:, 8]) / qRg_max
-    solution = numpy.argmin(drg / w)
-
-    start, stop = valid_fits[solution][4:6]
     # Now average out the
     Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
 
