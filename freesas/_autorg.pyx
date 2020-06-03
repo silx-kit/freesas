@@ -45,9 +45,9 @@ class InsufficientDataError(Error):
         message -- explanation of the error
     """
 
-    def __init__(self):
-        self.expression = ""
-        self.message = "Not enough data do determine Rg"
+    def __init__(self, msg="Not enough data do determine Rg"):
+        self.expression = msg
+        self.message = msg
 
 
 class NoGuinierRegionError(Error):

@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "29/05/2020"
+__date__ = "03/06/2020"
 
 import sys
 import os
@@ -35,7 +35,7 @@ import argparse
 import logging
 import glob
 import platform
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_guinier")
 
 import numpy
@@ -86,6 +86,7 @@ def main():
         dst.write("File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated" + os.linesep)
 
     for afile in files:
+        logger.info("Processing %s", afile)
         try:
             data = numpy.loadtxt(afile)
         except:
