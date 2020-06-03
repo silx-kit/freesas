@@ -61,14 +61,16 @@ def parse():
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
     parser.add_argument("-f", "--format", action='store', help="Output format: native, csv, ssf", default="native", type=str)
-    parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    parser.add_argument("-v", "--verbose", default=0, help="switch to verbose mode", action='count')
     parser.add_argument("-V", "--version", action='version', version=version)
     return parser.parse_args()
 
 
 def main():
     args = parse()
-    if args.verbose:
+    if args.verbose==1:
+        logging.root.setLevel(logging.INFO)
+    elif args.verbose>=2:
         logging.root.setLevel(logging.DEBUG)
     files = [i for i in args.file if os.path.exists(i)]
     if platform.system() == "Windows" and files == []:
@@ -98,9 +100,9 @@ def main():
                 sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
             else:
                 if args.format == "csv":
-                    res = f"{afile},{rg.Rg},{rg.sigma_Rg},{rg.I0},{rg.sigma_I0},{rg.start_point},{rg.end_point},{rg.quality},{rg.aggregated}"
+                    res = f"{afile},{rg.Rg:6f},{rg.sigma_Rg:6f},{rg.I0:6f},{rg.sigma_I0:6f},{rg.start_point},{rg.end_point},{rg.quality:6f},{rg.aggregated}"
                 elif args.format == "ssv":
-                    res = f"{rg.Rg} {rg.sigma_Rg} {rg.I0} {rg.sigma_I0} {rg.start_point} {rg.end_point} {rg.quality} {rg.aggregated} {afile}"
+                    res = f"{rg.Rg:6f} {rg.sigma_Rg:6f} {rg.I0:6f} {rg.sigma_I0:6f} {rg.start_point} {rg.end_point} {rg.quality:6f} {rg.aggregated} {afile}"
                 else:
                     res = "%s %s"%(afile, rg)
                 dst.write(res)
