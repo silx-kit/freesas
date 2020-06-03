@@ -664,7 +664,7 @@ cdef class AutoGuinier:
                         stop = i
             start=0
             max_weight = 0.0     
-            for i in range(stop):
+            for i in range(stop-self.min_size):
                 if unweigted_start[i]>0:
                     weight = weigted_start[i]/unweigted_start[i]
                     if weight>max_weight:
