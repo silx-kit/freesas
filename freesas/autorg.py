@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 import math
 import numpy
-from ._autorg import RG_RESULT, autoRg, AutoGuinier, linear_fit, FIT_RESULT, guinier, NoGuinierRegionError, DTYPE
+from ._autorg import RG_RESULT, autoRg, AutoGuinier, linear_fit, FIT_RESULT, guinier, NoGuinierRegionError, DTYPE, InsufficientDataError
 from scipy.optimize import curve_fit
 
 
@@ -76,7 +76,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, -1, 0)
 
 
-def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2, resolution=0.01):
+def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     """
     Yet another implementation of the Guinier fit
     
@@ -85,20 +85,21 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2, resolution=0.01):
     * convert to the Guinier space (ln(I) = f(q²)
     * scan all possible intervall
     * keep any with qRg_max<1.3 (or 1.5 in relaxed mode)
-    * select the begining and the end of the guinier region according to histograms weighted by two parameters:
+    * select the begining and the end of the guinier region according to the contribution of two parameters:
       - (q_max·Rg - q_min·Rg)/qRg_max --> in favor of large ranges
       - 1 / RMSD                      --> in favor of good quality data 
-    For each start and end point, the contribution of all ranges are averaged out (using histograms)
-    The best solution is the start/end position with the maximum average.  
-    
+      For each start and end point, the contribution of all ranges are averaged out (using histograms)
+      The best solution is the start/end position with the maximum average.
+    * All ranges within this region are averaged out to measure Rg, I0 and more importantly their deviation.   
+    * The quality is still to be calculated
+    * Aggergation is assessed according a second order polynom fit. 
+     
     :param data: 2D array with (q,I,err)
     :param Rg_min: minimum value for Rg
     :param qRg_max: upper bound of the Guinier region
     :param relax: relaxation factor for the upper bound
     :param resolution: step size of the slope histogram
     :return: autRg result 
-    
-    
     """
 
     raw_size = data.shape[0]
@@ -111,6 +112,8 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2, resolution=0.01):
 
     start0, stop0 = guinier.currate_data(data, q_ary, i_ary, sigma_ary,
                                          Rg_min, qRg_max, relax)
+    if start0 < 0:
+        raise InsufficientDataError("Minimum region size is %s" % guinier.min_size)
     guinier.guinier_space(start0, stop0, q_ary, i_ary, sigma_ary,
                                          q2_ary, lnI_ary, wg_ary)
 
