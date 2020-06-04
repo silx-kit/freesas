@@ -100,9 +100,9 @@ def main():
                 sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
             else:
                 if args.format == "csv":
-                    res = f"{afile},{rg.Rg:6f},{rg.sigma_Rg:6f},{rg.I0:6f},{rg.sigma_I0:6f},{rg.start_point},{rg.end_point},{rg.quality:6f},{rg.aggregated}"
+                    res = f"{afile},{rg.Rg:6.4f},{rg.sigma_Rg:6.4f},{rg.I0:6.4f},{rg.sigma_I0:6.4f},{rg.start_point:3},{rg.end_point:3},{rg.quality:5.4f},{rg.aggregated}"
                 elif args.format == "ssv":
-                    res = f"{rg.Rg:6f} {rg.sigma_Rg:6f} {rg.I0:6f} {rg.sigma_I0:6f} {rg.start_point} {rg.end_point} {rg.quality:6f} {rg.aggregated} {afile}"
+                    res = f"{rg.Rg:6.4f} {rg.sigma_Rg:6.4f} {rg.I0:6.4f} {rg.sigma_I0:6.4f} {rg.start_point:3} {rg.end_point:3} {rg.quality:5.4f} {rg.aggregated} {afile}"
                 else:
                     res = "%s %s"%(afile, rg)
                 dst.write(res)
