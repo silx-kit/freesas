@@ -260,7 +260,7 @@ cdef class AutoGuinier:
     cdef:
         readonly int min_size, weight_size, storage_size
         readonly DTYPE_t ratio_intensity, Rg_min, rg2_min, qminrgmax, q2minrg2max, relax, error_slope
-        readonly DTYPE_t qmaxrgmax, q2maxrg2max
+        readonly DTYPE_t qmaxrgmax, q2maxrg2max, aggregation_threshold
         public DTYPE_t[::1] weights
     
     def __cinit__(self, int min_size=5, 
@@ -269,7 +269,8 @@ cdef class AutoGuinier:
                   DTYPE_t qmin_rgmax=1.0,
                   DTYPE_t qmax_rgmax=1.3,
                   DTYPE_t relax=1.2,
-                  DTYPE_t error_slope=1.0):
+                  DTYPE_t error_slope=1.0,
+                  DTYPE_t aggregation_threshold=0.1):
         
         """Constructor of the class with:
         
@@ -295,6 +296,7 @@ cdef class AutoGuinier:
         self.q2maxrg2max = qmax_rgmax*qmax_rgmax
         self.error_slope = error_slope
         self.relax = relax
+        self.aggregation_threshold = aggregation_threshold
         
         self.weights = numpy.empty(self.weight_size, dtype=DTYPE)
         #self.weights
@@ -602,9 +604,6 @@ cdef class AutoGuinier:
                         aslope = -fit_result[i, 10] # slope is always negative by construction
                         if aslope>aslope_max:
                             aslope_max = aslope
-#         if cnt == 0:
-#             logger.error("No Guinier region found with qRg_max < %s in relaxed mode", qRg_max)
-#             raise NoGuinierRegionError(qRg_max)
         return cnt, relaxed, qRg_max, aslope_max
 
     cpdef (int, int) find_region(self, 
@@ -760,42 +759,56 @@ cdef class AutoGuinier:
             I0_std = sqrt(siw/swi)
         return Rg_avg, Rg_std, I0_avg, I0_std, good
 
-    @staticmethod
-    def check_aggregation(DTYPE_t[::1] q2, 
+    def check_aggregation(self,
+                          DTYPE_t[::1] q2, 
                           DTYPE_t[::1] lnI, 
                           DTYPE_t[::1] I2_over_sigma2, 
                           int start=0,
-                          int end=-1,
-                          threshold=0.1):
+                          int end=0,
+                          Rg=None,
+                          threshold=None):
         """
         This function analyzes the curvature of a parabola fitted to the Guinier region 
-        to check if the data indicate protein aggragation
+        to check if the data indicate presence of larger aggragates
         
         A clear upwards curvature indicates aggregation.
-        By lazyness we use the polyfit from numpy which use the weights not squarred.
+        For convienniance , the polyfit from numpy is used which use the weights not squarred.
         
         :param q2: scattering vector squared
         :param lnI: logarithm if the intensity
         :param I2_over_sigma2: weight squared 
         :param start: the begining of the scan zone, argmax(I) is a good option, as early as possible
         :param end: the end of the scan zone, i.e. the end of the Guinier region
+        :param Rg: the radius of gyration determined previously
         :param threshold: the value above which data are considered aggregated 
         :return: True if the protein is likely to be aggregated 
-        if the threshold is None, return the value of the curvature
+        if the threshold is None, return the value of the curvature*Rg**(-4)
         """
         cdef:
             DTYPE_t[::1] weight
-            
+        if end == 0:
+            end=len(q2)
+        else:
+            assert len(q2)>=end, "q2 size matches"
+        assert len(lnI)>=end, "lnI size matches"
+        assert len(I2_over_sigma2)>=end, "I2_over_sigma2 size matches"
         weight = numpy.sqrt(I2_over_sigma2[start: end])
         try:
-            coef = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)[0]
+            coefs = numpy.polyfit(q2[start: end], lnI[start: end], 2, w=weight)
         except Exception as err:
             logger.error("Unable to fit parabola, %s: %s", type(err), err)
             return True
-        if threshold is not None:
-            return coef>threshold
+        if Rg:
+            value = coefs[0]/Rg**4
         else:
-            return coef
+            value = coefs[0]/(3*coefs[1])**2
+    
+        if threshold is False:
+            return value
+        elif  threshold is None:
+            return value>self.aggregation_threshold
+        else:
+            return value>threshold
 
     
     def fit(self, sasm):
@@ -1117,7 +1130,7 @@ def autoRg(sasm):
     #We could add another function here, if not good quality fits are found, either reiterate through the
     #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
 
-    aggregated = AutoGuinier.check_aggregation(q2_ary, lgi_ary, wg_ary, data_start, offsets[idx_max])
+    aggregated = guinier.check_aggregation(q2_ary, lgi_ary, wg_ary, data_start, offsets[idx_max], Rg=rg)
     return RG_RESULT(rg, rger, i0, i0er, offsets[idx_min], offsets[idx_max], quality, aggregated)
 
 guinier = AutoGuinier() 
