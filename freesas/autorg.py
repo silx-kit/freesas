@@ -152,7 +152,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     # Now average out the
     Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
 
-    aggregated = guinier.check_aggregation(q2_ary, lnI_ary, wg_ary, start0, stop)
+    aggregated = guinier.check_aggregation(q2_ary, lnI_ary, wg_ary, start0, stop, threshold=None)
 
     quality = (Rg_avg / Rg_std) * (good / cnt)
     if relaxed:

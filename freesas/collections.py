@@ -35,7 +35,7 @@ from collections import namedtuple
 RG_RESULT = namedtuple("RG_RESULT", "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated")
 
 def RG_RESULT_repr(self):
-    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4}) I₀={self.I0:6.4f}(±{self.sigma_I0:6.4}) [{self.start_point}-{self.end_point}] {100.0*self.quality:5.2f}% {'aggregated' if self.aggregated else ''}"
+    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4}) I₀={self.I0:6.4f}(±{self.sigma_I0:6.4}) [{self.start_point}-{self.end_point}] {100.0*self.quality:5.2f}% {'aggregated' if self.aggregated>0.1 else ''}"
 RG_RESULT.__repr__ = RG_RESULT_repr
 FIT_RESULT = namedtuple("FIT_RESULT", "slope sigma_slope intercept sigma_intercept, R, R2, chi2, RMSD")
 
