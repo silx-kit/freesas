@@ -82,7 +82,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     sigma_Rg, sigma_I0 = numpy.sqrt(numpy.diag(res[1]))
     end = numpy.where(data.T[0] > qRg_max / Rg)[0][0]
     start = numpy.where(data.T[0] > qRg_min / Rg)[0][0]
-    aggregation = guinier.check_aggregation(q2, lnI, I2_over_sigma2, 0, end - start0, Rg, threshold=False)
+    aggregation = guinier.check_aggregation(q2, lnI, I2_over_sigma2, 0, end - start0, Rg=Rg, threshold=False)
     return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, -1, aggregation)
 
 
