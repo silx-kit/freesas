@@ -6,7 +6,7 @@ Functions to generating graphs related to
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "03/06/2020"
+__date__ = "04/06/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,42 +38,52 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     """
     q = data.T[0]
     I = data.T[1]
-    start = numpy.argmax(I)
-    stop = numpy.where(q > qRg_max / Rg_min)[0][0]
-    q = q[start:stop]
-    I = I[start:stop]
+    err = data.T[2]
 
-    x = q * q
+    start0 = numpy.argmax(I)
+    stop0 = numpy.where(q > qRg_max / Rg_min)[0][0]
+
+    range0 = slice(start0, stop0)
+    q = q[range0]
+    I = I[range0]
+    err = err[range0]
+
+    q2 = q ** 2
+    lnI = numpy.log(I)
+    I2_over_sigma2 = err ** 2 / I ** 2
+
     y = I * q
     p1 = numpy.argmax(y)
 
     # Those are guess from the max position:
-    Rg = (1.5 / x[p1]) ** 0.5
-    I0 = I[p1] * numpy.exp(x[p1] * Rg ** 2 / 3)
+    Rg = (1.5 / q2[p1]) ** 0.5
+    I0 = I[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
 
     # Let's cut-down the guinier region from 0.5-1.3 in qRg
     try:
-        start = numpy.where(q > qRg_min / Rg)[0][0]
+        start1 = numpy.where(q > qRg_min / Rg)[0][0]
     except IndexError:
-        start = None
+        start1 = None
     try:
-        stop = numpy.where(q > qRg_max / Rg)[0][0]
+        stop1 = numpy.where(q > qRg_max / Rg)[0][0]
     except IndexError:
-        stop = None
-    q = q[start:stop]
-    I = I[start:stop]
+        stop1 = None
+    range1 = slice(start1, stop1)
+    q1 = q[range1]
+    I1 = I[range1]
 
-    x = q * q
-    y = I * q
+    x = q1 * q1
+    y = I1 * q1
 
-    f = lambda w, Rg, I0: I0 / Rg * numpy.sqrt(w * Rg * Rg) * numpy.exp(-w * Rg * Rg / 3)
+    f = lambda x, Rg, I0: I0 / Rg * numpy.sqrt(x * Rg * Rg) * numpy.exp(-x * Rg * Rg / 3.0)
     res = curve_fit(f, x, y, [Rg, I0])
     logger.debug("GPA upgrade Rg %s-> %s and I0 %s -> %s", Rg, res[0][0], I0, res[0][1])
     Rg, I0 = res[0]
     sigma_Rg, sigma_I0 = numpy.sqrt(numpy.diag(res[1]))
     end = numpy.where(data.T[0] > qRg_max / Rg)[0][0]
     start = numpy.where(data.T[0] > qRg_min / Rg)[0][0]
-    return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, -1, 0)
+    aggregation = guinier.check_aggregation(q2, lnI, I2_over_sigma2, 0, end - start0, Rg, threshold=False)
+    return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, -1, aggregation)
 
 
 def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
@@ -152,7 +162,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     # Now average out the
     Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
 
-    aggregated = guinier.check_aggregation(q2_ary, lnI_ary, wg_ary, start0, stop, threshold=None)
+    aggregated = guinier.check_aggregation(q2_ary, lnI_ary, wg_ary, start0, stop, Rg=Rg_avg, threshold=False)
 
     quality = (Rg_avg / Rg_std) * (good / cnt)
     if relaxed:
