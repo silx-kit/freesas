@@ -95,6 +95,13 @@ _weights = numpy.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight,
 WEIGHTS = numpy.ascontiguousarray(_weights / _weights.sum(), DTYPE)
 
 
+cdef inline DTYPE_t clamp(DTYPE_t x, 
+                   DTYPE_t lower, 
+                   DTYPE_t upper) nogil:
+    "Equivalent of the numpy.clip"
+    return min(upper, max(x, lower))
+
+
 cdef int weighted_linear_fit(DTYPE_t[::1] datax, 
                              DTYPE_t[::1] datay, 
                              DTYPE_t[::1] weight, 
@@ -689,6 +696,8 @@ cdef class AutoGuinier:
         :param resolution: The step size of the |slope|, from 0 to max(|slope|). Finer values provide better precision
         :param qRg_max: maximum allowed value for the upper limit of the Guinier region
         :return: the distribution of slopes.
+        
+        This function is finally not used.
         """
         cdef:
             int i, j, size
@@ -804,13 +813,65 @@ cdef class AutoGuinier:
             value = coefs[0]/(3*coefs[1])**2
     
         if threshold is False:
-            return value
+            return clamp(value, -1.0, 1.0)
         elif  threshold is None:
             return value>self.aggregation_threshold
         else:
             return value>threshold
-
     
+    
+    cpdef DTYPE_t calc_quality(self, 
+                               DTYPE_t Rg_avg, 
+                               DTYPE_t Rg_std,
+                               DTYPE_t qmin,
+                               DTYPE_t qmax,
+                               DTYPE_t aggregation,
+                               DTYPE_t qRgmax = -1.0
+                               ):
+        """This function rates  the quality of the data.
+        
+        Unlike in `J. Appl. Cryst. (2007). 40, s223–s228`
+        There I found no weight for how many consistent intervals were found.  
+        
+        :param Rg_avg: the average Rg found
+        :param Rg_std: the standard deviation of Rg
+        :param qmin: Scatteing vector of first point of the Guinier region
+        :param qmax: Scatteing vector of last point of the Guinier region
+        
+        :return: quality indicator between 0 and 1
+        """
+        cdef:
+            DTYPE_t quality
+            DTYPE_t weight_Rg_dev, fit_Rg_dev, weight_qRgmax, fit_qRgmax, 
+            DTYPE_t weight_drop, fit_drop, weight_aggregation, fit_aggregation, 
+        
+        if qRgmax <= 0:
+            qRgmax = self.qmaxrgmax
+        
+        #Quality form the fit of Rg
+        weight_Rg_dev = 0.50861708
+        fit_Rg_dev = clamp(1.0 - Rg_avg/Rg_std, 0.0, 1.0)
+         
+        #Quality from the qRg max criteria  
+        weight_qRgmax = 0.39293338
+        fit_qRgmax = clamp(1.0 - qmax*Rg_avg/qRgmax, 0.0, 1.0)
+        
+        #Quality from number of dropped points
+        weight_drop = 0.23998438
+        fit_drop = clamp(1.0-qmin/qmax, 0.0, 1.0)
+        
+        #quality from agregation value
+        weight_aggregation = 0.18113135
+        fit_aggregation = clamp(1.0 - fabs(aggregation), 0.0, 1.0)
+        
+        quality = fit_aggregation*weight_aggregation + \
+                  fit_drop*weight_drop + \
+                  fit_qRgmax*weight_qRgmax + \
+                  fit_Rg_dev*weight_Rg_dev
+        #as the sum of coef >1, can be larger than 1
+        return clamp(quality, 0.0, 1.0)
+    
+
     def fit(self, sasm):
         """This function automatically calculates the radius of gyration and scattering intensity at zero angle
         from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package

@@ -6,7 +6,7 @@ Functions to generating graphs related to
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "04/06/2020"
+__date__ = "05/06/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -83,7 +83,8 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     end = numpy.where(data.T[0] > qRg_max / Rg)[0][0]
     start = numpy.where(data.T[0] > qRg_min / Rg)[0][0]
     aggregation = guinier.check_aggregation(q2, lnI, I2_over_sigma2, 0, end - start0, Rg=Rg, threshold=False)
-    return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, -1, aggregation)
+    quality = guinier.calc_quality(Rg, sigma_Rg, data.T[0, start], data.T[0, end], aggregation, qRg_max)
+    return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, quality, aggregation)
 
 
 def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
@@ -134,28 +135,6 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     if cnt == 0:
         raise NoGuinierRegionError(qRg_max)
 
-#     npt = math.ceil(aslope_max / resolution) + 1
-#     distribution = guinier.slope_distribution(fits, npt, resolution, qRg_max)
-#
-#     best = numpy.argmax(distribution)
-#     if best >= 1 and best < npt - 1:
-#         gradient = 0.5 * (distribution[best + 1] - distribution[best - 1])
-#         hessian = distribution[best + 1] + distribution[best - 1] - 2 * distribution[best]
-#         if hessian == 0:
-#             best_corr = 0
-#         else:
-#             best_corr = -gradient / hessian
-#             if abs(best_corr) > 1:
-#                 best_corr = 0
-#     aslope = resolution * (best + best_corr)
-#
-#     drg = abs(aslope + valid_fits[:, 10])
-#     # drg2 = drg * drg
-#     # w2 = (valid_fits[:, 19] - valid_fits[:, 18]) / qRg_max ** 2
-#     w = (valid_fits[:, 9] - valid_fits[:, 8]) / qRg_max
-#     solution = numpy.argmin(drg / w)
-#
-#     start, stop = valid_fits[solution][4:6]
     # select the Guinier region based on all fits:
     start, stop = guinier.find_region(fits, qRg_max)
 
@@ -163,11 +142,6 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
 
     aggregated = guinier.check_aggregation(q2_ary, lnI_ary, wg_ary, start0, stop, Rg=Rg_avg, threshold=False)
-
-    quality = (Rg_avg / Rg_std) * (good / cnt)
-    if relaxed:
-        quality *= 0.6
-    if aggregated:
-        quality *= 0.6
-    result = RG_RESULT(Rg_avg, Rg_std, I0_avg, I0_std, start, stop, numpy.clip(quality, 0, 1), aggregated)
+    quality = guinier.calc_quality(Rg_avg, Rg_std, q_ary[start], q_ary[stop], aggregated, qRg_max)
+    result = RG_RESULT(Rg_avg, Rg_std, I0_avg, I0_std, start, stop, quality, aggregated)
     return result
