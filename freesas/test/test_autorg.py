@@ -25,12 +25,12 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "13/05/2020"
+__date__ = "09/06/2020"
 
 import numpy
 import unittest
 from .utilstests import get_datafile
-from ..autorg import autoRg, RG_RESULT, linear_fit, auto_gpa
+from ..autorg import autoRg, RG_RESULT, linear_fit, auto_gpa, auto_guinier
 from .._bift import distribution_sphere
 from math import sqrt, pi
 from scipy.stats import linregress
@@ -80,6 +80,7 @@ class TestAutoRg(unittest.TestCase):
         err = numpy.sqrt(I)
         data = numpy.vstack((q, I, err)).T
         Rg = autoRg(data)
+        logger.info("auto_rg %s", Rg)
         self.assertAlmostEqual(R0 * sqrt(3 / 5), Rg.Rg, 0, "Rg matches for a sphere")
         self.assertGreater(R0 * sqrt(3 / 5), Rg.Rg - Rg.sigma_Rg, "Rg in range matches for a sphere")
         self.assertLess(R0 * sqrt(3 / 5), Rg.Rg + Rg.sigma_Rg, "Rg in range matches for a sphere")
@@ -88,14 +89,20 @@ class TestAutoRg(unittest.TestCase):
         self.assertLess(I0, Rg.I0 + Rg.sigma_I0, "I0 matches for a sphere")
 
         gpa = auto_gpa(data)
-        logger.debug("%s", gpa)
-        self.assertAlmostEqual(gpa.Rg / (R0 * sqrt(3 / 5)), 1.00, 0, "Rg matches for a sphere")
+        logger.info("auto_gpa %s", gpa)
+        self.assertAlmostEqual(gpa.Rg / (R0 * sqrt(3. / 5)), 1.00, 0, "Rg matches for a sphere")
         self.assertAlmostEqual(gpa.I0 / I0, 1.0, 1, "I0 matches for a sphere")
-        # Error bars are pretty poor with GPA
-        # self.assertGreater(R0 * sqrt(3 / 5), gpa.Rg - gpa.sigma_Rg, "Rg in range matches for a sphere")
-        # self.assertLess(R0 * sqrt(3 / 5), gpa.Rg + gpa.sigma_Rg, "Rg in range matches for a sphere")
-        # self.assertGreater(I0, Rg.I0 - gpa.sigma_I0, "I0 matches for a sphere")
-        # self.assertLess(I0, Rg.I0 + gpa.sigma_I0, "I0 matches for a sphere")
+
+        guinier = auto_guinier(data)
+        logger.info("auto_guinier %s", guinier)
+        self.assertAlmostEqual(R0 * sqrt(3. / 5), guinier.Rg, 0, "Rg matches for a sphere")
+        sigma_Rg = max(guinier.sigma_Rg, 1e-4)
+        sigma_I0 = max(guinier.sigma_I0, 1e-4)
+        self.assertGreater(R0 * sqrt(3. / 5), guinier.Rg - sigma_Rg, "Rg in range matches for a sphere")
+        self.assertLess(R0 * sqrt(3. / 5), guinier.Rg + sigma_Rg, "Rg in range matches for a sphere")
+        self.assertAlmostEqual(I0, guinier.I0, 0, "I0 matches for a sphere")
+        self.assertGreater(I0, guinier.I0 - sigma_I0, "I0 matches for a sphere")
+        self.assertLess(I0, guinier.I0 + sigma_I0, "I0 matches for a sphere")
 
 
 class TestFit(unittest.TestCase):

@@ -225,6 +225,32 @@ cdef DTYPE_t calc_chi(DTYPE_t[::1] x,
     
     return R2
 
+cdef inline void guinier_space(int start, 
+                               int stop, 
+                               DTYPE_t[::1] q, 
+                               DTYPE_t[::1] intensity, 
+                               DTYPE_t[::1] sigma, 
+                               DTYPE_t[::1] q2, 
+                               DTYPE_t[::1] lnI, 
+                               DTYPE_t[::1] I2_over_sigma2) nogil:
+        "Initialize q², ln(I) and I/sigma array"
+        cdef:
+            int idx
+            DTYPE_t one_q, one_i, one_sigma
+    
+        q2[:] = 0.0
+        lnI[:] = 0.0
+        I2_over_sigma2[:] = 0.0
+        
+        for idx in range(start, stop):
+            # populate the arrays for the fitting
+            one_i = intensity[idx] 
+            one_q = q[idx]
+            q2[idx] = one_q * one_q
+            lnI[idx] = log(one_i)
+            one_sigma = sigma[idx]
+            I2_over_sigma2[idx] = (one_i/one_sigma)**2
+
 
 def linear_fit(x, y, w, 
                int start=0, 
@@ -265,13 +291,12 @@ def linear_fit(x, y, w,
 cdef class AutoGuinier:
     "Calculate the radius of gyration based on Guinier's formula. This class holds all constants"
     cdef:
-        readonly int min_size, weight_size, storage_size
-        readonly DTYPE_t ratio_intensity, Rg_min, rg2_min, qminrgmax, q2minrg2max, relax, error_slope
+        readonly int min_size, storage_size
+        readonly DTYPE_t Rg_min, qminrgmax, q2minrg2max, relax, error_slope
         readonly DTYPE_t qmaxrgmax, q2maxrg2max, aggregation_threshold
-        public DTYPE_t[::1] weights
     
-    def __cinit__(self, int min_size=5, 
-                  DTYPE_t ratio_intensity=10.0,
+    def __cinit__(self, 
+                  int min_size=3, 
                   DTYPE_t Rg_min=1.0,
                   DTYPE_t qmin_rgmax=1.0,
                   DTYPE_t qmax_rgmax=1.3,
@@ -282,7 +307,6 @@ cdef class AutoGuinier:
         """Constructor of the class with:
         
         :param min_size: minimal size for the Guinier region in number of points (3, so that one can fit a parabola)
-        :param ratio_intensity: search the Guinier region between Imax and Imax/ratio_intensity (10)
         :param Rg_min: minimum acceptable value for the radius of gyration (1nm)
         :param qmin_Rgmax: maximum acceptable value for the begining of Guinier region.
         :param qmax_Rgmax: maximum acceptable value for the end of Guinier region.
@@ -291,12 +315,9 @@ cdef class AutoGuinier:
         #weights: those parameters are used to measure the best region
         #:param 
         """
-        self.storage_size = 27
-        self.weight_size = 7
+        self.storage_size = 20
         self.min_size = min_size
-        self.ratio_intensity = ratio_intensity
         self.Rg_min = Rg_min
-        self.rg2_min = Rg_min*Rg_min
         self.qminrgmax = qmin_rgmax
         self.q2minrg2max = qmin_rgmax*qmin_rgmax
         self.qmaxrgmax = qmax_rgmax
@@ -304,18 +325,24 @@ cdef class AutoGuinier:
         self.error_slope = error_slope
         self.relax = relax
         self.aggregation_threshold = aggregation_threshold
-        
-        self.weights = numpy.empty(self.weight_size, dtype=DTYPE)
-        #self.weights
     
     def __dealloc__(self):
-        self.weights = None
-    
-#     @cython.profile(True)
-#     @cython.warn.undeclared(True)
-#     @cython.warn.unused(True)
-#     @cython.warn.unused_result(False)
-#     @cython.warn.unused_arg(True)
+        self.storage_size = 0
+        self.min_size = 0
+        self.Rg_min = 0.0
+        self.qminrgmax = 0
+        self.q2minrg2max = 0
+        self.qmaxrgmax = 0
+        self.q2maxrg2max = 0
+        self.error_slope = 0
+        self.relax = 0
+        self.aggregation_threshold = 0
+        
+    @cython.profile(True)
+    @cython.warn.undeclared(True)
+    @cython.warn.unused(True)
+    @cython.warn.unused_result(False)
+    @cython.warn.unused_arg(True)
     cpdef currate_data(self,
                        data, 
                        DTYPE_t[::1] q, 
@@ -388,34 +415,20 @@ cdef class AutoGuinier:
                     start = - self.min_size -1
         return start, end+1
 
-    cpdef guinier_space(self, 
-                        int start, 
-                        int stop, 
-                        DTYPE_t[::1] q, 
-                        DTYPE_t[::1] intensity, 
-                        DTYPE_t[::1] sigma, 
-                        DTYPE_t[::1] q2, 
-                        DTYPE_t[::1] lnI, 
-                        DTYPE_t[::1] I2_over_sigma2):
+    def guinier_space(self, 
+                       int start, 
+                       int stop, 
+                       DTYPE_t[::1] q, 
+                       DTYPE_t[::1] intensity, 
+                       DTYPE_t[::1] sigma, 
+                       DTYPE_t[::1] q2, 
+                       DTYPE_t[::1] lnI, 
+                       DTYPE_t[::1] I2_over_sigma2):
         "Initialize q², ln(I) and I/sigma array"
-        cdef:
-            int idx
-            DTYPE_t one_q, one_i, one_sigma
-    
-        if 1: #with gil:with nogil:     if 1: #with gil:       
-            q2[:] = 0.0
-            lnI[:] = 0.0
-            I2_over_sigma2[:] = 0.0
-            
-            for idx in range(start, stop):
-                # populate the arrays for the fitting
-                one_i = intensity[idx] 
-                one_q = q[idx]
-                q2[idx] = one_q * one_q
-                lnI[idx] = log(one_i)
-                one_sigma = sigma[idx]
-                I2_over_sigma2[idx] = (one_i/one_sigma)**2
-                 
+        with nogil:
+            guinier_space(start, stop, q, intensity, sigma, q2, lnI, I2_over_sigma2)
+
+    @cython.profile(True)
     def many_fit(self, 
                  DTYPE_t[::1] q2_ary, 
                  DTYPE_t[::1] lnI_ary, 
@@ -453,10 +466,10 @@ cdef class AutoGuinier:
         ...
         """
         cdef:
-            int nb_fit, array_size, s, e
-            DTYPE_t[:, ::1] result 
+            int nb_fit, array_size, s, e, err
+            DTYPE_t[:, ::1] result, tmp_mv
             DTYPE_t slope, sigma_slope, intercept, sigma_intercept, q2Rg2_lower, q2Rg2_upper
-            DTYPE_t Rg2, Rg, Rg_std, I0_std, qRg_lower, qRg_upper
+            DTYPE_t Rg2, Rg, qRg_upper, I0
             bint debug
         
         debug = logger.level<=logging.DEBUG
@@ -521,13 +534,13 @@ cdef class AutoGuinier:
                     # Extract physical parameters:
                     Rg2 = -3.0*slope
                     result[nb_fit, 0] = Rg = sqrt(Rg2)
-                    result[nb_fit, 1] = Rg_std = 0.5*sqrt(-3.0/slope)*sigma_slope
+                    result[nb_fit, 1] = 0.5*sqrt(-3.0/slope)*sigma_slope # Rg_std
                     result[nb_fit, 2] = I0 = exp(intercept)
-                    result[nb_fit, 3] = I0_std = I0 * sigma_intercept
+                    result[nb_fit, 3] = I0 * sigma_intercept #I0_std
                     
                     result[nb_fit, 18] = q2Rg2_lower = q2_ary[s] * Rg2
                     result[nb_fit, 19] = q2Rg2_upper = q2_ary[e-1] * Rg2
-                    result[nb_fit, 8] = qRg_lower = sqrt( q2Rg2_lower )
+                    result[nb_fit, 8] = sqrt( q2Rg2_lower ) # qRg_lower
                     result[nb_fit, 9] = qRg_upper = sqrt( q2Rg2_upper )
 
                     if (Rg<Rg_min) or (qRg_upper>qRg_max):
@@ -539,13 +552,13 @@ cdef class AutoGuinier:
 
 
                     #Claculate the descriptor for the quality
-                    result[nb_fit, 20] = result[nb_fit, 17]                          # 0 fit_score:  RMDS, normed
-                    result[nb_fit, 21] = 1.0 - <double>(e-s)/<double>(stop-start)    # 1 window_size_score: 
-                    result[nb_fit, 22] = q2Rg2_upper/self.q2maxrg2max                # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
-                    result[nb_fit, 23] = q2Rg2_lower/self.q2minrg2max                # 3 qminrg_score =  #quadratic penalty for qmin_Rg > 1.0
-                    result[nb_fit, 24] = self.rg2_min/Rg2                            # 4 Rg_min score
-                    result[nb_fit, 25] = Rg_std/Rg                                   # 5 rg_error_score = 1.0 - sigma_Rg/Rg
-                    result[nb_fit, 26] = I0_std/I0                                   # 6 I0_error_score = 1.0 - sigma_I0/I0
+                    #result[nb_fit, 20] = result[nb_fit, 17]                          # 0 fit_score:  RMDS, normed
+                    #result[nb_fit, 21] = 1.0 - <double>(e-s)/<double>(stop-start)    # 1 window_size_score: 
+                    #result[nb_fit, 22] = q2Rg2_upper/self.q2maxrg2max                # 2 qmaxrg_score =  #quadratic penalty for qmax_Rg > 1.3
+                    #result[nb_fit, 23] = q2Rg2_lower/self.q2minrg2max                # 3 qminrg_score =  #quadratic penalty for qmin_Rg > 1.0
+                    #result[nb_fit, 24] = self.rg2_min/Rg2                            # 4 Rg_min score
+                    #result[nb_fit, 25] = Rg_std/Rg                                   # 5 rg_error_score = 1.0 - sigma_Rg/Rg
+                    #result[nb_fit, 26] = I0_std/I0                                   # 6 I0_error_score = 1.0 - sigma_I0/I0
                     
                     nb_fit +=1
                     if nb_fit >= array_size:
@@ -556,6 +569,7 @@ cdef class AutoGuinier:
                             result = tmp_mv
         return numpy.asarray(result[:nb_fit])
     
+    @cython.profile(True)
     def count_valid(self,
                     DTYPE_t[:, ::1] fit_result,
                     DTYPE_t qRg_max=-1.0, 
@@ -571,7 +585,7 @@ cdef class AutoGuinier:
         :return: number of regions, relaxed, actual qRg_max used, maximum slope
         """ 
         cdef:
-            int i, j, size, cnt
+            int i, size, cnt
             bint relaxed=0
             DTYPE_t aslope, aslope_max, qRg
 
@@ -613,6 +627,7 @@ cdef class AutoGuinier:
                             aslope_max = aslope
         return cnt, relaxed, qRg_max, aslope_max
 
+    @cython.profile(True)
     cpdef (int, int) find_region(self, 
                                  DTYPE_t[:, ::1] fits, 
                                  DTYPE_t qRg_max=-1):
@@ -679,6 +694,7 @@ cdef class AutoGuinier:
 
         return start, stop
      
+    @cython.profile(True)
     def slope_distribution(self,
                            DTYPE_t[:, ::1] fit_result,
                            int npt=1000,
@@ -721,6 +737,7 @@ cdef class AutoGuinier:
                         distribution[j] += y
         return numpy.asarray(distribution)
     
+    @cython.profile(True)
     def average_values(self,
                        DTYPE_t[:, ::1] fit_result,
                        int start,
@@ -734,7 +751,7 @@ cdef class AutoGuinier:
         :return: Rg_avg, Rg_std, I0_avg, I0_std, number of valid regions 
         """
         cdef:
-            int i, j, good, size
+            int i, good, size
             DTYPE_t wi, wr, swi, swr, srw, siw, Rg_avg, Rg_std, I0_avg, I0_std
         
         size = fit_result.shape[0]
@@ -768,6 +785,7 @@ cdef class AutoGuinier:
             I0_std = sqrt(siw/swi)
         return Rg_avg, Rg_std, I0_avg, I0_std, good
 
+    @cython.profile(True)
     def check_aggregation(self,
                           DTYPE_t[::1] q2, 
                           DTYPE_t[::1] lnI, 
@@ -794,7 +812,8 @@ cdef class AutoGuinier:
         if the threshold is None, return the value of the curvature*Rg**(-4)
         """
         cdef:
-            DTYPE_t[::1] weight
+            DTYPE_t[::1] weight, coefs
+            DTYPE_t value
         if end == 0:
             end=len(q2)
         else:
@@ -820,6 +839,7 @@ cdef class AutoGuinier:
             return value>threshold
     
     
+    @cython.profile(True)
     cpdef DTYPE_t calc_quality(self, 
                                DTYPE_t Rg_avg, 
                                DTYPE_t Rg_std,
