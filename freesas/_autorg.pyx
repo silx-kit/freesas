@@ -59,7 +59,7 @@ class NoGuinierRegionError(Error):
 import cython
 cimport numpy as cnumpy
 import numpy as numpy 
-from libc.math cimport sqrt, log, fabs, exp, atanh, ceil
+from libc.math cimport sqrt, log, fabs, exp, atanh, ceil, NAN
 from .isnan cimport isfinite 
 from cython cimport floating
 import logging
@@ -339,10 +339,6 @@ cdef class AutoGuinier:
         self.aggregation_threshold = 0
         
     @cython.profile(True)
-    @cython.warn.undeclared(True)
-    @cython.warn.unused(True)
-    @cython.warn.unused_result(False)
-    @cython.warn.unused_arg(True)
     cpdef currate_data(self,
                        data, 
                        DTYPE_t[::1] q, 
@@ -367,7 +363,8 @@ cdef class AutoGuinier:
         cdef:
             int idx, size, start, end
             DTYPE_t one_q, one_i, one_sigma, i_max, i_min
-        
+
+        size = data.shape[0]
         if qRg_max < 0.0:
             qRg_max = self.qmaxrgmax
         #qRg_max is now a hard threshold.
@@ -379,7 +376,6 @@ cdef class AutoGuinier:
         if Rg_min < 0.0:
             Rg_min = self.Rg_min
         
-        size = data.shape[0]
         q[:] = 0.0
         intensity[:] = 0.0
         sigma[:] = 0.0 
@@ -407,9 +403,9 @@ cdef class AutoGuinier:
                 else:
                     break
             else:
-                q[idx] = numpy.NaN
-                intensity[idx] = numpy.NaN
-                sigma[idx] = numpy.NaN
+                q[idx] = NAN
+                intensity[idx] = NAN
+                sigma[idx] = NAN
                 if (idx-start)<=self.min_size:
                     i_min = i_max = 0.0
                     start = - self.min_size -1
