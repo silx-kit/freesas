@@ -292,8 +292,7 @@ cdef class AutoGuinier:
     "Calculate the radius of gyration based on Guinier's formula. This class holds all constants"
     cdef:
         readonly int min_size, storage_size
-        readonly DTYPE_t Rg_min, qminrgmax, q2minrg2max, relax, error_slope
-        readonly DTYPE_t qmaxrgmax, q2maxrg2max, aggregation_threshold
+        readonly DTYPE_t Rg_min, qminrgmax, qmaxrgmax, relax, aggregation_threshold
     
     def __cinit__(self, 
                   int min_size=3, 
@@ -301,7 +300,6 @@ cdef class AutoGuinier:
                   DTYPE_t qmin_rgmax=1.0,
                   DTYPE_t qmax_rgmax=1.3,
                   DTYPE_t relax=1.2,
-                  DTYPE_t error_slope=1.0,
                   DTYPE_t aggregation_threshold=0.1):
         
         """Constructor of the class with:
@@ -311,7 +309,6 @@ cdef class AutoGuinier:
         :param qmin_Rgmax: maximum acceptable value for the begining of Guinier region.
         :param qmax_Rgmax: maximum acceptable value for the end of Guinier region.
         :param relax: relax the qmax_rgmax constrain by this value for reduced quality data      
-        :param error_slope: discard any point with relative error on the slope (sigma_slope/slope)>=threhold, (1.0)
         #weights: those parameters are used to measure the best region
         #:param 
         """
@@ -319,10 +316,7 @@ cdef class AutoGuinier:
         self.min_size = min_size
         self.Rg_min = Rg_min
         self.qminrgmax = qmin_rgmax
-        self.q2minrg2max = qmin_rgmax*qmin_rgmax
         self.qmaxrgmax = qmax_rgmax
-        self.q2maxrg2max = qmax_rgmax*qmax_rgmax
-        self.error_slope = error_slope
         self.relax = relax
         self.aggregation_threshold = aggregation_threshold
     
@@ -331,10 +325,7 @@ cdef class AutoGuinier:
         self.min_size = 0
         self.Rg_min = 0.0
         self.qminrgmax = 0
-        self.q2minrg2max = 0
         self.qmaxrgmax = 0
-        self.q2maxrg2max = 0
-        self.error_slope = 0
         self.relax = 0
         self.aggregation_threshold = 0
         
