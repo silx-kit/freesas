@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "25/05/2020"
+__date__ = "10/06/2020"
 
 import time
 import cython
@@ -468,10 +468,11 @@ cdef class BIFT:
         if key in self.transfo_cache:
             value = self.transfo_cache[key]
         else:
-            transfo_mtx  = cvarray(shape=(self.size, npt+1), itemsize=sizeof(double), format="d")
-            transpo_mtx  = cvarray(shape=(npt+1, self.size), itemsize=sizeof(double), format="d")
+            transfo_mtx  = cvarray(shape=(self.size-self.high_start, npt+1), itemsize=sizeof(double), format="d")
+            transpo_mtx  = cvarray(shape=(npt+1, self.size-self.high_start), itemsize=sizeof(double), format="d")
             B = cvarray(shape=(npt+1, npt+1), itemsize=sizeof(double), format="d")
             sum_dia = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
+
             with nogil:
                 self.initialize_arrays(Dmax, npt, transfo_mtx, transpo_mtx, B, sum_dia)
             value = self.transfo_cache[key] = TransfoValue(numpy.asarray(transfo_mtx), numpy.asarray(B), numpy.asarray(sum_dia))
@@ -500,23 +501,23 @@ cdef class BIFT:
 
         cdef:
             double tmp, ql, prefactor, delta_r, il, varl 
-            int l, c, res
-            
+            int l, c, res, l1
+        
         delta_r = Dmax / npt
         prefactor = 4.0 * pi * delta_r
         sum_dia[:] = 0.0
-        for l in range(self.size):
+        for l in range(self.high_start, self.size):
             ql = self.q[l] * delta_r
             il = self.intensity[l]
             varl = self.variance[l]
+            l1 = l - self.high_start
             for c in range(npt+1):
                 tmp = ql * c
                 tmp = prefactor * (sin(tmp)/tmp if tmp!=0.0 else 1.0)
-                transf_matrix[l, c] = tmp
+                transf_matrix[l1, c] = tmp
                 sum_dia[c] += tmp * il / varl
-                transp_matrix[c, l] = tmp / varl
+                transp_matrix[c, l1] = tmp / varl
         sum_dia[0] = 0.0
-
         res = blas_dgemm(transp_matrix, transf_matrix, B)
         if res:
             return -1
@@ -641,7 +642,12 @@ cdef class BIFT:
                 is_valid &= isfinite(f_r[j])
         # Store the results into the cache with the GIL
         if is_valid:
-            self.evidence_cache[key] = EvidenceResult(evidence, chi2/(self.size - npt), regularization, numpy.asarray(radius), numpy.asarray(f_r), converged)
+            self.evidence_cache[key] = EvidenceResult(evidence, 
+                                                      chi2/(self.size - self.high_start - npt), 
+                                                      regularization, 
+                                                      numpy.asarray(radius), 
+                                                      numpy.asarray(f_r), 
+                                                      converged)
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
@@ -670,12 +676,11 @@ cdef class BIFT:
         used to return the reduced chi², now the not reduced one
         """                
         cdef:
-            int size, idx_q, idx_r
+            int idx_q, idx_r
             double chi2, Im
         
         chi2 = 0.0
-        size = self.size - 1 
-        for idx_q in range(1, size):
+        for idx_q in range(self.high_start, self.size):
             # Replace with dot-product
             Im = 0.0
             for idx_r in range(1, npt):

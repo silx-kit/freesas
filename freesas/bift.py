@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "14/05/2020"
+__date__ = "10/06/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ from math import log, ceil
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import auto_gpa, autoRg
+from .autorg import auto_gpa, autoRg, auto_guinier
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
@@ -50,9 +50,9 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     if Dmax is None:
         # Try to get a reasonable from Rg
         try:
-            Guinier = auto_gpa(data)
+            Guinier = auto_guinier(data)
         except:
-            logger.error("GPA analysis failed !")
+            logger.error("Guinier analysis failed !")
             raise
 #         print(Guinier)
         if Guinier.Rg <= 0:
