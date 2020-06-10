@@ -107,7 +107,7 @@ class TestAutoRg(unittest.TestCase):
 
         # Check RT invarients...
         rt = calc_Rambo_Tainer(data, guinier)
-        self.assertIsNotNone(rt, "Rambo-Tainer invarients are actually calculated")
+        self.assertIsNotNone(rt, "Rambo-Tainer invariants are actually calculated")
 
 
 class TestFit(unittest.TestCase):
