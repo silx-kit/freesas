@@ -25,12 +25,13 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "09/06/2020"
+__date__ = "10/06/2020"
 
 import numpy
 import unittest
 from .utilstests import get_datafile
 from ..autorg import autoRg, RG_RESULT, linear_fit, auto_gpa, auto_guinier
+from ..invariants import calc_Rambo_Tainer
 from .._bift import distribution_sphere
 from math import sqrt, pi
 from scipy.stats import linregress
@@ -103,6 +104,10 @@ class TestAutoRg(unittest.TestCase):
         self.assertAlmostEqual(I0, guinier.I0, 0, "I0 matches for a sphere")
         self.assertGreater(I0, guinier.I0 - sigma_I0, "I0 matches for a sphere")
         self.assertLess(I0, guinier.I0 + sigma_I0, "I0 matches for a sphere")
+
+        # Check RT invarients...
+        rt = calc_Rambo_Tainer(data, guinier)
+        self.assertIsNotNone(rt, "Rambo-Tainer invarients are actually calculated")
 
 
 class TestFit(unittest.TestCase):
