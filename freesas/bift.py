@@ -27,7 +27,8 @@ from .autorg import auto_gpa, autoRg, auto_guinier
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None, scan_size=11, Dmax_over_Rg=3):
+              start_point=None, end_point=None, 
+              scan_size=11, Dmax_over_Rg=3):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
     
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
@@ -48,7 +49,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     npt = min(npt, q.size)  # no chance for oversampling !
     bo = BIFT(q, I, err)  # this is the bift object
     if Dmax is None:
-        # Try to get a reasonable from Rg
+        # Try to get a reasonable guess from Rg
         try:
             Guinier = auto_guinier(data)
         except:
