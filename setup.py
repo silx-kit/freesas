@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "29/05/2020"
+__date__ = "10/06/2020"
 __license__ = "MIT"
 
 import sys
@@ -120,7 +120,6 @@ classifiers = ["Development Status :: 5 - Production/Stable",
                "Operating System :: Unix",
                "Operating System :: POSIX",
                "Programming Language :: Cython",
-               "Programming Language :: Python :: 3.5",
                "Programming Language :: Python :: 3.6",
                "Programming Language :: Python :: 3.7",
                "Programming Language :: Python :: 3.8",
