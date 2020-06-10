@@ -32,8 +32,10 @@ __authors__ = ["Martha E. Brennich", "J. Kieffer"]
 __license__ = "MIT"
 __date__ = "10/06/2020"
 
+import logging
+logger = logging.getLogger(__name__)
 import numpy
-from .collections import  
+from .collections import RT_RESULT
 
 
 def calc_Vc(data, Rg, dRg, I0, dI0, imin):
@@ -57,28 +59,30 @@ def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     return (vc, dvc)
 
 
-def calc_Rambo_Tainer(data, guinier, qmax=2):
+def calc_Rambo_Tainer(data,
+                      guinier, qmax=2):
     """calculates the invariants Vc and Qr from the Rambo & Tainer 2013 Paper,
     also the the mass estimate based on Qr for proteins
     
     :param data: data in q,I,dI format, q in nm-1
-    :param Rg,dRg,I0,dI0: results from Guinier approximation
+    :param guinier: RG_RESULT instance with result from the Guinier fit
     :param imin: minimal index of the Guinier range, below that index data will be extrapolated by the Guinier approximation
-    @param qmax: maximum q-value for the calculation in nm-1
+    param qmax: maximum q-value for the calculation in nm-1
     @return: dict with Vc, Qr and mass plus errors
     """
     scale_prot = 1.0 / 0.1231
     power_prot = 1.0
 
-    imax = abs(dat[:, 0] - qmax).argmin()
-    if (imax <= imin) or (imin < 0):  # unlikely but can happened
-        return {}
-    vc = calcVc(dat[:imax, :], Rg, dRg, I0, dI0, imin)
+    imax = abs(data[:, 0] - qmax).argmin()
+    if (imax <= guinier.start_point) or (guinier.start_point < 0):  # unlikely but can happened
+        logger.error("Guinier region start too late for Rambo_Tainer invariants calculation")
+        return None
+    vc = calc_Vc(data[:imax, :], guinier.Rg, guinier.sigma_Rg, guinier.I0, guinier.sigma_I0, guinier.start_point)
 
-    qr = vc[0] ** 2 / (Rg)
+    qr = vc[0] ** 2 / (guinier.Rg)
     mass = scale_prot * qr ** power_prot
 
-    dqr = qr * (dRg / Rg + 2 * ((vc[1]) / (vc[0])))
+    dqr = qr * (guinier.sigma_Rg / guinier.Rg + 2 * ((vc[1]) / (vc[0])))
     dmass = mass * dqr / qr
 
-    return {'Vc': vc[0], 'dVc': vc[1], 'Qr': qr, 'dQr': dqr, 'mass': mass, 'dmass': dmass}
+    return RT_RESULT(vc[0], vc[1], qr, dqr, mass, dmass)
