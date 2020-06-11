@@ -60,14 +60,13 @@ def calc_Vc(data, Rg, dRg, I0, dI0, imin):
 
 
 def calc_Rambo_Tainer(data,
-                      guinier, qmax=2):
+                      guinier, qmax=2.0):
     """calculates the invariants Vc and Qr from the Rambo & Tainer 2013 Paper,
     also the the mass estimate based on Qr for proteins
     
-    :param data: data in q,I,dI format, q in nm-1
+    :param data: data in q,I,dI format, q in nm^-1
     :param guinier: RG_RESULT instance with result from the Guinier fit
-    :param imin: minimal index of the Guinier range, below that index data will be extrapolated by the Guinier approximation
-    param qmax: maximum q-value for the calculation in nm-1
+    :param qmax: maximum q-value for the calculation in nm^-1
     @return: dict with Vc, Qr and mass plus errors
     """
     scale_prot = 1.0 / 0.1231
