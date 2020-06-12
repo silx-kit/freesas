@@ -22,11 +22,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from freesas._bift import denom
+from sympy.integrals.rubi.utility_function import Denom
 """
 This module is mainly about the calculation of the Rambo-Tainer invariant
 described in:
 
 https://dx.doi.org/10.1038%2Fnature12070  
+
+Some formula taked from Putnam et al, 2007, Table 1 in review
 """
 __authors__ = ["Martha E. Brennich", "J. Kieffer"]
 __license__ = "MIT"
@@ -38,10 +42,52 @@ import numpy
 from .collections import RT_RESULT
 
 
+def extrapolate(data, guinier):
+    """Extrapolate SAS data according to the Guinier fit until q=0
+    Uncertainties are extrapolated (linearly) from the Guinier region 
+    
+    :param data: SAS data in q,I,dI format
+    :param guinier: result of a Guinier fit
+    :return: extrapolated SAS data 
+    """
+    
+    dq = data[1, 0] - data[0, 0]
+    qmin = data[guinier.start_point, 0]
+
+    q_low = numpy.arange(0, qmin, dq)
+    # Extrapolate I from Guinier approximation: 
+    I_low = guinier.I0 * numpy.exp(-(q_low**2 * guinier.Rg**2) / 3.0)
+    # Extrapolate dI from Guinier region:
+    range_ = slice(guinier.start_point, guinier.end_point+1)
+    slope, intercept = numpy.polyfit(data[range_, 0], data[range_, 2], deg=1)
+    dI_low = abs(q_low*slope + intercept)
+    # Now wrap-up
+    data_low = numpy.vstack((q_low, I_low, dI_low)).T
+    return numpy.concatenate((data_low, data[guinier.start_point:]))
+
+
+def calc_Porrod(data, guinier):
+    """Calculate the particle volume according to Porrod's formula:
+    
+    V = 2*π²I₀²/(sum_q I(q)q² dq)
+    
+    Formula from Putnam's review, 2007, table 1
+    Intensities are extrapolated to q=0 using Guinier fit.
+    
+    :param data:  SAS data in q,I,dI format
+    :param Guinier: result of a Guinier fit (instance of RT_RESULT)
+    :return: Volume calculated according to Porrod's formula
+    """ 
+    q, I, dI = extrapolate(data, guinier).T
+    
+    denom = numpy.trapz(I*q**2, q)
+    volume = 2*numpy.pi**2*guinier.I0 / denom
+    return volume
+
 def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     """Calculates the Rambo-Tainer invariant Vc, including extrapolation to q=0
     
-    :param dat:  data in q,I,dI format, cropped to maximal q that should be used for calculation (normally 2 nm-1)
+    :param data:  SAS data in q,I,dI format, cropped to maximal q that should be used for calculation (normally 2 nm-1)
     :param Rg,dRg,I0,dI0:  results from Guinier approximation/autorg
     :param imin:  minimal index of the Guinier range, below that index data will be extrapolated by the Guinier approximation
     :returns: Vc and an error estimate based on non-correlated error propagation
