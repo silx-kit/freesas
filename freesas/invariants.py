@@ -64,8 +64,8 @@ def extrapolate(data, guinier):
     return numpy.concatenate((data_low, data[guinier.start_point:]))
 
 
-def calc_Porrod(data, guinier):
-    """Calculate the particle volume according to Porrod's formula:
+def calc_Porod(data, guinier):
+    """Calculate the particle volume according to Porod's formula:
     
     V = 2*π²I₀²/(sum_q I(q)q² dq)
     
@@ -81,6 +81,7 @@ def calc_Porrod(data, guinier):
     denom = numpy.trapz(I*q**2, q)
     volume = 2*numpy.pi**2*guinier.I0 / denom
     return volume
+
 
 def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     """Calculates the Rambo-Tainer invariant Vc, including extrapolation to q=0
