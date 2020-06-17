@@ -855,21 +855,24 @@ cdef class AutoGuinier:
         if qRgmax <= 0:
             qRgmax = self.qmaxrgmax
         
+        #0.58573097, 0.3070653 , 0.1795624 , 0.14731994, 2.6198585 
+        
         #Quality form the fit of Rg
-        weight_Rg_dev = 0.50861708
-        fit_Rg_dev = clamp(1.0 - Rg_avg/Rg_std, 0.0, 1.0)
+        weight_Rg_dev = 0.58573097
+        fit_Rg_dev = 1.0 - clamp(Rg_std/Rg_avg, 0.0, 1.0)
          
         #Quality from the qRg max criteria  
-        weight_qRgmax = 0.39293338
-        fit_qRgmax = clamp(1.0 - qmax*Rg_avg/qRgmax, 0.0, 1.0)
+        weight_qRgmax = 0.3070653
+        fit_qRgmax = 1.0 - clamp(qmax*Rg_avg/qRgmax, 0.0, 1.0)
         
         #Quality from number of dropped points
-        weight_drop = 0.23998438
-        fit_drop = clamp(1.0-qmin/qmax, 0.0, 1.0)
+        weight_drop = 0.1795624
+        fit_drop = 1.0 - clamp(qmin/qmax, 0.0, 1.0)
         
         #quality from agregation value
-        weight_aggregation = 0.18113135
-        fit_aggregation = clamp(1.0 - fabs(aggregation), 0.0, 1.0)
+        scale_aggregation = 2.5 
+        weight_aggregation = 0.14731994
+        fit_aggregation = 1.0 - clamp(scale_aggregation*fabs(aggregation), 0.0, 1.0)
         
         quality = fit_aggregation*weight_aggregation + \
                   fit_drop*weight_drop + \
