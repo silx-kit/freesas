@@ -12,9 +12,6 @@ environment:
         WIN_SDK_ROOT: "C:\\Program Files\\Microsoft SDKs\\Windows"
 
     matrix:
-        # Python 3.5
-        - PYTHON_DIR: "C:\\Python35-x64"
-
         # Python 3.6
         - PYTHON_DIR: "C:\\Python36-x64"
 

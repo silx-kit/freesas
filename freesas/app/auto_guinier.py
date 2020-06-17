@@ -4,7 +4,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2017-2020  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2020  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2017-2020, ESRF"
+__copyright__ = "2020, ESRF"
 __date__ = "05/06/2020"
 
 import sys
@@ -36,7 +36,7 @@ import logging
 import glob
 import platform
 logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger("autorg")
+logger = logging.getLogger("auto_guinier")
 
 import numpy
 import freesas
@@ -50,13 +50,13 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "autorg.py [OPTIONS] FILES "
-    description = "Calculate the radius of gyration using Guinier law for a set of scattering curves"
-    epilog = """autorg.py is an open-source implementation of
+    usage = "auto_gpa.py [OPTIONS] FILES "
+    description = "Calculate the radius of gyration using Guinier Peak Analysis (Putnam 2016) for a set of scattering curves"
+    epilog = """auto_gpa.py is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
-    As this is reverse engineered, some constants and results may differ 
+    As this tool used a differnt theory, some results may differ 
     """
-    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
+    version = "auto_gpa.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
     parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
@@ -95,7 +95,7 @@ def main():
             logger.error("Unable to parse file %s", afile)
         else:
             try:
-                rg = autorg.autoRg(data)
+                rg = autorg.auto_guinier(data)
             except Exception as err:
                 sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
             else:

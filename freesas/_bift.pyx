@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "30/04/2020"
+__date__ = "10/06/2020"
 
 import time
 import cython
@@ -30,7 +30,7 @@ from cython.view cimport array as cvarray
 import numpy
 cimport numpy as cnumpy
 from libc.math cimport sqrt, fabs, pi, sin, log, exp, isfinite
-from collections import namedtuple
+
 from scipy.linalg import lapack
 from scipy.linalg.cython_lapack cimport dgesvd
 from scipy.linalg.cython_blas cimport dgemm, ddot
@@ -38,12 +38,7 @@ import logging
 import itertools
 logger = logging.getLogger(__name__)
 
-RadiusKey = namedtuple("RadiusKey", "Dmax npt")
-PriorKey = namedtuple("PriorKey", "type npt")
-TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
-EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple("EvidenceResult", "evidence chi2r regularization radius density converged")
-StatsResult = namedtuple("StatsResult", "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std")
+from .collections import RadiusKey, PriorKey, TransfoValue, EvidenceKey, EvidenceResult, StatsResult
 
 ################################################################################
 # BLAS / LAPACK wrappers
@@ -506,7 +501,7 @@ cdef class BIFT:
         cdef:
             double tmp, ql, prefactor, delta_r, il, varl 
             int l, c, res
-            
+
         delta_r = Dmax / npt
         prefactor = 4.0 * pi * delta_r
         sum_dia[:] = 0.0
@@ -646,7 +641,12 @@ cdef class BIFT:
                 is_valid &= isfinite(f_r[j])
         # Store the results into the cache with the GIL
         if is_valid:
-            self.evidence_cache[key] = EvidenceResult(evidence, chi2/(self.size - npt), regularization, numpy.asarray(radius), numpy.asarray(f_r), converged)
+            self.evidence_cache[key] = EvidenceResult(evidence, 
+                                                      chi2/(self.size - npt), 
+                                                      regularization, 
+                                                      numpy.asarray(radius), 
+                                                      numpy.asarray(f_r), 
+                                                      converged)
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
@@ -675,12 +675,11 @@ cdef class BIFT:
         used to return the reduced chi², now the not reduced one
         """                
         cdef:
-            int size, idx_q, idx_r
+            int idx_q, idx_r
             double chi2, Im
         
         chi2 = 0.0
-        size = self.size - 1 
-        for idx_q in range(1, size):
+        for idx_q in range(self.high_start, self.size):
             # Replace with dot-product
             Im = 0.0
             for idx_r in range(1, npt):
@@ -922,7 +921,7 @@ cdef class BIFT:
         if samples == 0:
             return stats
         self.update_wisdom()
-        if stats.Dmax_avg/stats.Dmax_std < nsigma:
+        if stats.Dmax_std>0 and stats.Dmax_avg/stats.Dmax_std < nsigma:
             nsigma = stats.Dmax_avg/stats.Dmax_std
             logger.info("Clipping to nsigma=%.2f due to large noise on Dmax: avg=%.2f, std=%.2f", nsigma, stats.Dmax_avg, stats.Dmax_std)
         log_alpha = log(stats.alpha_avg)

@@ -25,14 +25,16 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "30/04/2020"
+__date__ = "10/06/2020"
 
 import numpy
 import unittest
 from .utilstests import get_datafile
-from ..autorg import autoRg, RG_RESULT, linFit
+from ..autorg import autoRg, RG_RESULT, linear_fit, auto_gpa, auto_guinier
+from ..invariants import calc_Rambo_Tainer
 from .._bift import distribution_sphere
 from math import sqrt, pi
+from scipy.stats import linregress
 import logging
 logger = logging.getLogger(__name__)
 
@@ -79,6 +81,7 @@ class TestAutoRg(unittest.TestCase):
         err = numpy.sqrt(I)
         data = numpy.vstack((q, I, err)).T
         Rg = autoRg(data)
+        logger.info("auto_rg %s", Rg)
         self.assertAlmostEqual(R0 * sqrt(3 / 5), Rg.Rg, 0, "Rg matches for a sphere")
         self.assertGreater(R0 * sqrt(3 / 5), Rg.Rg - Rg.sigma_Rg, "Rg in range matches for a sphere")
         self.assertLess(R0 * sqrt(3 / 5), Rg.Rg + Rg.sigma_Rg, "Rg in range matches for a sphere")
@@ -86,32 +89,70 @@ class TestAutoRg(unittest.TestCase):
         self.assertGreater(I0, Rg.I0 - Rg.sigma_I0, "I0 matches for a sphere")
         self.assertLess(I0, Rg.I0 + Rg.sigma_I0, "I0 matches for a sphere")
 
+        gpa = auto_gpa(data)
+        logger.info("auto_gpa %s", gpa)
+        self.assertAlmostEqual(gpa.Rg / (R0 * sqrt(3. / 5)), 1.00, 0, "Rg matches for a sphere")
+        self.assertAlmostEqual(gpa.I0 / I0, 1.0, 1, "I0 matches for a sphere")
+
+        guinier = auto_guinier(data)
+        logger.info("auto_guinier %s", guinier)
+        self.assertAlmostEqual(R0 * sqrt(3. / 5), guinier.Rg, 0, "Rg matches for a sphere")
+        sigma_Rg = max(guinier.sigma_Rg, 1e-4)
+        sigma_I0 = max(guinier.sigma_I0, 1e-4)
+        self.assertGreater(R0 * sqrt(3. / 5), guinier.Rg - sigma_Rg, "Rg in range matches for a sphere")
+        self.assertLess(R0 * sqrt(3. / 5), guinier.Rg + sigma_Rg, "Rg in range matches for a sphere")
+        self.assertAlmostEqual(I0, guinier.I0, 0, "I0 matches for a sphere")
+        self.assertGreater(I0, guinier.I0 - sigma_I0, "I0 matches for a sphere")
+        self.assertLess(I0, guinier.I0 + sigma_I0, "I0 matches for a sphere")
+
+        # Check RT invarients...
+        rt = calc_Rambo_Tainer(data, guinier)
+        self.assertIsNotNone(rt, "Rambo-Tainer invariants are actually calculated")
+
 
 class TestFit(unittest.TestCase):
     # Testcase originally comes from wikipedia article on linear regression, expected results from scipy.stats.linregress
-    testx = [1.47, 1.5, 1.52, 1.55, 1.57, 1.6, 1.63, 1.65, 1.68, 1.7, 1.73, 1.75, 1.78, 1.80, 1.83]
-    testy = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.1, 69.92, 72.19, 74.46]
-    testw = [1.0] * 15
-    testintercept = -39.061956
-    testslope = -61.2721865
 
-    def test_linFit(self):
-        print("Testing Linear Fitting")
-        # fit_result = self.atsas_autorg.copy()
-        # logger.debug("Reference version: %s" % atsas_result.pop("Version"))
-        # atsas_result = RG_RESULT(**atsas_result)
-        # free_result = autoRg(data)
-        fit_result = linFit(self.testx, self.testy, self.testw)
+    def test_linear_fit_static(self):
+        testx = [1.47, 1.5, 1.52, 1.55, 1.57, 1.6, 1.63, 1.65, 1.68, 1.7, 1.73, 1.75, 1.78, 1.80, 1.83]
+        testy = [52.21, 53.12, 54.48, 55.84, 57.20, 58.57, 59.93, 61.29, 63.11, 64.47, 66.28, 68.1, 69.92, 72.19, 74.46]
+        testw = [1.0] * 15
+        testintercept = -39.061956
+        testslope = +61.2721865
+        fit_result = linear_fit(testx, testy, testw)
         # print(fit_result)
-        self.assertAlmostEqual(fit_result[0], self.testintercept, 5, "Intercept fits wihtin 4(?) digits")
-        self.assertAlmostEqual(fit_result[1], self.testslope, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.intercept, testintercept, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, testslope, 5, "Intercept fits wihtin 4(?) digits")
+
+    def test_linspace(self):
+        size = 100
+        x = numpy.linspace(-10, 10, size)
+        y = numpy.linspace(10, 0, size)
+        w = numpy.random.random(size)
+        fit_result = linear_fit(x, y, w)
+        # print(fit_result)
+        self.assertAlmostEqual(fit_result.intercept, 5, 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, -0.5, 5, "Intercept fits wihtin 4(?) digits")
+
+    def test_random(self):
+        size = 100
+        x = numpy.random.random(size)
+        y = 1.6 * x + 5 + numpy.random.random(size)
+        w = numpy.ones(size)
+        fit_result = linear_fit(x, y, w)
+        ref = linregress(x, y)
+        self.assertAlmostEqual(fit_result.intercept, ref[1], 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.slope, ref[0], 5, "Intercept fits wihtin 4(?) digits")
+        self.assertAlmostEqual(fit_result.R2, ref.rvalue ** 2, 5, "R² value matcheswihtin 4(?) digits")
 
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAutoRg("test_atsas"))
     testSuite.addTest(TestAutoRg("test_synthetic"))
-    testSuite.addTest(TestFit("test_linFit"))
+    testSuite.addTest(TestFit("test_linear_fit_static"))
+    testSuite.addTest(TestFit("test_linspace"))
+    testSuite.addTest(TestFit("test_linear_fit_static"))
     return testSuite
 
 

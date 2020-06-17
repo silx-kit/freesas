@@ -14,7 +14,7 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "30/04/2020"
+__date__ = "10/06/2020"
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,18 +23,19 @@ from math import log, ceil
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import autoRg
+from .autorg import auto_gpa, autoRg, auto_guinier
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None, scan_size=27, Dmax_over_Rg=3):
+              start_point=None, end_point=None, 
+              scan_size=11, Dmax_over_Rg=3):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
     
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
     :param Dmax: Maximum diameter of the object, this is the starting point to be refined. Can be guessed
     :param alpha: Regularisation parameter, let it to None for automatic scan
     :param npt: Number of point for the curve p(r)
-    :param start_point: First useable point in the I(q) curve
+    :param start_point: First useable point in the I(q) curve, this is not the start of the Guinier region
     :param end_point: Last useable point in the I(q) curve
     :param scan_size: size of the initial geometrical scan for alpha values.
     :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
@@ -48,15 +49,25 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     npt = min(npt, q.size)  # no chance for oversampling !
     bo = BIFT(q, I, err)  # this is the bift object
     if Dmax is None:
-        # Try to get a reasonable from Rg
-        rg = autoRg(data)
-        if rg.Rg <= 0:
+        # Try to get a reasonable guess from Rg
+        try:
+            Guinier = auto_guinier(data)
+        except:
+            logger.error("Guinier analysis failed !")
+            raise
+#         print(Guinier)
+        if Guinier.Rg <= 0:
             raise RuntimeError("No Guinier region was found in experimental data")
-        Dmax = bo.set_Guinier(rg, Dmax_over_Rg)
+        Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
     if alpha is None:
         alpha_max = bo.guess_alpha_max(npt)
-        key = bo.grid_scan(max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg), Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg, 3,
-                                 1.0 / alpha_max, alpha_max, ceil(scan_size / 3), npt)
+        # First scan on alpha:
+        key = bo.grid_scan(Dmax, Dmax, 1,
+                           1.0 / alpha_max, alpha_max, scan_size, npt)
+        Dmax, alpha = key[:2]
+        # Then scan on Dmax:
+        key = bo.grid_scan(max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg), Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg, scan_size,
+                           alpha, alpha, 1, npt)
         Dmax, alpha = key[:2]
         if bo.evidence_cache[key].converged:
             bo.update_wisdom()
@@ -67,17 +78,3 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
     logger.info("Result of optimisation:\n  %s", res)
     return bo
-
-
-def extrapolate_q(ift, q):
-    """This probvides a curve I=f(q) with an extrapolated q-range to zero
-    
-    :param ift: an BIFT instance with the best Dmax/alpha couple found.
-    :param
-    """
-
-
-if __name__ == "__main__":
-    import sys
-    data = numpy.loadtxt(sys.argv[1])
-

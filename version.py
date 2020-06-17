@@ -2,7 +2,7 @@
 # coding: utf-8
 # /*##########################################################################
 #
-# Copyright (c) 2015-2017 European Synchrotron Radiation Facility
+# Copyright (c) 2015-2020 European Synchrotron Radiation Facility
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -53,7 +53,7 @@ from __future__ import absolute_import, print_function, division
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "30/04/2020"
+__date__ = "09/06/2020"
 __status__ = "production"
 __docformat__ = 'restructuredtext'
 __all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion",
@@ -62,13 +62,12 @@ __all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion
 RELEASE_LEVEL_VALUE = {"dev": 0,
                        "alpha": 10,
                        "beta": 11,
-                       "gamma": 12,
-                       "rc": 13,
+                       "candidate": 12,
                        "final": 15}
 
 MAJOR = 0
 MINOR = 8
-MICRO = 1
+MICRO = 3
 RELEV = "final"  # <16
 SERIAL = 0  # <16
 
@@ -83,10 +82,7 @@ strictversion = version = debianversion = "%d.%d.%d" % version_info[:3]
 if version_info.releaselevel != "final":
     version += "-%s%s" % version_info[-2:]
     debianversion += "~adev%i" % version_info[-1] if RELEV == "dev" else "~%s%i" % version_info[-2:]
-    prerel = "a" if RELEASE_LEVEL_VALUE.get(version_info[3], 0) < 10 else "b"
-    if prerel not in "ab":
-        prerel = "a"
-    strictversion += prerel + str(version_info[-1])
+    strictversion += PRERELEASE_NORMALIZED_NAME[version_info[3]] + str(version_info[-1])
 
 
 def calc_hexversion(major=0, minor=0, micro=0, releaselevel="dev", serial=0):
