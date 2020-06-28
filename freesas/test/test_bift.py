@@ -31,7 +31,8 @@ import numpy
 import unittest
 from .utilstests import get_datafile
 from ..bift import auto_bift
-from .._bift import BIFT, distribution_parabola, distribution_sphere
+from .._bift import BIFT, distribution_parabola, distribution_sphere, \
+                    ensureEdgesZero, smooth_density
 import logging
 logger = logging.getLogger(__name__)
 import time
@@ -95,12 +96,20 @@ class TestBIFT(unittest.TestCase):
         self.assertAlmostEqual(numpy.trapz(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
         self.assertTrue(numpy.allclose(pp, self.p, 1e-4), "distribution matches")
 
+    def test_regularizationHelpers(self):
+        ones = numpy.ones(self.NPT)
+        ensureEdgesZero(ones)
+        print(ones)
+        self.assertAlmostEqual(ones[0], 0,  msg="1st point set to 0")
+        self.assertAlmostEqual(ones[-1], 0,  msg="last point set to 0")
+        self.assertTrue(numpy.allclose(ones[1:-1], numpy.ones(self.NPT-2), 1e-7), msg="non-edge points unchanged")
+
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestBIFT("test_disributions"))
     testSuite.addTest(TestBIFT("test_autobift"))
-
+    testSuite.addTest(TestBIFT("test_regularizationHelpers"))
     return testSuite
 
 
