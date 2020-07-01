@@ -266,9 +266,9 @@ cpdef inline void smooth_density(double[::1] raw,
         # This enforces the boundary values to be null
         smooth[0] = raw[0] = 0.0
         smooth[npt] = raw[npt] = 0.0
-        smooth[1] = raw[2] * 0.5
         for k in range(2, npt-1):
             smooth[k] = 0.5 * (raw[k-1] + raw[k+1])
+        smooth[1] = smooth[2] * 0.5
         smooth[npt-1] = smooth[npt-2] * 0.5  #is it p or f on the RHS? does this enforce a smoother tail ?
 
 ################################################################################
