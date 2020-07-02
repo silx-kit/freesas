@@ -264,12 +264,12 @@ cpdef inline void smooth_density(double[::1] raw,
         #assert raw.shape[0] == smooth.shape[0]
         npt = raw.shape[0] - 1
         # This enforces the boundary values to be null
-        smooth[0] = raw[0] = 0.0
-        smooth[npt] = raw[npt] = 0.0
+        smooth[0] = raw[0]
+        smooth[npt] = raw[npt]
         for k in range(2, npt-1):
             smooth[k] = 0.5 * (raw[k-1] + raw[k+1])
-        smooth[1] = smooth[2] * 0.5
-        smooth[npt-1] = smooth[npt-2] * 0.5  #is it p or f on the RHS? does this enforce a smoother tail ?
+        smooth[1] = (smooth[0] + smooth[2]) * 0.5
+        smooth[npt-1] = (smooth[npt-2] + smooth[npt]) * 0.5  
 
 ################################################################################
 # Main class
@@ -362,6 +362,7 @@ cdef class BIFT:
         if self.Dmax_guess<=0.0:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
         density = self.prior_distribution(self.I0_guess, self.Dmax_guess, npt)
+        ensureEdgesZero(density)
         smooth = numpy.zeros(npt+1, numpy.float64)
         smooth_density(density, smooth)
         regularization = calc_regularization(density, smooth, density) # eq19
@@ -806,6 +807,7 @@ cdef class BIFT:
                     f_r[k] = -f_k + epsilon
 
             #Apply smoothness constraint: p is the smoothed version of f
+            ensureEdgesZero(f_r)
             smooth_density(f_r, p_r)
 
             #Calculate the next correction
