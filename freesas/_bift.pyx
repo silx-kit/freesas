@@ -243,7 +243,7 @@ cpdef inline double calc_rlogdet(double[::1] f_r,
 
 cpdef inline void ensureEdgesZero(double[::1] distribution) nogil:
   """This function sets the first and last point of the density plot to 0
-  :param distribution:
+  :param distribution: raw density
   The operation is performed in place
   """
   npt = distribution.shape[0] - 1
@@ -263,13 +263,14 @@ cpdef inline void smooth_density(double[::1] raw,
             int k, npt
         #assert raw.shape[0] == smooth.shape[0]
         npt = raw.shape[0] - 1
-        # This enforces the boundary values to be null
+        #Set the edges to be equal
         smooth[0] = raw[0]
         smooth[npt] = raw[npt]
         for k in range(2, npt-1):
             smooth[k] = 0.5 * (raw[k-1] + raw[k+1])
+        #Interpolate the second and second to last point
         smooth[1] = (smooth[0] + smooth[2]) * 0.5
-        smooth[npt-1] = (smooth[npt-2] + smooth[npt]) * 0.5  
+        smooth[npt-1] = (smooth[npt-2] + smooth[npt]) * 0.5
 
 ################################################################################
 # Main class
@@ -806,8 +807,9 @@ cdef class BIFT:
                 if f_k <= 0:
                     f_r[k] = -f_k + epsilon
 
-            #Apply smoothness constraint: p is the smoothed version of f
+            #Set edges of f to zero
             ensureEdgesZero(f_r)
+            #Apply smoothness constraint: p is the smoothed version of f
             smooth_density(f_r, p_r)
 
             #Calculate the next correction
