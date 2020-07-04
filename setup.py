@@ -35,10 +35,6 @@ import platform
 import shutil
 import logging
 import glob
-# io import has to be here also to fix a bug on Debian 7 with python2.7
-# Without this, the system io module is not loaded from numpy.distutils.
-# The silx.io module seems to be loaded instead.
-import io
 
 if sys.version_info[0] < 3:
     raise SystemError("Freesas requires Python3 !")
@@ -103,7 +99,7 @@ def get_readme():
     """Returns content of README.rst file"""
     dirname = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(dirname, "README.md")
-    with io.open(filename, "r", encoding="utf-8") as fp:
+    with open(filename, "r", encoding="utf-8") as fp:
         long_description = fp.read()
     return long_description
 
