@@ -241,7 +241,7 @@ cpdef inline double calc_rlogdet(double[::1] f_r,
             rlogdet += log(fabs(eigen[j]))
         return rlogdet
 
-cpdef inline void ensureEdgesZero(double[::1] distribution) nogil:
+cpdef inline void ensure_edges_zero(double[::1] distribution) nogil:
   """This function sets the first and last point of the density plot to 0
   :param distribution: raw density
   The operation is performed in place
@@ -363,7 +363,7 @@ cdef class BIFT:
         if self.Dmax_guess<=0.0:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
         density = self.prior_distribution(self.I0_guess, self.Dmax_guess, npt)
-        ensureEdgesZero(density)
+        ensure_edges_zero(density)
         smooth = numpy.zeros(npt+1, numpy.float64)
         smooth_density(density, smooth)
         regularization = calc_regularization(density, smooth, density) # eq19
@@ -808,7 +808,7 @@ cdef class BIFT:
                     f_r[k] = -f_k + epsilon
 
             #Set edges of f to zero
-            ensureEdgesZero(f_r)
+            ensure_edges_zero(f_r)
             #Apply smoothness constraint: p is the smoothed version of f
             smooth_density(f_r, p_r)
 

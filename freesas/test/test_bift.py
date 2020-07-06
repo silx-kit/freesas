@@ -32,7 +32,7 @@ import unittest
 from .utilstests import get_datafile
 from ..bift import auto_bift
 from .._bift import BIFT, distribution_parabola, distribution_sphere, \
-                    ensureEdgesZero, smooth_density
+                    ensure_edges_zero, smooth_density
 import logging
 logger = logging.getLogger(__name__)
 import time
@@ -98,7 +98,7 @@ class TestBIFT(unittest.TestCase):
 
     def test_fixEdges(self):
         ones = numpy.ones(self.NPT)
-        ensureEdgesZero(ones)
+        ensure_edges_zero(ones)
         self.assertAlmostEqual(ones[0], 0,  msg="1st point set to 0")
         self.assertAlmostEqual(ones[-1], 0,  msg="last point set to 0")
         self.assertTrue(numpy.allclose(ones[1:-1], numpy.ones(self.NPT-2), 1e-7), msg="non-edge points unchanged")
