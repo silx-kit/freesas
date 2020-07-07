@@ -38,14 +38,7 @@ addons:
             - libhdf5-dev
 
 install:
-    #set python version
-    pip install -upgrade pip
-    pip install --egg --no-binary pyenv pyenv
-    export PATH=~/.pyenv/bin:$PATH
-    eval "$(pyenv init -)"
-    pyenv install --skip-existing $PYTHON
-    pyenv global $PYTHON
-    pyenv shell $PYTHON
+
     # Upgrade distribution modules
     - "pip install --upgrade setuptools"
     - "pip install --upgrade pip"
