@@ -113,8 +113,8 @@ class TestBIFT(unittest.TestCase):
         smooth_density(random,smooth)
         self.assertAlmostEqual(random[0], smooth[0],  msg="first points of random array and smoothed random array match")
         self.assertAlmostEqual(random[-1], smooth[-1],  msg="last points of random array and smoothed random array match")
-        self.assertAlmostEqual(numpy.sign(smooth[0] - smooth[1]) * numpy.sign(smooth[1] - smooth[2]), 1.0, msg="second point of random smoothed array between 1st and 3rd")
-        self.assertAlmostEqual(numpy.sign(smooth[-1] - smooth[-2]) * numpy.sign(smooth[-2] - smooth[-3]), 1.0, msg="second to last point of random smoothed array between 3rd to last and last")
+        self.assertTrue(smooth[1]>=min(smooth[0], smooth[2]) and smooth[1]<=max(smooth[0], smooth[2]), msg="second point of random smoothed array between 1st and 3rd")
+        self.assertTrue(smooth[-2]>=min(smooth[-1], smooth[-3]) and smooth[-2]<= max(smooth[-1], smooth[-3]), msg="second to last point of random smoothed array between 3rd to last and last")        self.assertAlmostEqual(numpy.sign(smooth[0] - smooth[1]) * numpy.sign(smooth[1] - smooth[2]), 1.0, msg="second point of random smoothed array between 1st and 3rd")
         sign = numpy.sign(random[1:-3] - smooth[2:-2]) * numpy.sign(smooth[2:-2] - random[3:-1])
         self.assertTrue(numpy.allclose(sign, numpy.ones(self.NPT-4), 1e-7), msg="central points of random array and smoothed random array alternate")
 
