@@ -18,7 +18,6 @@ jobs:
       language: shell       # 'language: python' is an error on Travis CI macOS
       env: PYTHON=3.7.4
       before_install:
-        - brew install pyenv
         - "export PATH=~/.pyenv/bin:$PATH"
         - "eval '$(pyenv init -)'"
         - "pyenv install --skip-existing $PYTHON"
@@ -30,7 +29,6 @@ jobs:
       language: shell       # 'language: python' is an error on Travis CI macOS
       env: PYTHON=3.8
       before_install:
-        - brew install pyenv
         - "export PATH=~/.pyenv/bin:$PATH"
         - "eval '$(pyenv init -)'"
         - "pyenv install --skip-existing $PYTHON"
@@ -42,7 +40,6 @@ jobs:
       language: shell       # 'language: python' is an error on Travis CI macOS
       env: PYTHON=3.6
       before_install:
-        - brew install pyenv
         - "export PATH=~/.pyenv/bin:$PATH"
         - "eval '$(pyenv init -)'"
         - "pyenv install --skip-existing $PYTHON"
