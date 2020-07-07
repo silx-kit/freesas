@@ -59,7 +59,7 @@ script:
     # Print Python info
     - "python3 ci/info_platform.py"
     - "pip3 freeze"
-    - "python3 -- version"
+    - "python3 --version"
     - "gcc --version"
 
     # Run the tests
