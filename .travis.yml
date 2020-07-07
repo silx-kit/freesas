@@ -38,6 +38,14 @@ addons:
             - libhdf5-dev
 
 install:
+    #set python version
+    - "pip install -upgrade pip"
+    - "pip install --egg --no-binary pyenv pyenv"
+    - "export PATH=~/.pyenv/bin:$PATH"
+    - "eval '$(pyenv init -)'"
+    - "pyenv install --skip-existing $PYTHON"
+    - "pyenv global $PYTHON"
+    - "pyenv shell $PYTHON"
 
     # Upgrade distribution modules
     - "pip install --upgrade setuptools"
@@ -65,5 +73,5 @@ script:
     - "pip freeze"
 
     # Run the tests
-    - "python3 setup.py build test"
-    - "python3 run_tests.py"
+    - "python setup.py build test"
+    - "python run_tests.py"
