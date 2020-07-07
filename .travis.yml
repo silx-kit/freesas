@@ -4,26 +4,29 @@ language: python
 jobs:
   include:
     - name: "Python 3.6.0 on Xenial Linux"
-      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+      python: 3.6
+      env: PYTHON=3.6       # this works for Linux but is ignored on macOS or Windows
     - name: "Python 3.7.0 on Xenial Linux"
-      python: 3.7           # this works for Linux but is ignored on macOS or Windows
+      python: 3.7
+      env: PYTHON=3.7        # this works for Linux but is ignored on macOS or Windows
     - name: "Python 3.8.0 on Xenial Linux"
-      python: 3.8           # this works for Linux but is ignored on macOS or Windows
+      python: 3.8
+      env: PYTHON=3.8        # this works for Linux but is ignored on macOS or Windows
     - name: "Python 3.7.4 on macOS"
       os: osx
       osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
       language: shell       # 'language: python' is an error on Travis CI macOS
-      env: PYTHON=37
+      env: PYTHON=3.7.4
     - name: "Python 3.8 on macOS"
       os: osx
       osx_image: xcode11.2
       language: shell       # 'language: python' is an error on Travis CI macOS
-      env: PYTHON=38
+      env: PYTHON=3.8
     - name: "Python 3.6 on macOS"
       os: osx
       osx_image: xcode11.2
       language: shell       # 'language: python' is an error on Travis CI macOS
-      env: PYTHON=36
+      env: PYTHON=3.6
 cache:
     apt: true
     directories:
