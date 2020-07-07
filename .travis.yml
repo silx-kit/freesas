@@ -27,6 +27,14 @@ jobs:
       osx_image: xcode11.2
       language: shell       # 'language: python' is an error on Travis CI macOS
       env: PYTHON=3.6
+      before_install:
+        - brew update
+        - brew install pyenv
+        - "export PATH=~/.pyenv/bin:$PATH"
+        - "eval '$(pyenv init -)'"
+        - "pyenv install --skip-existing $PYTHON"
+        - "pyenv global $PYTHON"
+        - "pyenv shell $PYTHON"
 cache:
     apt: true
     directories:
@@ -38,15 +46,6 @@ addons:
             - libhdf5-dev
 
 install:
-    #set python version
-    - "pip install --upgrade pip"
-    - "pip install --no-binary pyenv pyenv"
-    - "export PATH=~/.pyenv/bin:$PATH"
-    - "eval '$(pyenv init -)'"
-    - "pyenv install --skip-existing $PYTHON"
-    - "pyenv global $PYTHON"
-    - "pyenv shell $PYTHON"
-
     # Upgrade distribution modules
     - "pip install --upgrade setuptools"
     - "pip install --upgrade pip"
