@@ -39,7 +39,7 @@ addons:
 
 install:
     #set python version
-    - "pip install -upgrade pip"
+    - "pip install --upgrade pip"
     - "pip install --egg --no-binary pyenv pyenv"
     - "export PATH=~/.pyenv/bin:$PATH"
     - "eval '$(pyenv init -)'"
