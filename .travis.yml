@@ -1,13 +1,29 @@
-os:
-    - linux
-    #- osx
+
 
 language: python
-python:
-    - "3.6"
-    - "3.7"
-    - "3.8"
-
+jobs:
+  include:
+    - name: "Python 3.6.0 on Xenial Linux"
+      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.7.0 on Xenial Linux"
+      python: 3.7           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.8.0 on Xenial Linux"
+      python: 3.8           # this works for Linux but is ignored on macOS or Windows
+    - name: "Python 3.7.4 on macOS"
+      os: osx
+      osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      env: PYTHON=37
+    - name: "Python 3.8 on macOS"
+      os: osx
+      osx_image: xcode11.2
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      env: PYTHON=38
+    - name: "Python 3.6 on macOS"
+      os: osx
+      osx_image: xcode11.2  
+      language: shell       # 'language: python' is an error on Travis CI macOS
+      env: PYTHON=36
 cache:
     apt: true
     directories:
@@ -20,30 +36,30 @@ addons:
 
 install:
     # Upgrade distribution modules
-    - "pip install --upgrade setuptools"
-    - "pip install --upgrade pip"
+    - "pip3 install --upgrade setuptools"
+    - "pip3 install --upgrade pip"
 
     # Install build dependencies
-    - "pip install wheel"
-    - "pip install --trusted-host www.silx.org -r ci/requirement_travis.txt --upgrade --find-links http://www.silx.org/pub/wheelhouse"
+    - "pip3 install wheel"
+    - "pip3 install --trusted-host www.silx.org -r ci/requirement_travis.txt --upgrade --find-links http://www.silx.org/pub/wheelhouse"
 
     # Print Python info
-    - "python ci/info_platform.py"
-    - "pip freeze"
+    - "python3 ci/info_platform.py"
+    - "pip3 freeze"
 
     # Build
-    - "python setup.py build"
-    - "python setup.py bdist_wheel"
+    - "python3 setup.py build"
+    - "python3 setup.py bdist_wheel"
     - "ls dist"
 
     # Install generated wheel
-    - "pip install --pre --find-links dist/ --trusted-host www.silx.org --find-links http://www.silx.org/pub/wheelhouse freesas"
+    - "pip3 install --pre --find-links dist/ --trusted-host www.silx.org --find-links http://www.silx.org/pub/wheelhouse freesas"
 
 script:
     # Print Python info
-    - "python ci/info_platform.py"
-    - "pip freeze"
+    - "python3 ci/info_platform.py"
+    - "pip3 freeze"
 
     # Run the tests
-    - "python setup.py build test"
-    - "python run_tests.py"
+    - "python3 setup.py build test"
+    - "python3 run_tests.py"
