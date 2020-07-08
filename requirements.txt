@@ -3,4 +3,4 @@ cython
 setuptools
 matplotlib
 sphinx
-scipy
+sphinxcontrib-programoutput
