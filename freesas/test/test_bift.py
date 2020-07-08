@@ -31,7 +31,8 @@ import numpy
 import unittest
 from .utilstests import get_datafile
 from ..bift import auto_bift
-from .._bift import BIFT, distribution_parabola, distribution_sphere
+from .._bift import BIFT, distribution_parabola, distribution_sphere, \
+                    ensure_edges_zero, smooth_density
 import logging
 logger = logging.getLogger(__name__)
 import time
@@ -95,12 +96,34 @@ class TestBIFT(unittest.TestCase):
         self.assertAlmostEqual(numpy.trapz(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
         self.assertTrue(numpy.allclose(pp, self.p, 1e-4), "distribution matches")
 
+    def test_fixEdges(self):
+        ones = numpy.ones(self.NPT)
+        ensure_edges_zero(ones)
+        self.assertAlmostEqual(ones[0], 0,  msg="1st point set to 0")
+        self.assertAlmostEqual(ones[-1], 0,  msg="last point set to 0")
+        self.assertTrue(numpy.allclose(ones[1:-1], numpy.ones(self.NPT-2), 1e-7), msg="non-edge points unchanged")
+
+    def test_smoothing(self):
+        ones = numpy.ones(self.NPT)
+        empty = numpy.empty(self.NPT)
+        smooth_density(ones,empty)
+        self.assertTrue(numpy.allclose(ones, empty, 1e-7), msg="flat array smoothed into flat array")
+        random = numpy.random.rand(self.NPT)
+        smooth =  numpy.empty(self.NPT)
+        smooth_density(random,smooth)
+        self.assertAlmostEqual(random[0], smooth[0],  msg="first points of random array and smoothed random array match")
+        self.assertAlmostEqual(random[-1], smooth[-1],  msg="last points of random array and smoothed random array match")
+        self.assertTrue(smooth[1]>=min(smooth[0], smooth[2]) and smooth[1]<=max(smooth[0], smooth[2]), msg="second point of random smoothed array between 1st and 3rd")
+        self.assertTrue(smooth[-2]>=min(smooth[-1], smooth[-3]) and smooth[-2]<= max(smooth[-1], smooth[-3]), msg="second to last point of random smoothed array between 3rd to last and last")
+        sign = numpy.sign(random[1:-3] - smooth[2:-2]) * numpy.sign(smooth[2:-2] - random[3:-1])
+        self.assertTrue(numpy.allclose(sign, numpy.ones(self.NPT-4), 1e-7), msg="central points of random array and smoothed random array alternate")
 
 def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestBIFT("test_disributions"))
     testSuite.addTest(TestBIFT("test_autobift"))
-
+    testSuite.addTest(TestBIFT("test_fixEdges"))
+    testSuite.addTest(TestBIFT("test_smoothing"))
     return testSuite
 
 
