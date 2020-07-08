@@ -610,8 +610,7 @@ class BuildExt(build_ext):
             # It is needed for Debian packaging
             debug_mode = self.is_debug_interpreter()
 
-        if sys.platform == "darwin":
-            args.append("-O0")
+
 
         if self.compiler.compiler_type == "unix":
             args = list(self.compiler.compiler_so)
@@ -622,6 +621,10 @@ class BuildExt(build_ext):
 
             # always insert symbols
             args.append("-g")
+
+            #On MacOS, we set the optimization level to avoid trouble with AppleClang 10
+            if sys.platform == "darwin":
+                args.append("-O0")
             # only strip asserts in release mode
             if not debug_mode:
                 args.append('-DNDEBUG')
