@@ -551,6 +551,7 @@ class BuildExt(build_ext):
             # Avoid empty arg
             ext.extra_link_args = [arg for arg in extra_link_args if arg]
 
+
         elif self.compiler.compiler_type == 'unix':
             # Avoids runtime symbol collision for manylinux1 platform
             # See issue #1070
@@ -608,6 +609,9 @@ class BuildExt(build_ext):
             # Force debug_mode also when it uses python-dbg
             # It is needed for Debian packaging
             debug_mode = self.is_debug_interpreter()
+
+        if sys.platform == "darwin":
+            args.append("-O0")
 
         if self.compiler.compiler_type == "unix":
             args = list(self.compiler.compiler_so)
