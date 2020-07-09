@@ -2,7 +2,7 @@
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "20/04/2020"
+__date__ = "09/07/2020"
 
 import argparse
 from os.path import dirname, abspath
@@ -83,7 +83,7 @@ def main():
         align.plotNSDarray(rmax=round(selection.rmax, 4), save=save)
 
     if not save and input_len > 2:
-        raw_input("Press any key to exit")
+        input("Press any key to exit")
 
 
 if __name__ == "__main__":
