@@ -27,21 +27,31 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "25/05/2020"
+__date__ = "09/07/2020"
 
+import io
 import os
 import sys
-import freesas
 import argparse
 import logging
 import glob
 import platform
+import posixpath
+from collections import namedtuple, OrderedDict
+import json
+from .. import version, date
+import numpy
+import h5py
+import pyFAI
 from pyFAI.io import Nexus
+from pyFAI.method_registry import IntegrationMethod
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("extract_ascii")
 
 if sys.version_info[0] < 3:
     logger.error("This code requires Python 3.4+")
+
+NexusJuice = namedtuple("NexusJuice", "filename h5path npt unit q I poni mask energy polarization signal2d error2d buffer concentration")
 
 
 def parse():
@@ -53,64 +63,63 @@ def parse():
     description = "Extract the SAXS data from a Nexus files as a 3 column ascii (q, I, err). Metadata are exported in the headers as needed."
     epilog = """extract_ascii.py allows you to export the data in inverse nm or inverse A with possible intensity scaling.   
     """
-    version = "extract_ascii.py version %s from %s" % (freesas.version, freesas.date)
+    sversion = "extract_ascii.py version %s from %s" % (version, date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
-    parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
-    parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
-    parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
-    parser.add_argument("-a", "--all", action='store_true', help="extract every individual frame", default=False)
+    parser.add_argument("file", metavar="FILE", nargs='+', help="HDF5 input data")
+    #Commented option need to be implemented
+    #parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
+    #parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
+    #parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
+    #parser.add_argument("-a", "--all", action='store_true', help="extract every individual frame", default=False)
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser.add_argument("-V", "--version", action='version', version=sversion)
     return parser.parse_args()
 
 
-def read_nexus_simple(filename):
-    "return some NexusJuice from a HDF5 file "
-    results = {}
+def extract_averaged(filename):
+    "return some infomations extracted from a HDF5 file "
+    results = OrderedDict()
+    results["filename"] = filename
+    # Missing: comment normalization
     with Nexus(filename, "r") as nxsr:
         entry_grp = nxsr.get_entries()[0]
-        h5path = entry_grp.name
+        results["h5path"] = entry_grp.name
         nxdata_grp = nxsr.h5[entry_grp.attrs["default"]]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"]
-        I = nxdata_grp[signal][()]
-        q = nxdata_grp[axis][()]
-        std = nxdata_grp["error"][()]
-        npt = len(q)
-        unit = pyFAI.units.to_unit(axis + "_" + nxdata_grp[axis].attrs["units"])
+        results["I"] = nxdata_grp[signal][()]
+        results["q"] = nxdata_grp[axis][()]
+        results["std"] = nxdata_grp["errors"][()]
+        results["unit"] = pyFAI.units.to_unit(axis + "_" + nxdata_grp[axis].attrs["units"])
         integration_grp = nxdata_grp.parent
-        poni = str(integration_grp["configuration/file_name"][()]).strip()
-        if not os.path.exists(poni):
-            poni = str(integration_grp["configuration/data"][()]).strip()
-        polarization = integration_grp["configuration/polarization_factor"][()]
-        method = IntegrationMethod.select_method(**json.loads(integration_grp["configuration/integration_method"][()]))[0]
+        results["geometry"] = json.loads(integration_grp["configuration/data"][()])
+        results["polarization"] = integration_grp["configuration/polarization_factor"][()]
         instrument_grp = nxsr.get_class(entry_grp, class_type="NXinstrument")[0]
         detector_grp = nxsr.get_class(instrument_grp, class_type="NXdetector")[0]
-        mask = detector_grp["pixel_mask"].attrs["filename"]
-        mono_grp = nxsr.get_class(instrument_grp, class_type="NXmonochromator")[0]
-        energy = mono_grp["energy"][()]
+        results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
         sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
-        buffer = sample_grp["buffer"]
-        concentration = sample_grp["concentration"]
-    return NexusJuice(filename, h5path, npt, unit, q, I, poni, mask, energy, polarization, buffer, concentration)
-
-
-def extract_average(filename):
-    "Extract data and metadata from a BM29-Nexus file coming from the averaging step (integratemultiframe plugin)"
-    pass
+        results["sample"] = posixpath.split(sample_grp.name)[-1]
+        results["buffer"] = sample_grp["buffer"][()]
+        results["storage temperature"] = sample_grp["temperature_env"][()]
+        results["exposure temperature"] = sample_grp["temperature"][()]
+        results["concentration"] = sample_grp["concentration"][()]
+        if "2_correlation_mapping" in entry_grp:
+            results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
+    return results
 
 
 def extract_sub(filename):
     "Extract data and metadata from a BM29-Nexus file coming from the magic subtraction (subtractbuffer plugin)"
-    pass
+    raise RuntimeError("Not implemented yet")
 
 
-def write_ascii(res, output="output.dat", hdr="#", linesep=os.linesep):
-        """
-        :param res: named tuple of numpy array containing Scattering vector, Intensity and deviation
-        :param outputCurve: name of the 3-column ascii file to be written
-        @param hdr: header mark, usually '#'
+def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
+    """
+    :param resusts: dict containing some NexusJuice
+    :param output: name of the 3-column ascii file to be written
+    :param hdr: header mark, usually '#'
+    :param linesep: to be able to addapt the end of lines
+
 Adam Round explicitelly asked for (email from Date: Tue, 04 Oct 2011 15:22:29 +0200) :
 Modification from:
 # BSA buffer
@@ -146,80 +155,74 @@ s-vector Intensity Error
 s-vector Intensity Error
 s-vector Intensity Error
         """
-        hdr = str(hdr)
-        headers = []
-        if self.sample.comments is not None:
-            headers.append(hdr + " " + self.sample.comments.value)
-        else:
-            headers.append(hdr)
-        if self.sample.concentration is not None:
-            headers.append(hdr + " Sample c= %s mg/ml" % self.sample.concentration.value)
-        else:
-            headers.append(hdr + " Sample c= -1  mg/ml")
-        headers += [hdr, hdr + " Sample environment:"]
-        if self.experimentSetup.detector is not None:
-            headers.append(hdr + " Detector = %s" % self.experimentSetup.detector.value)
-        if self.experimentSetup.pixelSize_1 is not None:
-            headers.append(hdr + " PixelSize_1 = %s" % self.experimentSetup.pixelSize_1.value)
-        if self.experimentSetup.pixelSize_2 is not None:
-            headers.append(hdr + " PixelSize_2 = %s" % self.experimentSetup.pixelSize_2.value)
+    hdr = str(hdr)
+    headers = []
+    if "comments" in results:
+        headers.append(hdr + " " + results["comments"])
+    else:
         headers.append(hdr)
-        if self.sample.comments is not None:
-            headers.append(hdr + " title = %s" % self.sample.comments.value)
-        if (self.experimentSetup.frameNumber is not None) and\
-           (self.experimentSetup.frameMax is not None):
-            headers.append(hdr + " Frame %s of %s" % (self.experimentSetup.frameNumber.value, self.experimentSetup.frameMax.value))
-        if self.experimentSetup.exposureTime is not None:
-            headers.append(hdr + " Time per frame (s) = %s" % self.experimentSetup.exposureTime.value)
-        if self.experimentSetup.detectorDistance is not None:
-            headers.append(hdr + " SampleDistance = %s" % self.experimentSetup.detectorDistance.value)
-        if self.experimentSetup.wavelength is not None:
-            headers.append(hdr + " WaveLength = %s" % self.experimentSetup.wavelength.value)
-        if self.experimentSetup.normalizationFactor is not None:
-            headers.append(hdr + " Normalization = %s" % self.experimentSetup.normalizationFactor.value)
-        if self.experimentSetup.beamStopDiode is not None:
-            headers.append(hdr + " DiodeCurr = %s" % self.experimentSetup.beamStopDiode.value)
-        if self.experimentSetup.machineCurrent is not None:
-            headers.append(hdr + " MachCurr = %s" % self.experimentSetup.machineCurrent.value)
-        if self.experimentSetup.maskFile is not None:
-            headers.append(hdr + " Mask = %s" % self.experimentSetup.maskFile.path.value)
-        headers.append(hdr)
-        headers.append(hdr + " N 3")
-        if self.sample.comments is not None:
-            headers.append(hdr + " L q*nm  I_%s  stddev" % self.sample.comments.value)
-        else:
-            headers.append(hdr + " L q*nm  I_  stddev")
-        headers.append(hdr)
-        headers.append(hdr + " Sample Information:")
-        if self.experimentSetup.storageTemperature is not None:
-            headers.append(hdr + " Storage Temperature (degrees C): %s" % self.experimentSetup.storageTemperature.value)
-        if self.experimentSetup.exposureTemperature is not None:
-            headers.append(hdr + " Measurement Temperature (degrees C): %s" % self.experimentSetup.exposureTemperature.value)
+    headers.append(hdr + " Sample c= %s mg/ml" % results.get("concentration", -1))
+    headers += [hdr, hdr + " Sample environment:"]
+    if "geometry" in results:
+        headers.append(hdr + " Detector = %s" % results["geometry"]["detector"])
+        headers.append(hdr + " SampleDistance = %s" % results["geometry"]["dist"])
+        headers.append(hdr + " WaveLength = %s" % results["geometry"]["wavelength"])
+    headers.append(hdr)
+    if "comments" in results:
+        headers.append(hdr + " title = %s" % results["comment"])
+    if "to_merge" in results:
+        headers.append(hdr + " Frames merged: " + " ".join([str(i) for i in results["to_merge"]]))
+    if 'normalization' in results:
+        headers.append(hdr + " Normalization = %s" % results["normalization"])
+    if "mask" in results:
+        headers.append(hdr + " Mask = %s" % results["mask"])
+    headers.append(hdr)
+    headers.append(hdr + (" N 3" if "std" in results else " N 2"))
+    line = hdr + " L "
+    if "unit" in results:
+        a, b = str(results["unit"]).split("_")
+        line += a + "*" + b.strip("^-1") + "  I_"
+    else:
+        line += "q  I_"
+    if "comment" in results:
+        line += results["comments"]
+    if "std" in results:
+        line += "  stddev"
+    headers.append(line)
+    headers.append(hdr)
+    headers.append(hdr + " Sample Information:")
+    if "storage temperature" in results:
+        headers.append(hdr + " Storage Temperature (degrees C): %s" % results["storage temperature"])
+    if "exposure temperature" in results:
+        headers.append(hdr + " Measurement Temperature (degrees C): %s" % results["exposure temperature"])
 
-        if self.sample.concentration is not None:
-            headers.append(hdr + " Concentration: %s" % self.sample.concentration.value)
-        else:
-            headers.append(hdr + " Concentration: -1")
-        if self.sample.code is not None:
-            headers.append(hdr + " Code: %s" % self.sample.code.value)
-        else:
-            headers.append(hdr + " Code: ")
+    headers.append(hdr + " Concentration: %s" % results.get("concentration", -1))
+    if "buffer" in results:
+        headers.append(hdr + " Buffer: %s" % results["buffer"])
+    headers.append(hdr + " Code: %s" % results.get("sample", ""))
 
-        with open(outputCurve, "w") as f:
-            f.writelines(linesep.join(headers))
-            f.write(linesep)
+    def write(headers, file_):
 
-            if res.sigma is None:
-                data = ["%14.6e %14.6e " % (q, I)
-                        for q, I in zip(res.radial, res.intensity)]
-                        # 3if abs(I - self.dummy) > self.delta_dummy]
-            else:
-                data = ["%14.6e %14.6e %14.6e" % (q, I, std)
-                        for q, I, std in zip(res.radial, res.intensity, res.sigma)]
-                        # if abs(I - self.dummy) > self.delta_dummy]
-            data.append("")
-            f.writelines(linesep.join(data))
-            f.flush()
+        file_.writelines(linesep.join(headers))
+        file_.write(linesep)
+
+        if "std" in results:
+            data = ["%14.6e\t%14.6e\t%14.6e" % (q, I, std)
+                    for q, I, std in zip(results["q"], results["I"], results["std"])]
+        else:
+            data = ["%14.6e\t%14.6e\t" % (q, I)
+                    for q, I in zip(results["q"], results["I"])]
+        data.append("")
+        file_.writelines(linesep.join(data))
+
+    if output:
+        with open(output, "w") as f:
+            write(headers, f)
+    else:
+        f = io.StringIO()
+        write(headers, f)
+        f.seek(0)
+        return f.read()
 
 
 def main():
@@ -231,7 +234,11 @@ def main():
         files = glob.glob(args.file[0])
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug("%s input files", input_len)
+    for src in files:
+        dest = os.path.splitext(src)[0] + ".dat"
+        write_ascii(extract_averaged(src), dest)
+        print(src, " --> ", dest)
 
 
 if __name__ == "__main__":
