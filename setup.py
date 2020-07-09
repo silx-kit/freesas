@@ -35,10 +35,6 @@ import platform
 import shutil
 import logging
 import glob
-# io import has to be here also to fix a bug on Debian 7 with python2.7
-# Without this, the system io module is not loaded from numpy.distutils.
-# The silx.io module seems to be loaded instead.
-import io
 
 if sys.version_info[0] < 3:
     raise SystemError("Freesas requires Python3 !")
@@ -103,7 +99,7 @@ def get_readme():
     """Returns content of README.rst file"""
     dirname = os.path.dirname(os.path.abspath(__file__))
     filename = os.path.join(dirname, "README.md")
-    with io.open(filename, "r", encoding="utf-8") as fp:
+    with open(filename, "r", encoding="utf-8") as fp:
         long_description = fp.read()
     return long_description
 
@@ -555,6 +551,7 @@ class BuildExt(build_ext):
             # Avoid empty arg
             ext.extra_link_args = [arg for arg in extra_link_args if arg]
 
+
         elif self.compiler.compiler_type == 'unix':
             # Avoids runtime symbol collision for manylinux1 platform
             # See issue #1070
@@ -613,6 +610,8 @@ class BuildExt(build_ext):
             # It is needed for Debian packaging
             debug_mode = self.is_debug_interpreter()
 
+
+
         if self.compiler.compiler_type == "unix":
             args = list(self.compiler.compiler_so)
             # clean up debug flags -g is included later in another way
@@ -622,6 +621,10 @@ class BuildExt(build_ext):
 
             # always insert symbols
             args.append("-g")
+
+            #On MacOS, we set the optimization level to avoid trouble with AppleClang 10
+            if sys.platform == "darwin":
+                args.append("-O0")
             # only strip asserts in release mode
             if not debug_mode:
                 args.append('-DNDEBUG')

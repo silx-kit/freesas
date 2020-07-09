@@ -37,7 +37,7 @@ def create_extension_config(name, extra_sources=None, can_use_openmp=False):
     Util function to create numpy extension from the current pyFAI project.
     Prefer using numpy add_extension without it.
     """
-    include_dirs = ['src', numpy.get_include()]
+    include_dirs = [numpy.get_include()]
 
     if can_use_openmp:
         extra_link_args = ['-fopenmp']
