@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 # /*##########################################################################
 #
@@ -53,7 +53,7 @@ from __future__ import absolute_import, print_function, division
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "09/06/2020"
+__date__ = "09/07/2020"
 __status__ = "production"
 __docformat__ = 'restructuredtext'
 __all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion",
@@ -65,6 +65,10 @@ RELEASE_LEVEL_VALUE = {"dev": 0,
                        "candidate": 12,
                        "final": 15}
 
+PRERELEASE_NORMALIZED_NAME = {"dev": "a",
+                              "alpha": "a",
+                              "beta": "b",
+                              "candidate": "rc"}
 MAJOR = 0
 MINOR = 8
 MICRO = 3
@@ -109,6 +113,7 @@ def calc_hexversion(major=0, minor=0, micro=0, releaselevel="dev", serial=0):
 
 
 hexversion = calc_hexversion(*version_info)
+
 
 if __name__ == "__main__":
     print(version)
