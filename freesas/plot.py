@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Functions to generating graphs related to 
+Functions to generating graphs related to
 """
 
 __authors__ = ["Jerome Kieffer"]
@@ -20,7 +20,7 @@ def scatter_plot(data, guinier=None, ift=None,
                  ax=None, labelsize=None, fontsize=None):
     """
     Generate a scattering plot I = f(q) in semi_log_y.
-    
+
     :param data: data read from an ASCII file, 3 column (q,I,err)
     :param filename: name of the file where the cuve should be saved
     :param format: image format
@@ -133,7 +133,7 @@ def kratky_plot(data, guinier,
                 ax=None, labelsize=None, fontsize=None):
     """
     Generate a Kratky plot q²Rg²I/I₀ = f(q·Rg)
-    
+
     :param data: data read from an ASCII file, 3 column (q,I,err)
     :param guinier: output of autoRg
     :param filename: name of the file where the cuve should be saved
@@ -191,7 +191,7 @@ def guinier_plot(data, guinier, filename=None,
                  format="png", unit="nm", ax=None, labelsize=None, fontsize=None):
     """
     Generate a guinier plot: ln(I) = f(q²)
-    
+
     :param data: data read from an ASCII file, 3 column (q,I,err)
     :param guinier: A RG_RESULT object from AutoRg
     :param  filename: name of the file where the cuve should be saved
@@ -266,7 +266,7 @@ def density_plot(ift, filename=None, format="png", unit="nm",
                  ax=None, labelsize=None, fontsize=None):
     """
     Generate a density plot p(r)
-     
+
     @param ift: An IFT result comming out of BIFT
     @param  filename: name of the file where the cuve should be saved
     @param format: image format
@@ -289,7 +289,7 @@ def density_plot(ift, filename=None, format="png", unit="nm",
     ax.errorbar(ift.radius, ift.density_avg, ift.density_std,
                 label="BIFT: χ$_{r}^{2}=$%.2f\n $D_{max}=$%.2f %s\n $R_{g}=$%.2f %s\n $I_{0}=$%.2f" % (stats.chi2r_avg, stats.Dmax_avg, unit, stats.Rg_avg, unit, stats.I0_avg),
                 capsize=0, color="blue", ecolor="lightblue")
-    ax.set_ylabel('$\\rho (r)$', fontsize=fontsize)
+    ax.set_ylabel('$p(r)$', fontsize=fontsize)
     ax.set_xlabel('$r$ (%s)' % unit, fontsize=fontsize)
     ax.set_title("Pair distribution function")
     ax.legend()

@@ -232,8 +232,8 @@ build_deb() {
             ;;
     esac
 
-    dch -v ${debianversion}-1 "upstream development build of ${project} ${version}"
-    dch -D ${debian_name}-backports -l~bpo${debian_version}+ "${project} snapshot ${version} built for ${target_system}"
+    dch --force-distribution  -v ${debianversion}-1 "upstream development build of ${project} ${version}"
+    dch --force-distribution -D ${debian_name}-backports -l~bpo${debian_version}+ "${project} snapshot ${version} built for ${target_system}"
     #dch --bpo "${project} snapshot ${version} built for ${target_system}"
     dpkg-buildpackage -r
     rc=$?

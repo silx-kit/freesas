@@ -10,7 +10,7 @@ example: ./bootstrap.py ipython
 __authors__ = ["Frédéric-Emmanuel Picca", "Jérôme Kieffer"]
 __contact__ = "jerome.kieffer@esrf.eu"
 __license__ = "MIT"
-__date__ = "16/04/2020"
+__date__ = "09/07/2020"
 
 import sys
 import os
@@ -169,7 +169,7 @@ def find_executable(target):
     # scripts from project configuration
     if "scripts" in config:
         for script_name in config["scripts"]:
-            if os.path.basename(script) == target:
+            if os.path.basename(script_name) == target:
                 return ("path", os.path.abspath(script_name))
     # entry-points from project configuration
     if "entry_points" in config:

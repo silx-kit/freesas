@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "10/06/2020"
+__date__ = "09/07/2020"
 __license__ = "MIT"
 
 import sys
@@ -819,7 +819,8 @@ def get_project_configuration(dry_run):
                             'cormap.py = freesas.app.cormap:main',
                             'supycomb.py = freesas.app.supycomb:main',
                             'bift.py = freesas.app.bift:main',
-                            'freesas = freesas.app.plot_sas:main'
+                            'freesas = freesas.app.plot_sas:main',
+                            'extract_ascii = freesas.app.extract_ascii:main',
                            ],
         # 'gui_scripts': [],
     }
