@@ -79,13 +79,19 @@ class TestFreeSAS(unittest.TestCase):
         super(TestFreeSAS, cls).tearDownClass()
         cls.image_text = None
 
-    def __init__(self, testName, *extraArgs):
+    def __init__(self, testName, **extra_kwargs):
         super(TestFreeSAS, self).__init__(testName)
-        self.extra_arg = extraArgs
+        self.extra_arg = extra_kwargs
 
     def test_label(self):
-        text_regex: str = self.extra_arg[0]
-        text_description: str = self.extra_arg[1]
+        """
+        Test for the presence of labels in the svg.
+        Requires two extra kwarfs:
+        regex: The regex expression to search for
+        description: The description of what the label represents
+        """
+        text_regex: str = self.extra_arg["regex"]
+        text_description: str = self.extra_arg["description"]
         pattern = re.compile(text_regex)
         self.assertIsNotNone(
             pattern.search(self.image_text),
@@ -97,7 +103,8 @@ def suite():
     test_suite = unittest.TestSuite()
     for text_description, text_regex in expectedTexts.items():
         test_suite.addTest(TestFreeSAS("test_label",
-                                       text_regex, text_description))
+                                       regex=text_regex,
+                                       description=text_description))
     return test_suite
 
 
