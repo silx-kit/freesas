@@ -101,8 +101,8 @@ class TestFreeSAS(unittest.TestCase):
         run_freesas = run(["freesas", str(self.bsa_filename),
                            "-o", self.TEST_IMAGE_NAME],
                           capture_output=True)
-        #print(run_freesas.stdout)
-        print(run_freesas.stderr, "\n")
+        print("stdout: ", run_freesas.stdout)
+        print("stderr: ", run_freesas.stderr, "\n")
         print(type(run_freesas.stderr))
         self.assertEqual(run_freesas.stderr, b"", msg="STDERR of freesas is empty")
         with open(self.TEST_IMAGE_NAME) as file:
