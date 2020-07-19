@@ -95,7 +95,7 @@ def main():
         files = glob.glob(args.file[0])
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug("%s input files", input_len)
     figures = []
     if len(files) > 1 and args.output:
         logger.warning("Only PDF export is possible in multi-frame mode")
