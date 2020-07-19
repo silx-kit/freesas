@@ -34,9 +34,9 @@ __date__ = "14/05/2020"
 import os
 import sys
 import argparse
+import platform
 import logging
 import glob
-import platform
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
@@ -54,19 +54,18 @@ def set_backend(output, format):
     """
     from matplotlib import get_backend
     from matplotlib.pyplot import switch_backend
-
     if format:
         format = format.lower()
     elif len(output.suffix) > 0:
         format = output.suffix.lower()[1:]
     if format:
-        if format in ["svg", "scgz"]:
+        if format == "svg":
             switch_backend("svg")
         elif format in ["ps", "eps"]:
             switch_backend("ps")
-        elif format == "pdf"
+        elif format == "pdf":
             switch_backend("pdf")
-        elif format == "png"
+        elif format == "png":
             switch_backend("agg")
 
 def parse():
