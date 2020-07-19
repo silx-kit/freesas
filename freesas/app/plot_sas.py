@@ -113,8 +113,8 @@ def main():
         else:
             fig = plot.plot_all(data, filename=args.output, format=args.format)
             figures.append(fig)
-        if args.output is None:
-            fig.show()
+            if args.output is None:
+                fig.show()
     if not args.output:
         input("Press enter to quit")
 
