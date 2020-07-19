@@ -76,8 +76,11 @@ class TestFreeSAS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestFreeSAS, cls).setUpClass()
-        with open(cls.TEST_IMAGE_NAME) as file:
-            cls.image_text = file.read()
+        try:
+            with open(cls.TEST_IMAGE_NAME) as file:
+                cls.image_text = file.read()
+        except Exception as e:
+            print(e)
 
 
     @classmethod
@@ -89,19 +92,21 @@ class TestFreeSAS(unittest.TestCase):
         super(TestFreeSAS, self).__init__(testName)
         self.extra_arg = extra_kwargs
 
-    @classmethod
-    def test_save_image(cls):
+    def test_save_image(self):
         """
         Test whether freeSAS finishes without errors
-        if there is an -o argument
+        if there is an -o argument.
+        It also uses the output as input for label tests.
         """
-        run_freesas = run(["freesas", str(cls.bsa_filename),
-                           "-o", cls.TEST_IMAGE_NAME],
+        run_freesas = run(["freesas", str(self.bsa_filename),
+                           "-o", self.TEST_IMAGE_NAME],
                           capture_output=True)
-        print(run_freesas.stdout)
-        print(run_freesas.stderr)
-        with open(cls.TEST_IMAGE_NAME) as file:
-            cls.image_text = file.read()
+        #print(run_freesas.stdout)
+        print(run_freesas.stderr, "\n")
+        print(type(run_freesas.stderr))
+        self.assertEqual(run_freesas.stderr, b"", msg="STDERR of freesas is empty")
+        with open(self.TEST_IMAGE_NAME) as file:
+            self.image_text = file.read()
 
     def test_label(self):
         """
