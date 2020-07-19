@@ -32,6 +32,7 @@ __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
 import os
+import sys
 import argparse
 import logging
 import glob
@@ -39,10 +40,34 @@ import platform
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
+from pathlib import Path
+
 import numpy
 import freesas
 from freesas import plot
 
+def set_backend(output, format):
+    """ Explicitely set silent backend based on format or filename
+        Needed on MacOS
+        @param output: Name of the specified output file
+        @param format: User specified format
+    """
+    from matplotlib import get_backend
+    from matplotlib.pyplot import switch_backend
+
+    if format:
+        format = format.lower()
+    elif len(output.suffix) > 0:
+        format = output.suffix.lower()[1:]
+    if format:
+        if format in ["svg", "scgz"]:
+            switch_backend("svg")
+        elif format in ["ps", "eps"]:
+            switch_backend("ps")
+        elif format == "pdf"
+            switch_backend("pdf")
+        elif format == "png"
+            switch_backend("agg")
 
 def parse():
     """ Parse input and return list of files.
@@ -55,7 +80,7 @@ def parse():
     version = "freesas.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to plot")
-    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
+    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=Path)
     parser.add_argument("-f", "--format", action='store', help="Output format: jpeg, svg, png, pdf", default=None, type=str)
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
@@ -78,7 +103,9 @@ def main():
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
         raise NotImplementedError("TODO")
-
+    if args.output:
+        if sys.platform == "darwin":
+            set_backend(args.output, args.format)
     for afile in files:
         try:
             data = numpy.loadtxt(afile)
