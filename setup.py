@@ -78,7 +78,7 @@ except ImportError:
 
 PROJECT = "freesas"
 
-if "LANG" not in os.environ and sys.platform == "darwin" and sys.version_info[0] > 2:
+if "LANG" not in os.environ and platform.system() == "Darwin" and sys.version_info[0] > 2:
     print("""WARNING: the LANG environment variable is not defined,
 an utf-8 LANG is mandatory to use setup.py, you may face unexpected UnicodeError.
 export LANG=en_US.utf-8
@@ -623,7 +623,7 @@ class BuildExt(build_ext):
             args.append("-g")
 
             #On MacOS, we set the optimization level to avoid trouble with AppleClang 10
-            if sys.platform == "darwin":
+            if platform.system() == "Darwin":
                 args.append("-O0")
             # only strip asserts in release mode
             if not debug_mode:

@@ -31,12 +31,9 @@ __license__ = "MIT"
 __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
-import os
-import sys
 import argparse
 import platform
 import logging
-import glob
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
@@ -90,9 +87,9 @@ def main():
     args = parse()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
-    files = [i for i in args.file if os.path.exists(i)]
+    files = [Path(i) for i in args.file if Path(i).exists()]
     if platform.system() == "Windows" and files == []:
-        files = glob.glob(args.file[0])
+        files = list(Path.cwd().glob(args.file[0]))
         files.sort()
     input_len = len(files)
     logger.debug("%s input files", input_len)
@@ -103,7 +100,7 @@ def main():
         import matplotlib.pyplot as plt
         raise NotImplementedError("TODO")
     if args.output:
-        if sys.platform == "darwin":
+        if platform.system() == "Darwin":
             set_backend(args.output, args.format)
     for afile in files:
         try:
