@@ -52,7 +52,6 @@ def set_backend(output, format):
         @param output: Name of the specified output file
         @param format: User specified format
     """
-    from matplotlib import get_backend
     from matplotlib.pyplot import switch_backend
     if format:
         format = format.lower()
