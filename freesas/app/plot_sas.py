@@ -43,28 +43,29 @@ logger = logging.getLogger("plot_sas")
 from pathlib import Path
 
 import numpy
-import freesas
+from freesas import dated_version as freesas_version
+#import freesas
 from freesas import plot
 
-def set_backend(output, format):
+def set_backend(output: Path, outputformat: str):
     """ Explicitely set silent backend based on format or filename
         Needed on MacOS
         @param output: Name of the specified output file
         @param format: User specified format
     """
     from matplotlib.pyplot import switch_backend
-    if format:
-        format = format.lower()
+    if outputformat:
+        outputformat = outputformat.lower()
     elif len(output.suffix) > 0:
-        format = output.suffix.lower()[1:]
-    if format:
-        if format == "svg":
+        outputformat = output.suffix.lower()[1:]
+    if outputformat:
+        if outputformat == "svg":
             switch_backend("svg")
-        elif format in ["ps", "eps"]:
+        elif outputformat in ["ps", "eps"]:
             switch_backend("ps")
-        elif format == "pdf":
+        elif outputformat == "pdf":
             switch_backend("pdf")
-        elif format == "png":
+        elif outputformat == "png":
             switch_backend("agg")
 
 def parse():
@@ -75,7 +76,7 @@ def parse():
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    version = "freesas.py version %s from %s" % (freesas.version, freesas.date)
+    version = "freesas.py version %s from %s" % (freesas_version.version, freesas_version.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to plot")
     parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=Path)
