@@ -68,19 +68,22 @@ expectedTexts = {
 
 class TestFreeSAS(unittest.TestCase):
 
-    TEST_IMAGE_NAME = "freesas.svg"
+    cwd = pathlib.Path.cwd()
+    TEST_IMAGE_NAME = pathlib.Path(cwd, "freesas.svg")
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
     bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
+    image_text = None
 
     @classmethod
     def setUpClass(cls):
         super(TestFreeSAS, cls).setUpClass()
+        #If an output file exists, this could be helpful...
         try:
             with open(cls.TEST_IMAGE_NAME) as file:
                 cls.image_text = file.read()
-        except Exception as e:
-            print(e)
+        except FileNotFoundError:
+            pass
 
 
     @classmethod
@@ -98,15 +101,22 @@ class TestFreeSAS(unittest.TestCase):
         if there is an -o argument.
         It also uses the output as input for label tests.
         """
-        run_freesas = run(["freesas", str(self.bsa_filename),
+        #Make sure the result file does not exist for a meaningful assert
+        try:
+            self.TEST_IMAGE_NAME.unlink()
+        except FileNotFoundError:
+            pass
+        run_freesas = run(["freesas", self.bsa_filename,
                            "-o", self.TEST_IMAGE_NAME],
-                          capture_output=True)
-        print("stdout: ", run_freesas.stdout)
-        print("stderr: ", run_freesas.stderr, "\n")
-        print(type(run_freesas.stderr))
-        self.assertEqual(run_freesas.stderr, b"", msg="STDERR of freesas is empty")
+                          capture_output=True, check=True)
+        self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
+        self.assertTrue(self.TEST_IMAGE_NAME.exists(), msg="Found output file")
         with open(self.TEST_IMAGE_NAME) as file:
-            self.image_text = file.read()
+            self.__class__.image_text = file.read()
+        try:
+            self.TEST_IMAGE_NAME.unlink()
+        except FileNotFoundError:
+            pass
 
     def test_label(self):
         """
