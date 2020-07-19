@@ -28,9 +28,12 @@ __license__ = "MIT"
 __date__ = "11/07/2020"
 
 import unittest
+import pathlib
 import re
 import logging
+from subprocess import run
 logger = logging.getLogger(__name__)
+
 
 
 expectedTexts = {
@@ -66,6 +69,9 @@ expectedTexts = {
 class TestFreeSAS(unittest.TestCase):
 
     TEST_IMAGE_NAME = "freesas.svg"
+    test_location = pathlib.Path(__file__)
+    test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
+    bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
 
     @classmethod
     def setUpClass(cls):
@@ -82,6 +88,20 @@ class TestFreeSAS(unittest.TestCase):
     def __init__(self, testName, **extra_kwargs):
         super(TestFreeSAS, self).__init__(testName)
         self.extra_arg = extra_kwargs
+
+    @classmethod
+    def test_save_image(cls):
+        """
+        Test whether freeSAS finishes without errors
+        if there is an -o argument
+        """
+        run_freesas = run(["freesas", str(cls.bsa_filename),
+                           "-o", cls.TEST_IMAGE_NAME],
+                          capture_output=True)
+        print(run_freesas.stdout)
+        print(run_freesas.stderr)
+        with open(cls.TEST_IMAGE_NAME) as file:
+            cls.image_text = file.read()
 
     def test_label(self):
         """
@@ -101,6 +121,7 @@ class TestFreeSAS(unittest.TestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
+    test_suite.addTest(TestFreeSAS("test_save_image"))
     for text_description, text_regex in expectedTexts.items():
         test_suite.addTest(TestFreeSAS("test_label",
                                        regex=text_regex,
