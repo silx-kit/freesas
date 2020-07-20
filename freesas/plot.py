@@ -11,7 +11,7 @@ __date__ = "14/05/2020"
 import logging
 logger = logging.getLogger(__name__)
 import numpy
-from matplotlib.pyplot import subplots
+from matplotlib.pyplot import subplots, switch_backend
 
 
 def scatter_plot(data, guinier=None, ift=None,

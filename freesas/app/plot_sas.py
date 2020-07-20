@@ -31,18 +31,39 @@ __license__ = "MIT"
 __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
-import os
 import argparse
-import logging
-import glob
 import platform
+import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
+from pathlib import Path
+
 import numpy
-import freesas
+from freesas import dated_version as freesas_version
+#import freesas
 from freesas import plot
 
+def set_backend(output: Path, outputformat: str):
+    """ Explicitely set silent backend based on format or filename
+        Needed on MacOS
+        @param output: Name of the specified output file
+        @param format: User specified format
+    """
+    from matplotlib.pyplot import switch_backend
+    if outputformat:
+        outputformat = outputformat.lower()
+    elif len(output.suffix) > 0:
+        outputformat = output.suffix.lower()[1:]
+    if outputformat:
+        if outputformat == "svg":
+            switch_backend("svg")
+        elif outputformat in ["ps", "eps"]:
+            switch_backend("ps")
+        elif outputformat == "pdf":
+            switch_backend("pdf")
+        elif outputformat == "png":
+            switch_backend("agg")
 
 def parse():
     """ Parse input and return list of files.
@@ -52,10 +73,10 @@ def parse():
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    version = "freesas.py version %s from %s" % (freesas.version, freesas.date)
+    version = "freesas.py version %s from %s" % (freesas_version.version, freesas_version.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to plot")
-    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
+    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=Path)
     parser.add_argument("-f", "--format", action='store', help="Output format: jpeg, svg, png, pdf", default=None, type=str)
     parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
@@ -66,19 +87,21 @@ def main():
     args = parse()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
-    files = [i for i in args.file if os.path.exists(i)]
+    files = [Path(i) for i in args.file if Path(i).exists()]
     if platform.system() == "Windows" and files == []:
-        files = glob.glob(args.file[0])
+        files = list(Path.cwd().glob(args.file[0]))
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug("%s input files", input_len)
     figures = []
     if len(files) > 1 and args.output:
         logger.warning("Only PDF export is possible in multi-frame mode")
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
         raise NotImplementedError("TODO")
-
+    if args.output:
+        if platform.system() == "Darwin":
+            set_backend(args.output, args.format)
     for afile in files:
         try:
             data = numpy.loadtxt(afile)
@@ -87,8 +110,8 @@ def main():
         else:
             fig = plot.plot_all(data, filename=args.output, format=args.format)
             figures.append(fig)
-        if args.output is None:
-            fig.show()
+            if args.output is None:
+                fig.show()
     if not args.output:
         input("Press enter to quit")
 
