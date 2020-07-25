@@ -41,7 +41,6 @@ from pathlib import Path
 
 import numpy
 from freesas import dated_version as freesas_version
-#import freesas
 from freesas import plot
 
 def set_backend(output: Path, outputformat: str):
