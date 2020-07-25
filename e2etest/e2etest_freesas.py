@@ -31,10 +31,10 @@ import unittest
 import pathlib
 import re
 import logging
-from subprocess import run
+from subprocess import run, Popen, PIPE
+from os import linesep
+
 logger = logging.getLogger(__name__)
-
-
 
 expectedTexts = {
     "Label of scatter plot X-axis": r"\$q\$ \(nm\$\^\{-1\}\$\)",
@@ -78,13 +78,6 @@ class TestFreeSAS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestFreeSAS, cls).setUpClass()
-        #If an output file exists, this could be helpful...
-        try:
-            with open(cls.TEST_IMAGE_NAME) as file:
-                cls.image_text = file.read()
-        except FileNotFoundError:
-            pass
-
 
     @classmethod
     def tearDownClass(cls):
@@ -118,6 +111,24 @@ class TestFreeSAS(unittest.TestCase):
         except FileNotFoundError:
             pass
 
+    def test_display_image(self):
+        """
+        Test whether freeSAS for one dataset finishes without errors
+        if there no -o argument.
+        """
+        run_freesas = Popen(["freesas", self.bsa_filename],
+                            universal_newlines=True,
+                            stdout=PIPE, stderr=PIPE, stdin=PIPE)
+        stdout, _ = run_freesas.communicate(linesep, timeout=20)
+        self.assertEqual(run_freesas.returncode, 0,
+                         msg="freesas completed well")
+        self.assertEqual(stdout, "Press enter to quit",
+                         msg="freesas requested enter")
+
+
+
+#self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
+
     def test_label(self):
         """
         Test for the presence of labels in the svg.
@@ -133,9 +144,9 @@ class TestFreeSAS(unittest.TestCase):
             msg="Could not find text for {} in image".format(text_description)
         )
 
-
 def suite():
     test_suite = unittest.TestSuite()
+    test_suite.addTest(TestFreeSAS("test_display_image"))
     test_suite.addTest(TestFreeSAS("test_save_image"))
     for text_description, text_regex in expectedTexts.items():
         test_suite.addTest(TestFreeSAS("test_label",
