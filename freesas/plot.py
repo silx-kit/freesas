@@ -11,7 +11,7 @@ __date__ = "14/05/2020"
 import logging
 logger = logging.getLogger(__name__)
 import numpy
-from matplotlib.pyplot import subplots
+from matplotlib.pyplot import subplots, switch_backend
 
 
 def scatter_plot(data, guinier=None, ift=None,
@@ -83,7 +83,7 @@ def scatter_plot(data, guinier=None, ift=None,
             ax.errorbar(q, I, err, label=label_exp, capsize=0, color=exp_color, ecolor=err_color, alpha=0.5)
         else:
             ax.plot(q, I, label=label_exp, color=exp_color, alpha=0.5)
-        label_guinier += ": $R_g=$%.2f%s, $I_0=$%.2f" % (rg, unit, I0)
+        label_guinier += ": $R_g=$%.2f %s, $I_0=$%.2f" % (rg, unit, I0)
         ax.plot(q_guinier, I_guinier, label=label_guinier, color=guinier_color, linewidth=5)
 
     if ift:

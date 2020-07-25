@@ -49,7 +49,6 @@ Thus 2.1.0a3 is hexversion 0x020100a3.
 
 """
 
-from __future__ import absolute_import, print_function, division
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
@@ -83,6 +82,10 @@ _version_info = namedtuple("version_info", ["major", "minor", "micro", "releasel
 version_info = _version_info(MAJOR, MINOR, MICRO, RELEV, SERIAL)
 
 strictversion = version = debianversion = "%d.%d.%d" % version_info[:3]
+
+_dated_version = namedtuple("dated_version", ["version", "date"])
+dated_version = _dated_version(version=version, date=date)
+
 if version_info.releaselevel != "final":
     version += "-%s%s" % version_info[-2:]
     debianversion += "~adev%i" % version_info[-1] if RELEV == "dev" else "~%s%i" % version_info[-2:]
