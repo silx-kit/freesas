@@ -29,10 +29,10 @@ __date__ = "25/07/2020"
 
 import unittest
 import logging
+from unittest.mock import patch, mock_open
 from numpy import array, allclose
-from ..sasio import parse_ascii_data #,load_scattering_data
+from ..sasio import parse_ascii_data, load_scattering_data
 logger = logging.getLogger(__name__)
-
 
 class TestSasIO(unittest.TestCase):
 
@@ -66,10 +66,88 @@ class TestSasIO(unittest.TestCase):
         """
         file_content = ["a a a", "2 4", "3 4 5 6", "# 3 4 6"]
         with self.assertRaises(ValueError,
-                               msg="File wiht no float float float data"
+                               msg="File with no float float float data"
                                    " cannot be parsed"):
             parse_ascii_data(file_content, number_of_columns=3)
 
+    def test_load_clean_data(self):
+        """
+        Test that clean float float float data is loaded correctly.
+        """
+        file_content = ["# Test data for"
+                        "# file parsing",
+                        "1 1 1",
+                        "2.0 2.0 1.0",
+                        "3 3 3",
+                        "#REMARK some stuff at the end",
+                        ]
+        expected_result = array([[1.0, 1.0, 1.0],
+                                 [2.0, 2.0, 1.0],
+                                 [3.0, 3.0, 3.0]])
+        file_data = "\n".join(file_content)
+        mocked_open = mock_open(read_data=file_data)
+        with patch('builtins.open', mocked_open):
+            with patch('numpy.DataSource.open', mocked_open):
+                data = load_scattering_data("test")
+        self.assertTrue(allclose(data, expected_result, 1e-7),
+                        msg="Sunny data loaded correctly")
+
+    def test_load_data_with_unescaped_header(self):
+        """
+        Test that an unescaped header does not hinder loading.
+        """
+        file_content = ["1 1 1",
+                        "2.0 2.0 1.0",
+                        "3 3 3",
+                        "REMARK some stuff at the end"
+                        ]
+        expected_result = array([[1.0, 1.0, 1.0],
+                                 [2.0, 2.0, 1.0],
+                                 [3.0, 3.0, 3.0]])
+        file_data = "\n".join(file_content)
+        mocked_open = mock_open(read_data=file_data)
+        with patch('builtins.open', mocked_open):
+            with patch('numpy.DataSource.open', mocked_open):
+                data = load_scattering_data("test")
+        self.assertTrue(allclose(data, expected_result, 1e-7),
+                        msg="Sunny data loaded correctly")
+
+    def test_load_data_with_unescaped_footer(self):
+        """
+        Test that an unescaped footer does not hinder loading.
+        """
+        file_content = ["Test data for"
+                        "file parsing",
+                        "1 1 1",
+                        "2.0 2.0 1.0",
+                        "3 3 3",
+                        ]
+        expected_result = array([[1.0, 1.0, 1.0],
+                                 [2.0, 2.0, 1.0],
+                                 [3.0, 3.0, 3.0]])
+        file_data = "\n".join(file_content)
+        mocked_open = mock_open(read_data=file_data)
+        with patch('builtins.open', mocked_open):
+            with patch('numpy.DataSource.open', mocked_open):
+                data = load_scattering_data("test")
+        self.assertTrue(allclose(data, expected_result, 1e-7),
+                        msg="Sunny data loaded correctly")
+
+
+    def test_load_invalid_data(self):
+        """
+        Test that invalid data raises a ValueError.
+        """
+        file_content = ["a a a", "2 4", "3 4 5 6", "# 3 4 6"]
+        file_data = "\n".join(file_content)
+        mocked_open = mock_open(read_data=file_data)
+
+        with patch('builtins.open', mocked_open):
+            with patch('numpy.DataSource.open', mocked_open):
+                with self.assertRaises(ValueError,
+                                       msg="File with no float float float "
+                                           "data cannot be loaded"):
+                    load_scattering_data("test")
 
 
 def suite():
@@ -77,6 +155,10 @@ def suite():
     test_suite.addTest(TestSasIO("test_parse_3_ok"))
     test_suite.addTest(TestSasIO("test_parse_no_data"))
     test_suite.addTest(TestSasIO("test_parse_no_valid_data"))
+    test_suite.addTest(TestSasIO("test_load_clean_data"))
+    test_suite.addTest(TestSasIO("test_load_data_with_unescaped_header"))
+    test_suite.addTest(TestSasIO("test_load_data_with_unescaped_footer"))
+    test_suite.addTest(TestSasIO("test_load_invalid_data"))
     return test_suite
 
 
