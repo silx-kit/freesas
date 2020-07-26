@@ -29,10 +29,47 @@ __date__ = "25/07/2020"
 
 import unittest
 import logging
+from sys import version_info
 from unittest.mock import patch, mock_open
 from numpy import array, allclose
 from ..sasio import parse_ascii_data, load_scattering_data
 logger = logging.getLogger(__name__)
+
+#mock_open under 3.6 needs some patching up
+# Code from https://github.com/python/cpython/blob/3.8/Lib/unittest/mock.py
+if version_info.minor > 7:
+    my_mock_open = mock_open
+else:
+    def my_mock_open(mock=None, read_data=''):
+        import io
+        _read_data = _to_stream(read_data)
+        _state = [_read_data, None]
+        basic_mock = mock_open(mock, read_data)
+        handle = basic_mock.return_value
+
+        def _to_stream(read_data):
+            if isinstance(read_data, bytes):
+                return io.BytesIO(read_data)
+            else:
+                return io.StringIO(read_data)
+
+        def _iter_side_effect():
+            if handle.readline.return_value is not None:
+                while True:
+                    yield handle.readline.return_value
+            for line in _state[0]:
+                yield line
+
+        def _next_side_effect():
+            if handle.readline.return_value is not None:
+                return handle.readline.return_value
+            return next(_state[0])
+
+        handle.__iter__.side_effect = _iter_side_effect
+        handle.__next__.side_effect = _next_side_effect
+
+        return basic_mock
+
 
 class TestSasIO(unittest.TestCase):
 
@@ -85,7 +122,7 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
+        mocked_open = my_mock_open(read_data=file_data)
         with patch('builtins.open', mocked_open):
             with patch('numpy.DataSource.open', mocked_open):
                 data = load_scattering_data("test")
@@ -105,7 +142,7 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
+        mocked_open = my_mock_open(read_data=file_data)
         with patch('builtins.open', mocked_open):
             with patch('numpy.DataSource.open', mocked_open):
                 data = load_scattering_data("test")
@@ -126,7 +163,7 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
+        mocked_open = my_mock_open(read_data=file_data)
         with patch('builtins.open', mocked_open):
             with patch('numpy.DataSource.open', mocked_open):
                 data = load_scattering_data("test")
@@ -140,7 +177,7 @@ class TestSasIO(unittest.TestCase):
         """
         file_content = ["a a a", "2 4", "3 4 5 6", "# 3 4 6"]
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
+        mocked_open = my_mock_open(read_data=file_data)
 
         with patch('builtins.open', mocked_open):
             with patch('numpy.DataSource.open', mocked_open):
