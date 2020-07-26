@@ -4,11 +4,12 @@ https://github.com/python/cpython/blob/3.8/Lib/unittest/mock.py
 """
 
 import io
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, DEFAULT
 
 
 file_spec = None
-
+#sentinel = _Sentinel()
+#DEFAULT = sentinel.DEFAULT
 
 def _to_stream(read_data):
     if isinstance(read_data, bytes):
