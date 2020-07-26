@@ -34,14 +34,13 @@ __date__ = "14/05/2020"
 import argparse
 import platform
 import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("plot_sas")
-
 from pathlib import Path
-
-import numpy
 from freesas import dated_version as freesas_version
 from freesas import plot
+from freesas.sasio import load_scattering_data
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("plot_sas")
 
 def set_backend(output: Path, outputformat: str):
     """ Explicitely set silent backend based on format or filename
@@ -103,7 +102,7 @@ def main():
             set_backend(args.output, args.format)
     for afile in files:
         try:
-            data = numpy.loadtxt(afile)
+            data = load_scattering_data(afile)
         except:
             logger.error("Unable to parse file %s", afile)
         else:
