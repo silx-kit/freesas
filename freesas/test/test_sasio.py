@@ -42,16 +42,16 @@ if version_info.minor > 7:
 else:
     def my_mock_open(mock=None, read_data=''):
         import io
-        _read_data = _to_stream(read_data)
-        _state = [_read_data, None]
-        basic_mock = mock_open(mock, read_data)
-        handle = basic_mock.return_value
 
         def _to_stream(read_data):
             if isinstance(read_data, bytes):
                 return io.BytesIO(read_data)
             else:
                 return io.StringIO(read_data)
+        _read_data = _to_stream(read_data)
+        _state = [_read_data, None]
+        basic_mock = mock_open(mock, read_data)
+        handle = basic_mock.return_value
 
         def _iter_side_effect():
             if handle.readline.return_value is not None:
