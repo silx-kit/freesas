@@ -52,10 +52,31 @@ class TestSasIO(unittest.TestCase):
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="3 column parse returns expected result")
 
+    def test_parse_no_data(self):
+        """
+        Test that an empty input list raises a ValueError
+        """
+        file_content = []
+        with self.assertRaises(ValueError, msg="Empty list cannot be parsed"):
+            parse_ascii_data(file_content, number_of_columns=3)
+
+    def test_parse_no_valid_data(self):
+        """
+        Test that an input list with no valid data raises a ValueError
+        """
+        file_content = ["a a a", "2 4", "3 4 5 6", "# 3 4 6"]
+        with self.assertRaises(ValueError,
+                               msg="File wiht no float float float data"
+                                   " cannot be parsed"):
+            parse_ascii_data(file_content, number_of_columns=3)
+
+
 
 def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(TestSasIO("test_parse_3_ok"))
+    test_suite.addTest(TestSasIO("test_parse_no_data"))
+    test_suite.addTest(TestSasIO("test_parse_no_valid_data"))
     return test_suite
 
 
