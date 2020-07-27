@@ -71,12 +71,20 @@ def parse():
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    version = "freesas.py version %s from %s" % (freesas_version.version, freesas_version.date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to plot")
-    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=Path)
-    parser.add_argument("-f", "--format", action='store', help="Output format: jpeg, svg, png, pdf", default=None, type=str)
-    parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    version = "freesas.py version %s from %s" % (freesas_version.version,
+                                                 freesas_version.date)
+    parser = argparse.ArgumentParser(usage=usage,
+                                     description=description,
+                                     epilog=epilog)
+    parser.add_argument("file", metavar="FILE", nargs='+',
+                        help="dat files to plot")
+    parser.add_argument("-o", "--output", action='store',
+                        help="Output filename", default=None, type=Path)
+    parser.add_argument("-f", "--format", action='store',
+                        help="Output format: jpeg, svg, png, pdf",
+                        default=None, type=str)
+    parser.add_argument("-v", "--verbose", default=False,
+                        help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
     return parser.parse_args()
 
