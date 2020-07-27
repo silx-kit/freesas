@@ -20,10 +20,13 @@ __date__ = "25/07/2020"
 __status__ = "development"
 __docformat__ = 'restructuredtext'
 
-from typing import List
+from typing import List, Union
+from os import PathLike
 from numpy import loadtxt, array, ndarray
 
-def load_scattering_data(filename: str) -> ndarray:
+PathType = Union[PathLike, str, bytes]
+
+def load_scattering_data(filename: PathType) -> ndarray:
     """
     Load scattering data q, I, err into a numpy array.
 
