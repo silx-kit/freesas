@@ -111,9 +111,9 @@ class TestSasIO(unittest.TestCase):
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
         mocked_open = mock_open(read_data=file_data)
-        with patch('builtins.open', mocked_open):
-            with patch('numpy.DataSource.open', mocked_open):
-                data = load_scattering_data("test")
+        with patch('builtins.open', mocked_open), \
+             patch('numpy.DataSource.open', mocked_open):
+            data = load_scattering_data("test")
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="Sunny data loaded correctly")
 
@@ -132,9 +132,9 @@ class TestSasIO(unittest.TestCase):
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
         mocked_open = mock_open(read_data=file_data)
-        with patch('builtins.open', mocked_open):
-            with patch('numpy.DataSource.open', mocked_open):
-                data = load_scattering_data("test")
+        with patch('builtins.open', mocked_open), \
+             patch('numpy.DataSource.open', mocked_open):
+            data = load_scattering_data("test")
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="Sunny data loaded correctly")
 
@@ -147,12 +147,12 @@ class TestSasIO(unittest.TestCase):
         file_data = "\n".join(file_content)
         mocked_open = mock_open(read_data=file_data)
 
-        with patch('builtins.open', mocked_open):
-            with patch('numpy.DataSource.open', mocked_open):
-                with self.assertRaises(ValueError,
-                                       msg="File with no float float float "
-                                           "data cannot be loaded"):
-                    load_scattering_data("test")
+        with patch('builtins.open', mocked_open), \
+             patch('numpy.DataSource.open', mocked_open), \
+             self.assertRaises(ValueError,
+                               msg="File with no float float float "
+                                   "data cannot be loaded"):
+            load_scattering_data("test")
 
 
 def suite():
