@@ -16,6 +16,7 @@ logger = logging.getLogger("cormap")
 import numpy
 from itertools import combinations
 from collections import namedtuple
+from freesas.sasio import load_scattering_data
 datum = namedtuple("datum", ["index", "filename", "data"])
 
 import platform
@@ -32,7 +33,7 @@ def parse():
     description = "Measure pair-wise dimilarity of spectra "
     epilog = """cormap.py is an open-source implementation of
     the cormap algorithm in datcmp (from ATSAS).
-    It does not scale the data and assume they are already scaled 
+    It does not scale the data and assume they are already scaled
     """
     version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
     parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
@@ -58,7 +59,7 @@ def compare(lstfiles):
     data = []
     for i, f in enumerate(lstfiles):
         try:
-            ary = numpy.loadtxt(f)
+            ary = load_scattering_data(f)
         except ValueError as e:
             print(e)
         if ary.ndim > 1 and ary.shape[1] > 1:
