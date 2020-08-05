@@ -30,29 +30,30 @@ __copyright__ = "2017, ESRF"
 __date__ = "30/04/2020"
 
 import sys
-import os
 import argparse
 import logging
-import glob
 import platform
 import traceback
+from os import linesep
+from pathlib import Path
+from numpy import float32
+from freesas import bift
+from freesas import dated_version as freesas_version
+from freesas.sasio import load_scattering_data
+
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
-
-import numpy
-import freesas
-from freesas import bift
-
 
 def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
     usage = "bift.py [OPTIONS] FILES "
-    description = "Calculate the density as function of distance p(r) curve from an I(q) scattering curve"
-    epilog = """bift.py is a Python implementation of the Bayesian Inverse Fourier Transform 
-    
-    This code is the implementation of 
+    description = "Calculate the density as function of distance p(r)"\
+                  " curve from an I(q) scattering curve"
+    epilog = """bift.py is a Python implementation of the Bayesian Inverse Fourier Transform
+
+    This code is the implementation of
     Steen Hansen J. Appl. Cryst. (2000). 33, 1415-1421
 
     Based on the BIFT from Jesse Hopkins, available at:
@@ -61,22 +62,31 @@ def parse():
     It aims at being a drop in replacement for datgnom of the ATSAS suite.
 
     """
-    version = "bift.py version %s from %s" % (freesas.version, freesas.date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="I(q) files to convert into p(r)")
-    parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
+    version = "bift.py version %s from %s" % (freesas_version.version,
+                                              freesas_version.date)
+    parser = argparse.ArgumentParser(usage=usage,
+                                     description=description,
+                                     epilog=epilog)
+    parser.add_argument("file", metavar="FILE", nargs='+',
+                        help="I(q) files to convert into p(r)")
+    parser.add_argument("-v", "--verbose", default=False,
+                        help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
-    parser.add_argument("-n", "--npt", default=100, type=int, help="number of points in p(r) curve")
-    parser.add_argument("-s", "--scan", default=27, type=int, help="Initial alpha-scan size to guess the start parameter")
-    parser.add_argument("-m", "--mc", default=100, type=int, help="Number of Monte-Carlo samples in post-refinement")
-    parser.add_argument("-t", "--threshold", default=2.0, type=float, help="Sample at average ± threshold*sigma in MC")
+    parser.add_argument("-n", "--npt", default=100, type=int,
+                        help="number of points in p(r) curve")
+    parser.add_argument("-s", "--scan", default=27, type=int,
+                        help="Initial alpha-scan size to guess the start parameter")
+    parser.add_argument("-m", "--mc", default=100, type=int,
+                        help="Number of Monte-Carlo samples in post-refinement")
+    parser.add_argument("-t", "--threshold", default=2.0, type=float,
+                        help="Sample at average ± threshold*sigma in MC")
 
     args = parser.parse_args()
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
-    files = [i for i in args.file if os.path.exists(i)]
+    files = [Path(i) for i in args.file if Path(i).exists()]
     if platform.system() == "Windows" and files == []:
-        files = glob.glob(args.file[0])
+        files = list(Path.cwd().glob(args.file[0]))
         files.sort()
     input_len = len(files)
     logger.debug("%s input files" % input_len)
@@ -87,7 +97,7 @@ def main():
     list_files, args = parse()
     for afile in list_files:
         try:
-            data = numpy.loadtxt(afile)
+            data = load_scattering_data(afile)
         except:
             logger.error("Unable to parse file %s", afile)
         else:
@@ -99,31 +109,43 @@ def main():
                     traceback.print_exc(file=sys.stdout)
             else:
                 try:
-                    stats = bo.monte_carlo_sampling(args.mc, args.threshold, npt=args.npt)
+                    stats = bo.monte_carlo_sampling(args.mc, args.threshold,
+                                                    npt=args.npt)
                 except RuntimeError as err:
                     print("%s: %s %s" % (afile, err.__class__.__name__, err))
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std Rg_avg Rg_std I0_avg I0_std"
-                    res = ["Dmax= %.2f±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
-                           "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
-                           "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
-                           "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
-                           "logP= %.2f±%.2f" % (stats.evidence_avg, stats.evidence_std),
-                           "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
-                           "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
+                    "radius density_avg density_std evidence_avg evidence_std "\
+                    "Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std "\
+                    "Rg_avg Rg_std I0_avg I0_std"
+                    res = ["Dmax= %.2f±%.2f" %
+                           (stats.Dmax_avg, stats.Dmax_std),
+                           "𝛂= %.1f±%.1f" %
+                           (stats.alpha_avg, stats.alpha_std),
+                           "S₀= %.4f±%.4f" %
+                           (stats.regularization_avg, stats.regularization_std),
+                           "χ²= %.2f±%.2f" %
+                           (stats.chi2r_avg, stats.chi2r_std),
+                           "logP= %.2f±%.2f" %
+                           (stats.evidence_avg, stats.evidence_std),
+                           "Rg= %.2f±%.2f" %
+                           (stats.Rg_avg, stats.Rg_std),
+                           "I₀= %.2f±%.2f" %
+                           (stats.I0_avg, stats.I0_std),
                            ]
 
-                    print(afile + ": " + "; ".join(res))
-                    dest = os.path.splitext(afile)[0] + ".out"
+                    print(str(afile) + ": " + "; ".join(res))
+                    dest = afile.stem + ".out"
                     with open(dest, "wt") as out:
-                        out.write("# %s %s" % (afile, os.linesep))
+                        out.write("# %s %s" % (afile, linesep))
                         for txt in res:
-                            out.write("# %s %s" % (txt, os.linesep))
-                        out.write("%s# r\tp(r)\tsigma_p(r)%s" % (os.linesep, os.linesep))
-                        for r, p, s in zip(stats.radius.astype(numpy.float32), stats.density_avg.astype(numpy.float32), stats.density_std.astype(numpy.float32)):
-                            out.write("%s\t%s\t%s%s" % (r, p, s, os.linesep))
+                            out.write("# %s %s" % (txt, linesep))
+                        out.write("%s# r\tp(r)\tsigma_p(r)%s" % (linesep, linesep))
+                        for r, p, s in zip(stats.radius.astype(float32),
+                                           stats.density_avg.astype(float32),
+                                           stats.density_std.astype(float32)):
+                            out.write("%s\t%s\t%s%s" % (r, p, s, linesep))
 
 
 if __name__ == "__main__":

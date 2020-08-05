@@ -14,6 +14,7 @@ from . import test_distance
 from . import test_cormap
 from . import test_autorg
 from . import test_bift
+from . import test_sasio
 
 
 def suite():
@@ -24,6 +25,7 @@ def suite():
     testSuite.addTest(test_distance.suite())
     testSuite.addTest(test_cormap.suite())
     testSuite.addTest(test_autorg.suite())
+    testSuite.addTest(test_sasio.suite())
     return testSuite
 
 
