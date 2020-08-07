@@ -102,10 +102,11 @@ class TestSasIO(unittest.TestCase):
         """
         Test that an unescaped header does not hinder loading.
         """
-        file_content = ["1 1 1",
+        file_content = ["Test data for",
+                        "file parsing",
+                        "1 1 1",
                         "2.0 2.0 1.0",
                         "3 3 3",
-                        "REMARK some stuff at the end"
                         ]
         expected_result = array([[1.0, 1.0, 1.0],
                                  [2.0, 2.0, 1.0],
@@ -122,11 +123,11 @@ class TestSasIO(unittest.TestCase):
         """
         Test that an unescaped footer does not hinder loading.
         """
-        file_content = ["Test data for"
-                        "file parsing",
+        file_content = [
                         "1 1 1",
                         "2.0 2.0 1.0",
                         "3 3 3",
+                        "REMARK some stuff at the end"
                         ]
         expected_result = array([[1.0, 1.0, 1.0],
                                  [2.0, 2.0, 1.0],
@@ -179,7 +180,7 @@ class TestSasIO(unittest.TestCase):
         expected_data = array([[1.0, 1.0, 1.0],
                                [2.0, 2.0, 1.0],
                                [3.0, 3.0, 3.0]])
-        result = convert_inverse_angstrom_to_nanometer(input_data)
+        _ = convert_inverse_angstrom_to_nanometer(input_data)
         self.assertTrue(allclose(input_data, expected_data, 1e-7),
                         msg="Conversion function does not change its input")
 
