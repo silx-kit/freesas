@@ -31,7 +31,8 @@ import unittest
 import logging
 from sys import version_info
 from numpy import array, allclose
-from ..sasio import parse_ascii_data, load_scattering_data
+from ..sasio import parse_ascii_data, load_scattering_data, \
+                    convert_inverse_angstrom_to_nanometer
 if version_info.minor > 6:
     from unittest.mock import mock_open, patch
 else:
@@ -154,6 +155,34 @@ class TestSasIO(unittest.TestCase):
                                    "data cannot be loaded"):
             load_scattering_data("test")
 
+    def test_convert_inverse_angstrom_to_nanometer(self):
+        """
+        Test conversion of data with q in 1/Å to 1/nm
+        """
+        input_data = array([[1.0, 1.0, 1.0],
+                            [2.0, 2.0, 1.0],
+                            [3.0, 3.0, 3.0]])
+        expected_result = array([[10, 1.0, 1.0],
+                                 [20, 2.0, 1.0],
+                                 [30, 3.0, 3.0]])
+        result = convert_inverse_angstrom_to_nanometer(input_data)
+        self.assertTrue(allclose(result, expected_result, 1e-7),
+                        msg="Converted to 1/nm from 1/Å")
+
+    def test_unit_conversion_creates_new_array(self):
+        """
+        Test conversion of data does not change original data
+        """
+        input_data = array([[1.0, 1.0, 1.0],
+                            [2.0, 2.0, 1.0],
+                            [3.0, 3.0, 3.0]])
+        expected_data = array([[1.0, 1.0, 1.0],
+                               [2.0, 2.0, 1.0],
+                               [3.0, 3.0, 3.0]])
+        result = convert_inverse_angstrom_to_nanometer(input_data)
+        self.assertTrue(allclose(input_data, expected_data, 1e-7),
+                        msg="Conversion function does not change its input")
+
 
 def suite():
     test_suite = unittest.TestSuite()
@@ -164,6 +193,8 @@ def suite():
     test_suite.addTest(TestSasIO("test_load_data_with_unescaped_header"))
     test_suite.addTest(TestSasIO("test_load_data_with_unescaped_footer"))
     test_suite.addTest(TestSasIO("test_load_invalid_data"))
+    test_suite.addTest(TestSasIO("test_convert_inverse_angstrom_to_nanometer"))
+    test_suite.addTest(TestSasIO("test_unit_conversion_creates_new_array"))
     return test_suite
 
 
