@@ -37,7 +37,8 @@ import logging
 from pathlib import Path
 from freesas import dated_version as freesas_version
 from freesas import plot
-from freesas.sasio import load_scattering_data
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
@@ -83,6 +84,9 @@ def parse():
     parser.add_argument("-f", "--format", action='store',
                         help="Output format: jpeg, svg, png, pdf",
                         default=None, type=str)
+    parser.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
+                        help="Length unit of input data",
+                        default="nm", type=str)
     parser.add_argument("-v", "--verbose", default=False,
                         help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
@@ -114,6 +118,8 @@ def main():
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             fig = plot.plot_all(data, filename=args.output, format=args.format)
             figures.append(fig)
             if args.output is None:

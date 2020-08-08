@@ -37,7 +37,8 @@ from os import linesep
 from pathlib import Path
 from freesas import autorg
 from freesas import dated_version as freesas_version
-from freesas.sasio import load_scattering_data
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")
@@ -69,6 +70,9 @@ def parse():
     parser.add_argument("-f", "--format", action='store',
                         help="Output format: native, csv, ssf",
                         default="native", type=str)
+    parser.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
+                        help="Length unit of input data",
+                        default="nm", type=str)
     parser.add_argument("-v", "--verbose", default=0,
                         help="switch to verbose mode", action='count')
     parser.add_argument("-V", "--version", action='version', version=version)
@@ -103,6 +107,8 @@ def main():
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 rg = autorg.autoRg(data)
             except Exception as err:

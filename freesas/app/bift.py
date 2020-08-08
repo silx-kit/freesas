@@ -39,7 +39,8 @@ from pathlib import Path
 from numpy import float32
 from freesas import bift
 from freesas import dated_version as freesas_version
-from freesas.sasio import load_scattering_data
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
@@ -69,6 +70,9 @@ def parse():
                                      epilog=epilog)
     parser.add_argument("file", metavar="FILE", nargs='+',
                         help="I(q) files to convert into p(r)")
+    parser.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
+                        help="Length unit of input data",
+                        default="nm", type=str)
     parser.add_argument("-v", "--verbose", default=False,
                         help="switch to verbose mode", action='store_true')
     parser.add_argument("-V", "--version", action='version', version=version)
@@ -101,6 +105,8 @@ def main():
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
             except Exception as err:
