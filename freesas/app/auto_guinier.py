@@ -30,15 +30,14 @@ __copyright__ = "2020, ESRF"
 __date__ = "05/06/2020"
 
 import sys
-import argparse
 import logging
 import platform
 from os import linesep
 from pathlib import Path
 from freesas import autorg
-from freesas import dated_version as freesas_version
 from freesas.sasio import load_scattering_data, \
                           convert_inverse_angstrom_to_nanometer
+from .sas_argparser import GuinierParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_guinier")
@@ -51,31 +50,14 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "auto_guinier.py [OPTIONS] FILES "
     description = "Calculate the radius of gyration using linear fitting of"\
                   "logarithmic intensities for a set of scattering curves"
     epilog = """auto_guinier.py is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
     As this tool used a different theory, some results may differ
     """
-    version = "auto_guinier.py version %s from %s" % (freesas_version.version,
-                                                      freesas_version.date)
-    parser = argparse.ArgumentParser(usage=usage,
-                                     description=description,
-                                     epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+',
-                        help="dat files to compare")
-    parser.add_argument("-o", "--output", action='store',
-                        help="Output filename", default=None, type=str)
-    parser.add_argument("-f", "--format", action='store',
-                        help="Output format: native, csv, ssf",
-                        default="native", type=str)
-    parser.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
-                        help="Length unit of input data",
-                        default="nm", type=str)
-    parser.add_argument("-v", "--verbose", default=0,
-                        help="switch to verbose mode", action='count')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = GuinierParser(prog="auto_guinier.py", description=description,
+                           epilog=epilog)
     return parser.parse_args()
 
 
