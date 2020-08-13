@@ -56,15 +56,11 @@ class SASParser:
         self.add_argument("-V", "--version", action='version', version=version)
 
     def parse_args(self):
-        """
-        Wrapper for argparse parse_args()
-        """
+        """ Wrapper for argparse parse_args() """
         return self.parser.parse_args()
 
     def add_argument(self, *args, **kwargs):
-        """
-        Wrapper for argparse add_argument()
-        """
+        """ Wrapper for argparse add_argument() """
         self.parser.add_argument(*args, **kwargs)
 
     def add_file_argument(self, help_text: str):
@@ -82,22 +78,19 @@ class SASParser:
         Add default argument for selecting length unit of input data
         between Å and nm. nm is default.
         """
-        self.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
-                          help="Length unit of input data, options are nm or Å."
-                          " Instead of Å, A is also accepted.",
+        self.add_argument("-u", "--unit", action='store',
+                          choices=["nm", "Å", "A"],
+                          help="Length unit of input data, "
+                          "options are nm or Å.",
                           default="nm", type=parse_unit)
 
     def add_output_filename_argument(self):
-        """
-        Add default argument for specifying output format.
-        """
+        """ Add default argument for specifying output format. """
         self.add_argument("-o", "--output", action='store',
                           help="Output filename", default=None, type=str)
 
     def add_output_data_format(self, *formats: str):
-        """
-        Add default argument for specifying output format.
-        """
+        """ Add default argument for specifying output format. """
         help_string = "Output format: " +  ", ".join(formats)
         self.add_argument("-f", "--format", action='store',
                           help=help_string, default="native", type=str)
@@ -126,17 +119,13 @@ class GuinierParser:
                                 epilog=epilog, **kwargs)
         self.parser.add_file_argument(help_text=file_help_text)
         self.parser.add_output_filename_argument()
-        self.parser.add_output_data_format()
+        self.parser.add_output_data_format("native", "csv", "ssf")
         self.parser.add_q_unit_argument()
 
     def parse_args(self):
-        """
-        Wrapper for SASParser parse_args()
-        """
+        """ Wrapper for SASParser parse_args() """
         return self.parser.parse_args()
 
     def add_argument(self, *args, **kwargs):
-        """
-        Wrapper for SASParser add_argument()
-        """
+        """ Wrapper for SASParser add_argument() """
         self.parser.add_argument(*args, **kwargs)

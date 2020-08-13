@@ -30,7 +30,6 @@ __copyright__ = "2017, ESRF"
 __date__ = "30/04/2020"
 
 import sys
-import argparse
 import logging
 import platform
 import traceback
@@ -38,9 +37,9 @@ from os import linesep
 from pathlib import Path
 from numpy import float32
 from freesas import bift
-from freesas import dated_version as freesas_version
 from freesas.sasio import load_scattering_data, \
                           convert_inverse_angstrom_to_nanometer
+from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
@@ -49,7 +48,6 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "bift.py [OPTIONS] FILES "
     description = "Calculate the density as function of distance p(r)"\
                   " curve from an I(q) scattering curve"
     epilog = """bift.py is a Python implementation of the Bayesian Inverse Fourier Transform
@@ -63,19 +61,10 @@ def parse():
     It aims at being a drop in replacement for datgnom of the ATSAS suite.
 
     """
-    version = "bift.py version %s from %s" % (freesas_version.version,
-                                              freesas_version.date)
-    parser = argparse.ArgumentParser(usage=usage,
-                                     description=description,
-                                     epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+',
-                        help="I(q) files to convert into p(r)")
-    parser.add_argument("-u", "--unit", action='store', choices=["Å", "nm"],
-                        help="Length unit of input data",
-                        default="nm", type=str)
-    parser.add_argument("-v", "--verbose", default=False,
-                        help="switch to verbose mode", action='store_true')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = SASParser(prog="bift.py", description=description, epilog=epilog)
+    parser.add_file_argument(help_text="I(q) files to convert into p(r)")
+    parser.add_output_filename_argument()
+    parser.add_q_unit_argument()
     parser.add_argument("-n", "--npt", default=100, type=int,
                         help="number of points in p(r) curve")
     parser.add_argument("-s", "--scan", default=27, type=int,
@@ -86,6 +75,7 @@ def parse():
                         help="Sample at average ± threshold*sigma in MC")
 
     args = parser.parse_args()
+
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     files = [Path(i) for i in args.file if Path(i).exists()]
