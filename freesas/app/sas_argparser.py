@@ -80,8 +80,7 @@ class SASParser:
         """
         self.add_argument("-u", "--unit", action='store',
                           choices=["nm", "Å", "A"],
-                          help="Length unit of input data, "
-                          "options are nm or Å.",
+                          help="Unit for q: inverse nm or Ångstrom?",
                           default="nm", type=parse_unit)
 
     def add_output_filename_argument(self):
@@ -89,11 +88,11 @@ class SASParser:
         self.add_argument("-o", "--output", action='store',
                           help="Output filename", default=None, type=str)
 
-    def add_output_data_format(self, *formats: str):
+    def add_output_data_format(self, *formats: str, default: str = None):
         """ Add default argument for specifying output format. """
         help_string = "Output format: " +  ", ".join(formats)
         self.add_argument("-f", "--format", action='store',
-                          help=help_string, default="native", type=str)
+                          help=help_string, default=default, type=str)
 
 class GuinierParser:
     """
@@ -119,7 +118,8 @@ class GuinierParser:
                                 epilog=epilog, **kwargs)
         self.parser.add_file_argument(help_text=file_help_text)
         self.parser.add_output_filename_argument()
-        self.parser.add_output_data_format("native", "csv", "ssf")
+        self.parser.add_output_data_format("native", "csv", "ssf",
+                                           default="native")
         self.parser.add_q_unit_argument()
 
     def parse_args(self):
