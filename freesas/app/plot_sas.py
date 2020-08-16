@@ -104,7 +104,25 @@ def main():
         logger.warning("Only PDF export is possible in multi-frame mode")
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
-        raise NotImplementedError("TODO")
+
+        with PdfPages(args.output) as pdf_output_file:
+            for afile in files:
+                logger.warning("%s", afile)
+                try:
+                    data = load_scattering_data(afile)
+                except:
+                    logger.error("Unable to parse file %s", afile)
+                else:
+                    try:
+                        fig = plot.plot_all(data)
+                    except:
+                        logger.error("Unable to process file %s", afile)
+                    else:
+                        #plt.title(afile)
+                        pdf_output_file.savefig(fig)
+                        #plt.close()
+        return
+
     if args.output:
         if platform.system() == "Darwin":
             set_backend(args.output, args.format)
