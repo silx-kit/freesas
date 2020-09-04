@@ -75,3 +75,15 @@ def parse_ascii_data(input_file_text: List[str],
         raise ValueError
     data = array(data)
     return data
+
+def convert_inverse_angstrom_to_nanometer(data_in_inverse_angstrom: ndarray) \
+                                            -> ndarray:
+    """
+    Convert data with q in 1/Å to 1/nm.
+
+    :param data_in_inverse_angstrom: numpy array in format
+                                     (q_in_inverse_Angstrom,I,err)
+    :return: numpy array with 3 column (q_in_inverse_nm,I,err)
+    """
+    q_in_angstrom, intensity, err = data_in_inverse_angstrom.T
+    return array([q_in_angstrom*10.0, intensity, err]).T

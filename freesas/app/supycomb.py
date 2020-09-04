@@ -4,37 +4,42 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "09/07/2020"
 
-import argparse
-from os.path import dirname, abspath
-base = dirname(dirname(abspath(__file__)))
-import freesas
-from freesas.align import InputModels, AlignModels
 import logging
+from os.path import dirname, abspath
+from freesas.align import InputModels, AlignModels
+from .sas_argparser import SASParser
+
+base = dirname(dirname(abspath(__file__)))
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("supycomb")
 
+def parse():
 
-def main():
-    """main application"""
-    usage = "supycomb.py FILES [OPTIONS]"
+    """ Parse input and return list of files.
+    :return: list of args
+    """
     description = "Align several models and calculate NSD"
     epilog = """supycomb is an open-source implementation of
     [J. Appl. Cryst. (2001). 34, 33-41](doi:10.1107/S0021889800014126).
-    
+
     The main difference with supcomb: the fast mode does not re-bin beads. It only refines the best matching orientation which provides a speed-up of a factor 8.
-    
+
     """
-    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="pdb files to align")
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = SASParser(prog="supycomp.py", description=description, epilog=epilog)
+    parser.add_file_argument(help_text="pdb files to align")
     parser.add_argument("-m", "--mode", dest="mode", type=str, choices=["SLOW", "FAST"], default="SLOW", help="Either SLOW or FAST, default: %(default)s)")
     parser.add_argument("-e", "--enantiomorphs", type=str, choices=["YES", "NO"], default="YES", help="Search enantiomorphs, YES or NO, default: %(default)s)")
     parser.add_argument("-q", "--quiet", type=str, choices=["ON", "OFF"], default="ON", help="Hide log or not, default: %(default)s")
     parser.add_argument("-g", "--gui", type=str, choices=["YES", "NO"], default="YES", help="Use GUI for figures or not, default: %(default)s")
     parser.add_argument("-o", "--output", type=str, default="aligned.pdb", help="output filename, default: %(default)s")
+    return parser.parse_args()
 
-    args = parser.parse_args()
+
+def main():
+    """main application"""
+
+    args = parse()
     input_len = len(args.file)
     logger.info("%s input files" % input_len)
     selection = InputModels()

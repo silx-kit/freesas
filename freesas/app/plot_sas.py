@@ -31,13 +31,13 @@ __license__ = "MIT"
 __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
-import argparse
 import platform
 import logging
 from pathlib import Path
-from freesas import dated_version as freesas_version
 from freesas import plot
-from freesas.sasio import load_scattering_data
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
+from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
@@ -67,25 +67,14 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "freesas.py [OPTIONS] FILES "
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    version = "freesas.py version %s from %s" % (freesas_version.version,
-                                                 freesas_version.date)
-    parser = argparse.ArgumentParser(usage=usage,
-                                     description=description,
-                                     epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+',
-                        help="dat files to plot")
-    parser.add_argument("-o", "--output", action='store',
-                        help="Output filename", default=None, type=Path)
-    parser.add_argument("-f", "--format", action='store',
-                        help="Output format: jpeg, svg, png, pdf",
-                        default=None, type=str)
-    parser.add_argument("-v", "--verbose", default=False,
-                        help="switch to verbose mode", action='store_true')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = SASParser(prog="freesas.py", description=description, epilog=epilog)
+    parser.add_file_argument(help_text="dat files to plot")
+    parser.add_output_filename_argument()
+    parser.add_output_data_format("jpeg", "svg", "png", "pdf")
+    parser.add_q_unit_argument()
     return parser.parse_args()
 
 
@@ -114,6 +103,8 @@ def main():
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             fig = plot.plot_all(data, filename=args.output, format=args.format)
             figures.append(fig)
             if args.output is None:

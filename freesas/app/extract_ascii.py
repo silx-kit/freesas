@@ -32,19 +32,19 @@ __date__ = "09/07/2020"
 import io
 import os
 import sys
-import argparse
 import logging
 import glob
 import platform
 import posixpath
 from collections import namedtuple, OrderedDict
 import json
-from .. import version, date
 import numpy
 import h5py
 import pyFAI
 from pyFAI.io import Nexus
 from pyFAI.method_registry import IntegrationMethod
+from .sas_argparser import SASParser
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("extract_ascii")
 
@@ -59,20 +59,15 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "extract-ascii.py [OPTIONS] FILES "
     description = "Extract the SAXS data from a Nexus files as a 3 column ascii (q, I, err). Metadata are exported in the headers as needed."
-    epilog = """extract_ascii.py allows you to export the data in inverse nm or inverse A with possible intensity scaling.   
+    epilog = """extract_ascii.py allows you to export the data in inverse nm or inverse A with possible intensity scaling.
     """
-    sversion = "extract_ascii.py version %s from %s" % (version, date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="HDF5 input data")
+    parser = SASParser(prog="extract-ascii.py", description=description, epilog=epilog)
     #Commented option need to be implemented
     #parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
     #parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
     #parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
     #parser.add_argument("-a", "--all", action='store_true', help="extract every individual frame", default=False)
-    parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
-    parser.add_argument("-V", "--version", action='version', version=sversion)
     return parser.parse_args()
 
 
