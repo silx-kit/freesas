@@ -2,7 +2,7 @@
 """
 Bayesian Inverse Fourier Transform
 
-This code is the implementation of 
+This code is the implementation of
 Steen Hansen J. Appl. Cryst. (2000). 33, 1415-1421
 
 Based on the BIFT from Jesse Hopkins, available at:
@@ -23,14 +23,14 @@ from math import log, ceil
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import auto_gpa, autoRg, auto_guinier
+from .autorg import auto_gpa, autoRg, auto_guinier, NoGuinierRegionError
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None, 
+              start_point=None, end_point=None,
               scan_size=11, Dmax_over_Rg=3):
-    """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence 
-    
+    """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence
+
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
     :param Dmax: Maximum diameter of the object, this is the starting point to be refined. Can be guessed
     :param alpha: Regularisation parameter, let it to None for automatic scan
@@ -39,7 +39,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     :param end_point: Last useable point in the I(q) curve
     :param scan_size: size of the initial geometrical scan for alpha values.
     :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
-    :return: BIFT object. Call the get_best to retrieve the optimal solution  
+    :return: BIFT object. Call the get_best to retrieve the optimal solution
     """
     assert data.ndim == 2
     assert data.shape[1] == 3  # enforce q, I, err
@@ -57,7 +57,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
             raise
 #         print(Guinier)
         if Guinier.Rg <= 0:
-            raise RuntimeError("No Guinier region was found in experimental data")
+            raise NoGuinierRegionError
         Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
     if alpha is None:
         alpha_max = bo.guess_alpha_max(npt)

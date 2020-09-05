@@ -35,20 +35,22 @@ import argparse
 import platform
 import logging
 from pathlib import Path
+from matplotlib.pyplot import switch_backend
+from matplotlib.backends.backend_pdf import PdfPages
 from freesas import dated_version as freesas_version
 from freesas import plot
 from freesas.sasio import load_scattering_data
+from freesas.autorg import InsufficientDataError, NoGuinierRegionError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
-def set_backend(output: Path, outputformat: str):
+def set_backend(output: Path = None, outputformat: str = None):
     """ Explicitely set silent backend based on format or filename
         Needed on MacOS
         @param output: Name of the specified output file
         @param format: User specified format
     """
-    from matplotlib.pyplot import switch_backend
     if outputformat:
         outputformat = outputformat.lower()
     elif len(output.suffix) > 0:
@@ -100,44 +102,39 @@ def main():
     input_len = len(files)
     logger.debug("%s input files", input_len)
     figures = []
-    if len(files) > 1 and args.output:
-        logger.warning("Only PDF export is possible in multi-frame mode")
-        from matplotlib.backends.backend_pdf import PdfPages
-        import matplotlib.pyplot as plt
 
-        with PdfPages(args.output) as pdf_output_file:
-            for afile in files:
-                logger.warning("%s", afile)
-                try:
-                    data = load_scattering_data(afile)
-                except:
-                    logger.error("Unable to parse file %s", afile)
-                else:
-                    try:
-                        fig = plot.plot_all(data)
-                    except:
-                        logger.error("Unable to process file %s", afile)
-                    else:
-                        #plt.title(afile)
-                        pdf_output_file.savefig(fig)
-                        #plt.close()
-        return
-
-    if args.output:
-        if platform.system() == "Darwin":
+    if args.output and platform.system() == "Darwin":
+        if len(files) == 1:
             set_backend(args.output, args.format)
+        elif len(files) > 1:
+            logger.warning("Only PDF export is possible in multi-frame mode")
+            set_backend(outputformat="pdf")
     for afile in files:
         try:
             data = load_scattering_data(afile)
-        except:
+        except OSError:
+            logger.error("Unable to load file %s", afile)
+        except ValueError:
             logger.error("Unable to parse file %s", afile)
         else:
-            fig = plot.plot_all(data, filename=args.output, format=args.format)
-            figures.append(fig)
-            if args.output is None:
-                fig.show()
+            try:
+                fig = plot.plot_all(data)
+            except (InsufficientDataError, NoGuinierRegionError, ValueError):
+                logger.error("Unable to process file %s", afile)
+            else:
+                fig.suptitle(afile)
+                figures.append(fig)
+                if args.output is None:
+                    fig.show()
+                elif len(files) == 1:
+                    fig.savefig(args.output, format=args.format)
+    if len(figures) > 1 and args.output:
+        with PdfPages(args.output) as pdf_output_file:
+            for fig in figures:
+                pdf_output_file.savefig(fig)
     if not args.output:
         input("Press enter to quit")
+
 
 
 if __name__ == "__main__":

@@ -306,10 +306,19 @@ def density_plot(ift, filename=None, format="png", unit="nm",
 
 def plot_all(data, filename=None, format=None, unit="nm", labelsize=None, fontsize=None):
     from . import bift, autorg
-    guinier = autorg.autoRg(data)
+    try:
+        guinier = autorg.autoRg(data)
+    except autorg.InsufficientDataError:
+        raise
     logger.debug(guinier)
-    bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
-    ift = bo.calc_stats()
+    try:
+        bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
+    except (autorg.InsufficientDataError,
+            autorg.NoGuinierRegionError,
+            ValueError):
+        raise
+    else:
+        ift = bo.calc_stats()
     logger.debug(ift)
     fig, ax = subplots(2, 2, figsize=(12, 10))
     scatter_plot(data, guinier=guinier, ift=ift, ax=ax[0, 0], unit=unit, labelsize=labelsize, fontsize=fontsize)
