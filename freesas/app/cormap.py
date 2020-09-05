@@ -6,7 +6,6 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "20/04/2020"
 
-import argparse
 import os
 import logging
 import freesas
@@ -17,6 +16,8 @@ import numpy
 from itertools import combinations
 from collections import namedtuple
 from freesas.sasio import load_scattering_data
+from .sas_argparser import SASParser
+
 datum = namedtuple("datum", ["index", "filename", "data"])
 
 import platform
@@ -29,18 +30,16 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "cormap.py FILES [OPTIONS]"
-    description = "Measure pair-wise dimilarity of spectra "
+    description = "Measure pair-wise similarity of spectra "
     epilog = """cormap.py is an open-source implementation of
     the cormap algorithm in datcmp (from ATSAS).
     It does not scale the data and assume they are already scaled
     """
-    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
-    parser.add_argument("-v", "--verbose", default=False, help="switch to verbose mode", action='store_true')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = SASParser(prog="cormap.py", description=description, epilog=epilog)
+    parser.add_file_argument(help_text="dat files to compare")
+
     args = parser.parse_args()
+
     if args.verbose:
         logging.root.setLevel(logging.DEBUG)
     files = [i for i in args.file if os.path.exists(i)]

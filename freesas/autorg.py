@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Functions to generating graphs related to 
+Functions to generating graphs related to
 """
 
 __authors__ = ["Jerome Kieffer"]
@@ -17,23 +17,23 @@ from scipy.optimize import curve_fit
 
 
 def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
-    """Uses the GPA theory to guess quickly Rg, the 
+    """Uses the GPA theory to guess quickly Rg, the
     radius of gyration and I0, the forwards scattering
-    
+
     The theory is described in `Guinier peak analysis for visual and automated
     inspection of small-angle X-ray scattering data`
     Christopher D. Putnam
     J. Appl. Cryst. (2016). 49, 1412–1419
-    
+
     This fits sqrt(q²Rg²)*exp(-q²Rg²/3)*I0/Rg to the curve I*q = f(q²)
-    
-    The Guinier region goes arbitrary from 0.5 to 1.3 q·Rg 
-    qRg_min and qRg_max can be provided 
-    
+
+    The Guinier region goes arbitrary from 0.5 to 1.3 q·Rg
+    qRg_min and qRg_max can be provided
+
     :param data: the raw data read from disc. Only q and I are used.
     :param Rg_min: the minimal accpetable value for the radius of gyration
     :param qRg_max: the default upper bound for the Guinier region.
-    :param qRg_min: the default lower bound for the Guinier region. 
+    :param qRg_min: the default lower bound for the Guinier region.
     :return: autRg result with limited information
     """
     q = data.T[0]
@@ -90,7 +90,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
 def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     """
     Yet another implementation of the Guinier fit
-    
+
     The idea:
     * extract the reasonable range
     * convert to the Guinier space (ln(I) = f(q²)
@@ -98,19 +98,19 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     * keep any with qRg_max<1.3 (or 1.5 in relaxed mode)
     * select the begining and the end of the guinier region according to the contribution of two parameters:
       - (q_max·Rg - q_min·Rg)/qRg_max --> in favor of large ranges
-      - 1 / RMSD                      --> in favor of good quality data 
+      - 1 / RMSD                      --> in favor of good quality data
       For each start and end point, the contribution of all ranges are averaged out (using histograms)
       The best solution is the start/end position with the maximum average.
-    * All ranges within this region are averaged out to measure Rg, I0 and more importantly their deviation.   
+    * All ranges within this region are averaged out to measure Rg, I0 and more importantly their deviation.
     * The quality is still to be calculated
-    * Aggergation is assessed according a second order polynom fit. 
-     
+    * Aggergation is assessed according a second order polynom fit.
+
     :param data: 2D array with (q,I,err)
     :param Rg_min: minimum value for Rg
     :param qRg_max: upper bound of the Guinier region
     :param relax: relaxation factor for the upper bound
     :param resolution: step size of the slope histogram
-    :return: autRg result 
+    :return: autRg result
     """
 
     raw_size = data.shape[0]

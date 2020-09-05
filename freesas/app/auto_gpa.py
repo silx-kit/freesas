@@ -30,14 +30,14 @@ __copyright__ = "2020, ESRF"
 __date__ = "05/06/2020"
 
 import sys
-import argparse
 import logging
 import platform
 from os import linesep
 from pathlib import Path
 from freesas import autorg
-from freesas import dated_version as freesas_version
-from freesas.sasio import load_scattering_data
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
+from .sas_argparser import GuinierParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")
@@ -45,33 +45,18 @@ logger = logging.getLogger("auto_gpa")
 if sys.version_info < (3, 6):
     logger.error("This code uses F-strings and requires Python 3.6+")
 
-
 def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "auto_gpa.py [OPTIONS] FILES "
     description = "Calculate the radius of gyration using Guinier" \
                   " Peak Analysis (Putnam 2016) for a set of scattering curves"
     epilog = """auto_gpa.py is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
-    As this tool used a differnt theory, some results may differ
+    As this tool used a different theory, some results may differ
     """
-    version = "auto_gpa.py version %s from %s" % (freesas_version.version,
-                                                  freesas_version.date)
-    parser = argparse.ArgumentParser(usage=usage,
-                                     description=description,
-                                     epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+',
-                        help="dat files to compare")
-    parser.add_argument("-o", "--output", action='store',
-                        help="Output filename", default=None, type=str)
-    parser.add_argument("-f", "--format", action='store',
-                        help="Output format: native, csv, ssf",
-                        default="native", type=str)
-    parser.add_argument("-v", "--verbose", default=0,
-                        help="switch to verbose mode", action='count')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = GuinierParser(prog="auto_gpa.py", description=description,
+                           epilog=epilog)
     return parser.parse_args()
 
 
@@ -104,6 +89,8 @@ def main():
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 rg = autorg.auto_gpa(data)
             except Exception as err:
