@@ -36,19 +36,23 @@ import logging
 from pathlib import Path
 from matplotlib.pyplot import switch_backend
 from matplotlib.backends.backend_pdf import PdfPages
-from freesas import dated_version as freesas_version
 from freesas import plot
-from freesas.sasio import load_scattering_data
+from freesas.sasio import (
+    load_scattering_data,
+    convert_inverse_angstrom_to_nanometer,
+)
 from freesas.autorg import InsufficientDataError, NoGuinierRegionError
+from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
+
 def set_backend(output: Path = None, outputformat: str = None):
-    """ Explicitely set silent backend based on format or filename
-        Needed on MacOS
-        @param output: Name of the specified output file
-        @param format: User specified format
+    """Explicitely set silent backend based on format or filename
+    Needed on MacOS
+    @param output: Name of the specified output file
+    @param format: User specified format
     """
     if outputformat:
         outputformat = outputformat.lower()
@@ -64,14 +68,17 @@ def set_backend(output: Path = None, outputformat: str = None):
         elif outputformat == "png":
             switch_backend("agg")
 
+
 def parse():
-    """ Parse input and return list of files.
+    """Parse input and return list of files.
     :return: list of input files
     """
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    parser = SASParser(prog="freesas.py", description=description, epilog=epilog)
+    parser = SASParser(
+        prog="freesas.py", description=description, epilog=epilog
+    )
     parser.add_file_argument(help_text="dat files to plot")
     parser.add_output_filename_argument()
     parser.add_output_data_format("jpeg", "svg", "png", "pdf")
@@ -124,7 +131,6 @@ def main():
                 pdf_output_file.savefig(fig)
     if not args.output:
         input("Press enter to quit")
-
 
 
 if __name__ == "__main__":
