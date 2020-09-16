@@ -28,7 +28,7 @@ described in:
 
 https://dx.doi.org/10.1038%2Fnature12070  
 
-Some formula taked from Putnam et al, 2007, Table 1 in review
+Some formula taken from Putnam et al, 2007, Table 1 in the review
 """
 __authors__ = ["Martha E. Brennich", "J. Kieffer"]
 __license__ = "MIT"
