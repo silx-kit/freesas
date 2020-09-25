@@ -56,7 +56,7 @@ def set_backend(output: Path = None, outputformat: str = None):
     """
     if outputformat:
         outputformat = outputformat.lower()
-    elif len(output.suffix) > 0:
+    elif output and len(output.suffix) > 0:
         outputformat = output.suffix.lower()[1:]
     if outputformat:
         if outputformat == "svg":
@@ -86,6 +86,20 @@ def parse():
     return parser.parse_args()
 
 
+def create_figure(file: Path, unit: str = "nm"):
+    """Create multi-plot SAS figure for data from a file
+    @param file: filename of SAS file in q I Ierr format
+    @param unit: length unit of input data, supported options are Å and nm.
+    :return: figure with SAS plots for this file
+    """
+    data = load_scattering_data(file)
+    if unit == "Å":
+        data = convert_inverse_angstrom_to_nanometer(data)
+    fig = plot.plot_all(data)
+    fig.suptitle(file)
+    return fig
+
+
 def main():
     args = parse()
     if args.verbose:
@@ -98,33 +112,26 @@ def main():
     logger.debug("%s input files", input_len)
     figures = []
 
+    if args.output and len(files) > 1:
+        logger.warning("Only PDF export is possible in multi-frame mode")
     if args.output and platform.system() == "Darwin":
         if len(files) == 1:
             set_backend(args.output, args.format)
         elif len(files) > 1:
-            logger.warning("Only PDF export is possible in multi-frame mode")
             set_backend(outputformat="pdf")
     for afile in files:
         try:
-            data = load_scattering_data(afile)
+            fig = create_figure(afile, args.unit)
         except OSError:
             logger.error("Unable to load file %s", afile)
-        except ValueError:
-            logger.error("Unable to parse file %s", afile)
+        except (InsufficientDataError, NoGuinierRegionError, ValueError):
+            logger.error("Unable to process file %s", afile)
         else:
-            if args.unit == "Å":
-                data = convert_inverse_angstrom_to_nanometer(data)
-            try:
-                fig = plot.plot_all(data)
-            except (InsufficientDataError, NoGuinierRegionError, ValueError):
-                logger.error("Unable to process file %s", afile)
-            else:
-                fig.suptitle(afile)
-                figures.append(fig)
-                if args.output is None:
-                    fig.show()
-                elif len(files) == 1:
-                    fig.savefig(args.output, format=args.format)
+            figures.append(fig)
+            if args.output is None:
+                fig.show()
+            elif len(files) == 1:
+                fig.savefig(args.output, format=args.format)
     if len(figures) > 1 and args.output:
         with PdfPages(args.output) as pdf_output_file:
             for fig in figures:
