@@ -34,24 +34,29 @@ __date__ = "14/05/2020"
 import platform
 import logging
 from pathlib import Path
+from matplotlib.pyplot import switch_backend
+from matplotlib.backends.backend_pdf import PdfPages
 from freesas import plot
-from freesas.sasio import load_scattering_data, \
-                          convert_inverse_angstrom_to_nanometer
+from freesas.sasio import (
+    load_scattering_data,
+    convert_inverse_angstrom_to_nanometer,
+)
+from freesas.autorg import InsufficientDataError, NoGuinierRegionError
 from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
-def set_backend(output: Path, outputformat: str):
-    """ Explicitely set silent backend based on format or filename
-        Needed on MacOS
-        @param output: Name of the specified output file
-        @param format: User specified format
+
+def set_backend(output: Path = None, outputformat: str = None):
+    """Explicitely set silent backend based on format or filename
+    Needed on MacOS
+    @param output: Name of the specified output file
+    @param format: User specified format
     """
-    from matplotlib.pyplot import switch_backend
     if outputformat:
         outputformat = outputformat.lower()
-    elif len(output.suffix) > 0:
+    elif output and len(output.suffix) > 0:
         outputformat = output.suffix.lower()[1:]
     if outputformat:
         if outputformat == "svg":
@@ -63,19 +68,36 @@ def set_backend(output: Path, outputformat: str):
         elif outputformat == "png":
             switch_backend("agg")
 
+
 def parse():
-    """ Parse input and return list of files.
+    """Parse input and return list of files.
     :return: list of input files
     """
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    parser = SASParser(prog="freesas.py", description=description, epilog=epilog)
+    parser = SASParser(
+        prog="freesas.py", description=description, epilog=epilog
+    )
     parser.add_file_argument(help_text="dat files to plot")
     parser.add_output_filename_argument()
     parser.add_output_data_format("jpeg", "svg", "png", "pdf")
     parser.add_q_unit_argument()
     return parser.parse_args()
+
+
+def create_figure(file: Path, unit: str = "nm"):
+    """Create multi-plot SAS figure for data from a file
+    @param file: filename of SAS file in q I Ierr format
+    @param unit: length unit of input data, supported options are Å and nm.
+    :return: figure with SAS plots for this file
+    """
+    data = load_scattering_data(file)
+    if unit == "Å":
+        data = convert_inverse_angstrom_to_nanometer(data)
+    fig = plot.plot_all(data)
+    fig.suptitle(file)
+    return fig
 
 
 def main():
@@ -89,26 +111,31 @@ def main():
     input_len = len(files)
     logger.debug("%s input files", input_len)
     figures = []
-    if len(files) > 1 and args.output:
+
+    if args.output and len(files) > 1:
         logger.warning("Only PDF export is possible in multi-frame mode")
-        from matplotlib.backends.backend_pdf import PdfPages
-        import matplotlib.pyplot as plt
-        raise NotImplementedError("TODO")
-    if args.output:
-        if platform.system() == "Darwin":
+    if args.output and platform.system() == "Darwin":
+        if len(files) == 1:
             set_backend(args.output, args.format)
+        elif len(files) > 1:
+            set_backend(outputformat="pdf")
     for afile in files:
         try:
-            data = load_scattering_data(afile)
-        except:
-            logger.error("Unable to parse file %s", afile)
+            fig = create_figure(afile, args.unit)
+        except OSError:
+            logger.error("Unable to load file %s", afile)
+        except (InsufficientDataError, NoGuinierRegionError, ValueError):
+            logger.error("Unable to process file %s", afile)
         else:
-            if args.unit == "Å":
-                data = convert_inverse_angstrom_to_nanometer(data)
-            fig = plot.plot_all(data, filename=args.output, format=args.format)
             figures.append(fig)
             if args.output is None:
                 fig.show()
+            elif len(files) == 1:
+                fig.savefig(args.output, format=args.format)
+    if len(figures) > 1 and args.output:
+        with PdfPages(args.output) as pdf_output_file:
+            for fig in figures:
+                pdf_output_file.savefig(fig)
     if not args.output:
         input("Press enter to quit")
 

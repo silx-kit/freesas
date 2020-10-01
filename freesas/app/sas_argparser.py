@@ -9,6 +9,7 @@ __copyright__ = "2020, ESRF"
 __date__ = "09/08/2020"
 
 import argparse
+from pathlib import Path
 from freesas import dated_version as freesas_version
 
 def parse_unit(unit_input: str) -> str:
@@ -86,7 +87,7 @@ class SASParser:
     def add_output_filename_argument(self):
         """ Add default argument for specifying output format. """
         self.add_argument("-o", "--output", action='store',
-                          help="Output filename", default=None, type=str)
+                          help="Output filename", default=None, type=Path)
 
     def add_output_data_format(self, *formats: str, default: str = None):
         """ Add default argument for specifying output format. """
