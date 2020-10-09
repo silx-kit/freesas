@@ -30,17 +30,17 @@ __copyright__ = "2017-2020, ESRF"
 __date__ = "05/06/2020"
 
 import sys
-import os
-import argparse
 import logging
-import glob
 import platform
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger("autorg")
-
-import numpy
-import freesas
+from os import linesep
+from pathlib import Path
 from freesas import autorg
+from freesas.sasio import load_scattering_data, \
+                          convert_inverse_angstrom_to_nanometer
+from .sas_argparser import GuinierParser
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger("auto_gpa")
 
 if sys.version_info < (3, 6):
     logger.error("This code uses F-strings and requires Python 3.6+")
@@ -50,34 +50,29 @@ def parse():
     """ Parse input and return list of files.
     :return: list of input files
     """
-    usage = "autorg.py [OPTIONS] FILES "
-    description = "Calculate the radius of gyration using Guinier law for a set of scattering curves"
+    description = "Calculate the radius of gyration using Guinier law" \
+                  " for a set of scattering curves"
     epilog = """autorg.py is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
-    As this is reverse engineered, some constants and results may differ 
+    As this is reverse engineered, some constants and results may differ
     """
-    version = "autorg.py version %s from %s" % (freesas.version, freesas.date)
-    parser = argparse.ArgumentParser(usage=usage, description=description, epilog=epilog)
-    parser.add_argument("file", metavar="FILE", nargs='+', help="dat files to compare")
-    parser.add_argument("-o", "--output", action='store', help="Output filename", default=None, type=str)
-    parser.add_argument("-f", "--format", action='store', help="Output format: native, csv, ssf", default="native", type=str)
-    parser.add_argument("-v", "--verbose", default=0, help="switch to verbose mode", action='count')
-    parser.add_argument("-V", "--version", action='version', version=version)
+    parser = GuinierParser(prog="autorg.py", description=description,
+                           epilog=epilog)
     return parser.parse_args()
 
 
 def main():
     args = parse()
-    if args.verbose==1:
+    if args.verbose == 1:
         logging.root.setLevel(logging.INFO)
-    elif args.verbose>=2:
+    elif args.verbose >= 2:
         logging.root.setLevel(logging.DEBUG)
-    files = [i for i in args.file if os.path.exists(i)]
+    files = [Path(i) for i in args.file if Path(i).exists()]
     if platform.system() == "Windows" and files == []:
-        files = glob.glob(args.file[0])
+        files = list(Path.cwd().glob(args.file[0]))
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug("%s input files", input_len)
 
     if args.output:
         dst = open(args.output, "w")
@@ -85,19 +80,22 @@ def main():
         dst = sys.stdout
 
     if args.format == "csv":
-        dst.write("File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated" + os.linesep)
+        dst.write("File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated" + linesep)
 
     for afile in files:
         logger.info("Processing %s", afile)
         try:
-            data = numpy.loadtxt(afile)
+            data = load_scattering_data(afile)
         except:
             logger.error("Unable to parse file %s", afile)
         else:
+            if args.unit == "Å":
+                data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 rg = autorg.autoRg(data)
             except Exception as err:
-                sys.stdout.write("%s, %s: %s\n" % (afile, err.__class__.__name__, err))
+                sys.stdout.write("%s, %s: %s\n" %
+                                 (afile, err.__class__.__name__, err))
             else:
                 if args.format == "csv":
                     res = f"{afile},{rg.Rg:6.4f},{rg.sigma_Rg:6.4f},{rg.I0:6.4f},{rg.sigma_I0:6.4f},{rg.start_point:3},{rg.end_point:3},{rg.quality:6.4f},{rg.aggregated:6.4f}"
@@ -106,7 +104,7 @@ def main():
                 else:
                     res = "%s %s"%(afile, rg)
                 dst.write(res)
-                dst.write(os.linesep)
+                dst.write(linesep)
                 dst.flush()
     if args.output:
         dst.close()
