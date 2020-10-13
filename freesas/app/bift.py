@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
-__date__ = "30/04/2020"
+__date__ = "13/10/2020"
 
 import sys
 import logging
@@ -112,36 +112,8 @@ def main():
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    "radius density_avg density_std evidence_avg evidence_std "\
-                    "Dmax_avg Dmax_std alpha_avg, alpha_std chi2_avg chi2_std "\
-                    "Rg_avg Rg_std I0_avg I0_std"
-                    res = ["Dmax= %.2f±%.2f" %
-                           (stats.Dmax_avg, stats.Dmax_std),
-                           "𝛂= %.1f±%.1f" %
-                           (stats.alpha_avg, stats.alpha_std),
-                           "S₀= %.4f±%.4f" %
-                           (stats.regularization_avg, stats.regularization_std),
-                           "χ²= %.2f±%.2f" %
-                           (stats.chi2r_avg, stats.chi2r_std),
-                           "logP= %.2f±%.2f" %
-                           (stats.evidence_avg, stats.evidence_std),
-                           "Rg= %.2f±%.2f" %
-                           (stats.Rg_avg, stats.Rg_std),
-                           "I₀= %.2f±%.2f" %
-                           (stats.I0_avg, stats.I0_std),
-                           ]
-
-                    print(str(afile) + ": " + "; ".join(res))
                     dest = afile.stem + ".out"
-                    with open(dest, "wt") as out:
-                        out.write("# %s %s" % (afile, linesep))
-                        for txt in res:
-                            out.write("# %s %s" % (txt, linesep))
-                        out.write("%s# r\tp(r)\tsigma_p(r)%s" % (linesep, linesep))
-                        for r, p, s in zip(stats.radius.astype(float32),
-                                           stats.density_avg.astype(float32),
-                                           stats.density_std.astype(float32)):
-                            out.write("%s\t%s\t%s%s" % (r, p, s, linesep))
+                    print(stats.save(dest, source=afile))
 
 
 if __name__ == "__main__":
