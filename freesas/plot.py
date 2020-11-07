@@ -113,7 +113,10 @@ def scatter_plot(data, guinier=None, ift=None,
     ordered_lab = []
     ordered_crv = []
     for l in [label_exp, label_guinier, label_ift]:
-        idx = lab.index(l)
+        try:
+            idx = lab.index(l)
+        except:
+            continue 
         ordered_lab.append(lab[idx])
         ordered_crv.append(crv[idx])
     ax.legend(ordered_crv, ordered_lab, loc=3)

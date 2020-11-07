@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "04/09/2020"
+__date__ = "10/09/2020"
 
 import io
 import os
@@ -91,9 +91,11 @@ def extract_averaged(filename):
         integration_grp = nxdata_grp.parent
         results["geometry"] = json.loads(integration_grp["configuration/data"][()])
         results["polarization"] = integration_grp["configuration/polarization_factor"][()]
-        instrument_grp = nxsr.get_class(entry_grp, class_type="NXinstrument")[0]
-        detector_grp = nxsr.get_class(instrument_grp, class_type="NXdetector")[0]
-        results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
+        
+        instrument_grps = nxsr.get_class(entry_grp, class_type="NXinstrument")
+        if instrument_grps:
+            detector_grp = nxsr.get_class(instrument_grps[0], class_type="NXdetector")[0]
+            results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
         sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
         results["sample"] = posixpath.split(sample_grp.name)[-1]
         results["buffer"] = sample_grp["buffer"][()]
@@ -142,11 +144,6 @@ def extract_all(filename):
         r["std"] = s
         res.append(r)
     return res
-
-def extract_sub(filename):
-    "Extract data and metadata from a BM29-Nexus file coming from the magic subtraction (subtractbuffer plugin)"
-    raise RuntimeError("Not implemented yet")
-
 
 def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
     """
