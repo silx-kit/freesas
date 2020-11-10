@@ -125,14 +125,10 @@ class TestFreeSAS(unittest.TestCase):
         self.assertEqual(stdout, "Press enter to quit",
                          msg="freesas requested enter")
 
-
-
-#self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
-
     def test_label(self):
         """
         Test for the presence of labels in the svg.
-        Requires two extra kwarfs:
+        Requires two extra kwargs:
         regex: The regex expression to search for
         description: The description of what the label represents
         """

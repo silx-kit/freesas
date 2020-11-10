@@ -7,7 +7,7 @@ __copyright__ = "2020"
 __date__ = "11/07/2020"
 
 import unittest
-from . import e2etest_freesas
+import e2etest_freesas
 
 
 
