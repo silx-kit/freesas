@@ -31,7 +31,7 @@ import unittest
 import pathlib
 import re
 import logging
-from subprocess import run, Popen, PIPE
+from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class TestFreeSAS(unittest.TestCase):
             pass
         run_freesas = run(["freesas", self.bsa_filename,
                            "-o", self.TEST_IMAGE_NAME],
-                          capture_output=True, check=True)
+                          stdout=PIPE, stderr=STDOUT, check=True)
         self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
         self.assertTrue(self.TEST_IMAGE_NAME.exists(), msg="Found output file")
         with open(self.TEST_IMAGE_NAME) as file:
