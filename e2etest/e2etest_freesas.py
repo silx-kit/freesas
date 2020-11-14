@@ -59,7 +59,7 @@ expectedTexts = {
     "Label of distribution plot X-axis": r"\$r\$ \(nm\)",
     "Label of distribution plot Y-axis": r"\$p\(r\)\$",
     "Distribution plot caption": r"Pair distribution function",
-    "BIFT chi": r"BIFT: [χ𝛘𝜒𝝌𝟀]\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]", 
+    "BIFT chi": r"BIFT: .\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]", 
     "BIFT Dmax": r"\$D_\{max\}=\$[1]?[09].[0-9][0-9] nm",
     "BIFT Rg": r"\$R_\{g\}=\$[23]\.[0-9][0-9] nm",
     "BIFT I0": r"\$I_\{0\}=\$6[0-9]\.[0-9][0-9]",
