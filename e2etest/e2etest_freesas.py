@@ -99,8 +99,8 @@ class TestFreeSAS(unittest.TestCase):
             self.TEST_IMAGE_NAME.unlink()
         except FileNotFoundError:
             pass
-        run_freesas = run(["freesas", self.bsa_filename,
-                           "-o", self.TEST_IMAGE_NAME],
+        run_freesas = run(["freesas", str(self.bsa_filename),
+                           "-o", str(self.TEST_IMAGE_NAME)],
                           stdout=PIPE, stderr=STDOUT, check=True)
         self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
         self.assertTrue(self.TEST_IMAGE_NAME.exists(), msg="Found output file")
@@ -116,7 +116,7 @@ class TestFreeSAS(unittest.TestCase):
         Test whether freeSAS for one dataset finishes without errors
         if there no -o argument.
         """
-        run_freesas = Popen(["freesas", self.bsa_filename],
+        run_freesas = Popen(["freesas", str(self.bsa_filename)],
                             universal_newlines=True,
                             stdout=PIPE, stderr=PIPE, stdin=PIPE)
         stdout, _ = run_freesas.communicate(linesep, timeout=20)
