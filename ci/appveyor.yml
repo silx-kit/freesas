@@ -21,10 +21,10 @@ environment:
 
         # Python 3.8
         - PYTHON_DIR: "C:\\Python38-x64"
-        
+
         # Python 3.9
         - PYTHON_DIR: "C:\\Python39-x64"
-        
+
 matrix:
   exclude:
     - os: Visual Studio 2017
@@ -54,9 +54,17 @@ install:
 # Not a .NET project, build is done in the install step instead
 build: false
 
+
 test_script:
+
+    #Unit tests
     - "python setup.py build test"
     - "python run_tests.py"
+
+    #end to end tests
+    - "mkdir empty"
+    - "cd empty"
+    - "python ../e2etest/e2etest.py"
 
 artifacts:
     # Archive the generated wheel package in the ci.appveyor.com build report.
