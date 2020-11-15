@@ -59,7 +59,7 @@ expectedTexts = {
     "Label of distribution plot X-axis": r"\$r\$ \(nm\)",
     "Label of distribution plot Y-axis": r"\$p\(r\)\$",
     "Distribution plot caption": r"Pair distribution function",
-    "BIFT chi": r"BIFT: χ\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]", 
+    "BIFT chi": r"BIFT: χ\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]",
     "BIFT Dmax": r"\$D_\{max\}=\$[1]?[09].[0-9][0-9] nm",
     "BIFT Rg": r"\$R_\{g\}=\$[23]\.[0-9][0-9] nm",
     "BIFT I0": r"\$I_\{0\}=\$6[0-9]\.[0-9][0-9]",
@@ -106,6 +106,7 @@ class TestFreeSAS(unittest.TestCase):
         self.assertTrue(self.TEST_IMAGE_NAME.exists(), msg="Found output file")
         with open(self.TEST_IMAGE_NAME) as file:
             self.__class__.image_text = file.read()
+            print(self.__class__.image_text)
         try:
             self.TEST_IMAGE_NAME.unlink()
         except FileNotFoundError:
