@@ -1,6 +1,7 @@
 
 
 language: python
+
 jobs:
   include:
     - name: "Python 3.6.0 on Xenial Linux"
@@ -67,3 +68,8 @@ script:
     # Run the tests
     - "python3 setup.py build test"
     - "python3 run_tests.py"
+
+    #Run end to end tests
+    - "mkdir empty"
+    - "cd empty"
+    - "python3 ../e2etest/e2etest.py"
