@@ -33,6 +33,7 @@ import re
 import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
+import PyPDF2
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,11 @@ class TestFreeSAS(unittest.TestCase):
 
     cwd = pathlib.Path.cwd()
     TEST_IMAGE_NAME = pathlib.Path(cwd, "freesas.svg")
+    TEST_PDF_NAME = pathlib.Path(cwd, "freesas.pdf")
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
     bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
+    sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
     image_text = None
 
     @classmethod
@@ -140,6 +143,33 @@ class TestFreeSAS(unittest.TestCase):
             msg="Could not find text for {} in image".format(text_description)
         )
 
+    def test_multi_file_pdf(self):
+        """
+        Check that correct PDF is created when processing several files with the -o option.
+        """
+        #Make sure the result file does not exist for a meaningful assert
+        try:
+            self.TEST_PDF_NAME.unlink()
+        except FileNotFoundError:
+            pass
+        run_freesas = run(["freesas", str(self.bsa_filename), str(self.sas_curve2_filename),
+                           "-o", str(self.TEST_PDF_NAME)],
+                          stdout=PIPE, stderr=STDOUT, check=True)
+        self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
+        self.assertTrue(self.TEST_PDF_NAME.exists(), msg="Found output file")
+        with open(self.TEST_PDF_NAME, 'rb') as file:
+            output_pdf = PyPDF2.PdfFileReader(file)
+            self.assertEqual(output_pdf.numPages,2, msg="correct number of pages in pdf")
+            page_1_text = output_pdf.getPage(0).extractText()
+            page_2_text = output_pdf.getPage(1).extractText()
+        self.assertTrue((str(self.bsa_filename) in page_1_text) ^ (str(self.bsa_filename) in page_2_text), msg=str(self.bsa_filename) + " found on one of the pages")
+        self.assertTrue((str(self.sas_curve2_filename) in page_1_text) ^ (str(self.sas_curve2_filename) in page_2_text), msg=str(self.sas_curve2_filename) + " found on one of the pages")
+        #Clean up
+        try:
+            self.TEST_PDF_NAME.unlink()
+        except FileNotFoundError:
+            pass
+
 def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(TestFreeSAS("test_display_image"))
@@ -148,6 +178,7 @@ def suite():
         test_suite.addTest(TestFreeSAS("test_label",
                                        regex=text_regex,
                                        description=text_description))
+    test_suite.addTest(TestFreeSAS("test_multi_file_pdf"))
     return test_suite
 
 
