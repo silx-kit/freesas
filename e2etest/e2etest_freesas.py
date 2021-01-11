@@ -25,7 +25,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "11/07/2020"
+__date__ = "27/12/2020"
 
 import unittest
 import pathlib
@@ -33,6 +33,7 @@ import re
 import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
+import PyPDF2
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ expectedTexts = {
     "Smallest Tick of scatter plot Y axis": r"\$\\mathdefault\{10\^\{-2\}\}\$",
     "Largest Tick of scatter plot Y axis": r"\$\\mathdefault\{10\^\{2\}\}\$",
     "Scattering plot caption": r"Scattering curve",
-    "Experimental data legend": r"Experimental data", #used twice, but we might just ignore that
+    "Experimental data legend": r"Experimental data",  # used twice, but we might just ignore that
     "Guinier region legend": r"Guinier region: \$R_g=\$[23]\.[0-9][0-9] nm, \$I_0=\$6[0-9]\.[0-9][0-9]",
     "BIFT fit legend": r"BIFT extraplolated: \$D_\{max\}=\$9\.[0-9][0-9] nm",
     "Label of Guinier plot X-axis": r"\$q\^2\$ \(nm\$\^\{-2\}\$\)",
@@ -53,13 +54,13 @@ expectedTexts = {
     "Guinier plot caption": r"Guinier plot: \$R_\{g\}=\$[23]\.[0-9][0-9] nm \$I_\{0\}=\$6[0-9]\.[0-9][0-9]",
     "Guinier fit equation": r"ln\[\$I\(q\)\$\] = 4\.12 -3\.01 \* \$q\^2\$",
     "Guinier fit data label": r"Experimental curve",
-    "Label of Kratky plot X-Axis":r"\$qR_\{g\}\$",
-    "Label of Kratky plot Y-Axis":r"\$\(qR_\{g\}\)\^2 I/I_\{0\}\$",
+    "Label of Kratky plot X-Axis": r"\$qR_\{g\}\$",
+    "Label of Kratky plot Y-Axis": r"\$\(qR_\{g\}\)\^2 I/I_\{0\}\$",
     "Kratky plot caption": r"Dimensionless Kratky plot",
     "Label of distribution plot X-axis": r"\$r\$ \(nm\)",
     "Label of distribution plot Y-axis": r"\$p\(r\)\$",
     "Distribution plot caption": r"Pair distribution function",
-    #"BIFT chi": r"BIFT: χ\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]",
+    # "BIFT chi": r"BIFT: χ\$_\{r\}\^\{2\}=\$1\.[0-9][0-9]",
     "BIFT Dmax": r"\$D_\{max\}=\$[1]?[09].[0-9][0-9] nm",
     "BIFT Rg": r"\$R_\{g\}=\$[23]\.[0-9][0-9] nm",
     "BIFT I0": r"\$I_\{0\}=\$6[0-9]\.[0-9][0-9]",
@@ -70,9 +71,11 @@ class TestFreeSAS(unittest.TestCase):
 
     cwd = pathlib.Path.cwd()
     TEST_IMAGE_NAME = pathlib.Path(cwd, "freesas.svg")
+    TEST_PDF_NAME = pathlib.Path(cwd, "freesas.pdf")
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
     bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
+    sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
     image_text = None
 
     @classmethod
@@ -94,15 +97,25 @@ class TestFreeSAS(unittest.TestCase):
         if there is an -o argument.
         It also uses the output as input for label tests.
         """
-        #Make sure the result file does not exist for a meaningful assert
+        # Make sure the result file does not exist for a meaningful assert
         try:
             self.TEST_IMAGE_NAME.unlink()
         except FileNotFoundError:
             pass
-        run_freesas = run(["freesas", str(self.bsa_filename),
-                           "-o", str(self.TEST_IMAGE_NAME)],
-                          stdout=PIPE, stderr=STDOUT, check=True)
-        self.assertEqual(run_freesas.returncode, 0, msg="freesas completed well")
+        run_freesas = run(
+            [
+                "freesas",
+                str(self.bsa_filename),
+                "-o",
+                str(self.TEST_IMAGE_NAME),
+            ],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_freesas.returncode, 0, msg="freesas completed well"
+        )
         self.assertTrue(self.TEST_IMAGE_NAME.exists(), msg="Found output file")
         with open(self.TEST_IMAGE_NAME) as file:
             self.__class__.image_text = file.read()
@@ -116,14 +129,20 @@ class TestFreeSAS(unittest.TestCase):
         Test whether freeSAS for one dataset finishes without errors
         if there no -o argument.
         """
-        run_freesas = Popen(["freesas", str(self.bsa_filename)],
-                            universal_newlines=True,
-                            stdout=PIPE, stderr=PIPE, stdin=PIPE)
+        run_freesas = Popen(
+            ["freesas", str(self.bsa_filename)],
+            universal_newlines=True,
+            stdout=PIPE,
+            stderr=PIPE,
+            stdin=PIPE,
+        )
         stdout, _ = run_freesas.communicate(linesep, timeout=20)
-        self.assertEqual(run_freesas.returncode, 0,
-                         msg="freesas completed well")
-        self.assertEqual(stdout, "Press enter to quit",
-                         msg="freesas requested enter")
+        self.assertEqual(
+            run_freesas.returncode, 0, msg="freesas completed well"
+        )
+        self.assertEqual(
+            stdout, "Press enter to quit", msg="freesas requested enter"
+        )
 
     def test_label(self):
         """
@@ -137,20 +156,72 @@ class TestFreeSAS(unittest.TestCase):
         pattern = re.compile(text_regex)
         self.assertIsNotNone(
             pattern.search(self.image_text),
-            msg="Could not find text for {} in image".format(text_description)
+            msg="Could not find text for {} in image".format(text_description),
         )
+
+    def test_multi_file_pdf(self):
+        """
+        Check that correct PDF is created when processing several files with the -o option.
+        """
+        # Make sure the result file does not exist for a meaningful assert
+        try:
+            self.TEST_PDF_NAME.unlink()
+        except FileNotFoundError:
+            pass
+        run_freesas = run(
+            [
+                "freesas",
+                str(self.bsa_filename),
+                str(self.sas_curve2_filename),
+                "-o",
+                str(self.TEST_PDF_NAME),
+            ],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_freesas.returncode, 0, msg="freesas completed well"
+        )
+        self.assertTrue(self.TEST_PDF_NAME.exists(), msg="Found output file")
+        with open(self.TEST_PDF_NAME, "rb") as file:
+            output_pdf = PyPDF2.PdfFileReader(file)
+            self.assertEqual(
+                output_pdf.numPages, 2, msg="correct number of pages in pdf"
+            )
+            page_1_text = output_pdf.getPage(0).extractText()
+            page_2_text = output_pdf.getPage(1).extractText()
+        self.assertTrue(
+            (str(self.bsa_filename) in page_1_text)
+            ^ (str(self.bsa_filename) in page_2_text),
+            msg=str(self.bsa_filename) + " found on one of the pages",
+        )
+        self.assertTrue(
+            (str(self.sas_curve2_filename) in page_1_text)
+            ^ (str(self.sas_curve2_filename) in page_2_text),
+            msg=str(self.sas_curve2_filename) + " found on one of the pages",
+        )
+        # Clean up
+        try:
+            self.TEST_PDF_NAME.unlink()
+        except FileNotFoundError:
+            pass
+
 
 def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(TestFreeSAS("test_display_image"))
     test_suite.addTest(TestFreeSAS("test_save_image"))
     for text_description, text_regex in expectedTexts.items():
-        test_suite.addTest(TestFreeSAS("test_label",
-                                       regex=text_regex,
-                                       description=text_description))
+        test_suite.addTest(
+            TestFreeSAS(
+                "test_label", regex=text_regex, description=text_description
+            )
+        )
+    test_suite.addTest(TestFreeSAS("test_multi_file_pdf"))
     return test_suite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

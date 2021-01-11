@@ -8,3 +8,4 @@ numpy
 cython
 matplotlib
 scipy
+PyPDF2
