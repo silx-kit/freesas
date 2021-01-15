@@ -13,6 +13,7 @@ Build-Depends: cython3,
                python3-sphinx,
                python3-sphinxcontrib.programoutput,
                python3-nbsphinx,
+               python3-pyfai,
                openstack-pkg-tools,
                help2man,
                dh-python 
@@ -44,6 +45,7 @@ Depends: ${misc:Depends},
          python3-matplotlib,
          python3-scipy,
          python3-six,
+         python3-pyfai
 # Recommends:
 # Suggests: python3-rfoo
 Description: Free tools for small angle scattering analysis - Python3

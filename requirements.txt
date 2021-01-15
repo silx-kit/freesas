@@ -5,3 +5,4 @@ setuptools
 matplotlib
 sphinx
 sphinxcontrib-programoutput
+pyFAI
