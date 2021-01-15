@@ -3,17 +3,27 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__date__ = "05/09/2017"
-__copyright__ = "2015, ESRF"
+__date__ = "15/01/2021"
+__copyright__ = "2015-2021, ESRF"
 
+import sys
 import unittest
 from .test_all import suite
 
 
-def run():
+def run_tests():
+    """Run test complete test_suite"""
+    mysuite = suite()
     runner = unittest.TextTestRunner()
-    return runner.run(suite())
+    if not runner.run(mysuite).wasSuccessful():
+        print("Test suite failed")
+        return 1
+    else:
+        print("Test suite succeeded")
+        return 0
 
+
+run = run_tests
 
 if __name__ == '__main__':
-    run()
+    sys.exit(run_tests())
