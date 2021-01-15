@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "10/09/2020"
+__date__ = "15/01/2021"
 
 import io
 import os
@@ -39,11 +39,8 @@ import posixpath
 from collections import namedtuple, OrderedDict
 import json
 import copy
-import numpy
-import h5py
 import pyFAI
 from pyFAI.io import Nexus
-from pyFAI.method_registry import IntegrationMethod
 from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)
@@ -64,10 +61,10 @@ def parse():
     epilog = """extract_ascii.py allows you to export the data in inverse nm or inverse A with possible intensity scaling.
     """
     parser = SASParser(prog="extract-ascii.py", description=description, epilog=epilog)
-    #Commented option need to be implemented
-    #parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
-    #parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
-    #parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
+    # Commented option need to be implemented
+    # parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
+    # parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
+    # parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
     parser.add_file_argument("HDF5 input data")
     parser.add_argument("-a", "--all", action='store_true', help="extract every individual frame", default=False)
     return parser.parse_args()
@@ -91,7 +88,7 @@ def extract_averaged(filename):
         integration_grp = nxdata_grp.parent
         results["geometry"] = json.loads(integration_grp["configuration/data"][()])
         results["polarization"] = integration_grp["configuration/polarization_factor"][()]
-        
+
         instrument_grps = nxsr.get_class(entry_grp, class_type="NXinstrument")
         if instrument_grps:
             detector_grp = nxsr.get_class(instrument_grps[0], class_type="NXdetector")[0]
@@ -106,6 +103,7 @@ def extract_averaged(filename):
             results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
     return results
 
+
 def extract_all(filename):
     "return some infomations extracted from a HDF5 file for  all individual frames"
     res = []
@@ -114,7 +112,7 @@ def extract_all(filename):
     with Nexus(filename, "r") as nxsr:
         entry_grp = nxsr.get_entries()[0]
         results["h5path"] = entry_grp.name
-        nxdata_grp = nxsr.h5[entry_grp.name+"/1_integration/results"]
+        nxdata_grp = nxsr.h5[entry_grp.name + "/1_integration/results"]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"][1]
         I = nxdata_grp[signal][()]
@@ -138,12 +136,13 @@ def extract_all(filename):
             results["concentration"] = sample_grp["concentration"][()]
 #         if "2_correlation_mapping" in entry_grp:
 #             results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
-    for i,s in zip(I, std):
+    for i, s in zip(I, std):
         r = copy.copy(results)
         r["I"] = i
         r["std"] = s
         res.append(r)
     return res
+
 
 def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
     """
@@ -271,8 +270,8 @@ def main():
         if args.all:
             dest = os.path.splitext(src)[0] + "%04i.dat"
             for idx, frame in enumerate(extract_all(src)):
-                print(src, " --> ", dest%idx)
-                write_ascii(frame, dest%idx)
+                print(src, " --> ", dest % idx)
+                write_ascii(frame, dest % idx)
         else:
             dest = os.path.splitext(src)[0] + ".dat"
             write_ascii(extract_averaged(src), dest)
