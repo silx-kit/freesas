@@ -10,17 +10,18 @@ __date__ = "11/07/2020"
 
 import sys
 import unittest
-import e2etest_freesas
+import e2etest_freesas, e2etest_guinier_apps
 
 
 def suite():
     """Creates suite for e2e tests"""
     test_suite = unittest.TestSuite()
     test_suite.addTest(e2etest_freesas.suite())
+    test_suite.addTest(e2etest_guinier_apps.suite())
     return test_suite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     result = runner.run(suite())
 
