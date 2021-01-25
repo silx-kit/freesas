@@ -9,3 +9,6 @@ cython
 matplotlib
 scipy
 PyPDF2
+h5py
+silx
+pyFAI

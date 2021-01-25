@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "09/07/2020"
+__date__ = "25/01/2021"
 __license__ = "MIT"
 
 import sys
@@ -36,15 +36,22 @@ import shutil
 import logging
 import glob
 
+PROJECT = "freesas"
 if sys.version_info[0] < 3:
-    raise SystemError("Freesas requires Python3 !")
+    raise SystemError(f"{PROJECT} requires Python3 !")
 
 logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger("freesas.setup")
 
-from distutils.command.clean import clean as Clean
-from distutils.command.build import build as _build
+try:
+    from setuptools._distutils.command.clean import clean as Clean
+    from setuptools._distutils.command.build import build as _build
+except (ImportError) as err:
+    print(f"Unable to use setuptools, {type(err)}: {err}")
+    from distutils.command.clean import clean as Clean
+    from distutils.command.build import build as _build
+    
 try:
     from setuptools import Command
     from setuptools.command.build_py import build_py as _build_py
@@ -55,7 +62,8 @@ try:
     except ImportError:
         from setuptools.command.build_ext import build_ext
         logger.info("Use setuptools, cython is missing")
-except ImportError:
+except ImportError as err:
+    print(f"Unable to use setuptools, {type(err)}: {err}")
     try:
         from numpy.distutils.core import Command
     except ImportError:
@@ -75,8 +83,6 @@ try:
     from sphinx.setup_command import BuildDoc
 except ImportError:
     sphinx = None
-
-PROJECT = "freesas"
 
 if "LANG" not in os.environ and platform.system() == "Darwin" and sys.version_info[0] > 2:
     print("""WARNING: the LANG environment variable is not defined,
@@ -551,7 +557,6 @@ class BuildExt(build_ext):
             # Avoid empty arg
             ext.extra_link_args = [arg for arg in extra_link_args if arg]
 
-
         elif self.compiler.compiler_type == 'unix':
             # Avoids runtime symbol collision for manylinux1 platform
             # See issue #1070
@@ -610,8 +615,6 @@ class BuildExt(build_ext):
             # It is needed for Debian packaging
             debug_mode = self.is_debug_interpreter()
 
-
-
         if self.compiler.compiler_type == "unix":
             args = list(self.compiler.compiler_so)
             # clean up debug flags -g is included later in another way
@@ -622,7 +625,7 @@ class BuildExt(build_ext):
             # always insert symbols
             args.append("-g")
 
-            #On MacOS, we set the optimization level to avoid trouble with AppleClang 10
+            # On MacOS, we set the optimization level to avoid trouble with AppleClang 10
             if platform.system() == "Darwin":
                 args.append("-O0")
             # only strip asserts in release mode

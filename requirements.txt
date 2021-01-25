@@ -3,6 +3,5 @@ scipy
 cython
 setuptools
 matplotlib
-sphinx
-sphinxcontrib-programoutput
+silx
 pyFAI
