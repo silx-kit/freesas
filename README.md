@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/kif/freesas.svg)](https://travis-ci.org/kif/freesas)
 [![Build status](https://ci.appveyor.com/api/projects/status/uq4xtv5tvx4k6kox?svg=true)](https://ci.appveyor.com/project/kif/freesas)
+[![Documentation Status](https://readthedocs.org/projects/freesas/badge/?version=latest)](https://freesas.readthedocs.io/en/latest/?badge=latest)
 
 
 FreeSAS
