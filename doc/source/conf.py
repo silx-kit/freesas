@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 #
 # ############################################################################*/
-"""silx documentation build configuration file, created by
+"""freesas documentation build configuration file, created by
 sphinx-quickstart on Fri Nov 27 14:20:46 2015.
 
 This file is execfile()d with the current directory set to its containing dir.
@@ -42,18 +42,27 @@ import subprocess
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.abspath('.'))
+
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+
 project = u'freesas'
 try:
-    print(sys.path)
     import freesas
-    print(freesas.__path__)
     project_dir = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
-
     build_dir = os.path.abspath(freesas.__file__)
-    if not build_dir.startswith(project_dir):
-        raise RuntimeError("%s looks to come from the system. Fix your PYTHONPATH and restart sphinx." % project)
+    if on_rtd:
+        print("On Read The Docs")
+        print("build_dir", build_dir)
+        print("project_dir", project_dir)
+    elif not build_dir.startswith(project_dir):
+        raise RuntimeError(
+            "%s looks to come from the system. Fix your PYTHONPATH and restart sphinx."
+            % project
+        )
 except ImportError:
-    raise RuntimeError("%s is not on the path. Fix your PYTHONPATH and restart sphinx." % project)
+    raise RuntimeError(
+        "%s is not on the path. Fix your PYTHONPATH and restart sphinx." % project
+    )
 
 # Disable deprecation warnings:
 # It avoid to spam documentation logs with deprecation warnings.
@@ -72,6 +81,20 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ext'))
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
+
+import sphinx
+
+try:
+    import sphinx.ext.mathjax
+except:
+    print("Not using math extension for sphinx")
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    import mathjax
+    import sphinx.ext
+
+    sphinx.ext.mathjax = mathjax
+    sys.modules["sphinx.ext.mathjax"] = mathjax
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
@@ -82,6 +105,16 @@ extensions = [
     'nbsphinx'
 
 ]
+
+if sphinx.__version__ < "1.4":
+    extensions.append('sphinx.ext.pngmath')
+
+# Set the theme to sphinx_rtd_theme when *not* building on Read The Docs.
+# The theme is set to default otherwise as Read The Docs uses its own theme anyway.
+if not on_rtd:
+    import sphinx_rtd_theme
+
+    extensions.append('sphinx_rtd_theme')
 
 autodoc_member_order = 'bysource'
 
@@ -152,7 +185,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'default' if on_rtd else 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -171,7 +204,7 @@ html_theme = 'default'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+html_logo = "img/image.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -227,7 +260,6 @@ html_theme = 'default'
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'FreeSASdoc'
 
-
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {'papersize': 'a4paper',
@@ -260,7 +292,6 @@ latex_documents = [
 # If false, no module index is generated.
 # latex_domain_indices = True
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
@@ -272,7 +303,6 @@ man_pages = [
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
-
 
 # -- Options for Texinfo output -------------------------------------------
 
