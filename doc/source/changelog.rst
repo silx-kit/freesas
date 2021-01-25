@@ -1,8 +1,11 @@
+Change-log
+##########
+
 FreeSAS v0.9.0 25/01/2021
 =========================
 - BIFT for invert Fourier Transform 
 - New implementation of auto-guinier
-- BM29 HDF5 extraction tool
+- BM29 HDF5-ascii extraction tool
 - Continuous integration, doc and build
 
 FreeSAS v0.7.0 31/08/2018
