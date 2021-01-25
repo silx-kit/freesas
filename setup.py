@@ -56,7 +56,8 @@ try:
         logger.info("Use setuptools, cython is missing")
     from setuptools._distutils.command.clean import clean as Clean
     from setuptools._distutils.command.build import build as _build
-except ImportError:
+except ImportError as err:
+    print(f"Unable to use setuptools, {type(err)}: {err})
     try:
         from numpy.distutils.core import Command
     except ImportError:

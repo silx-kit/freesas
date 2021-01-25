@@ -24,7 +24,7 @@ Standards-Version: 3.9.8
 Vcs-Browser: https://anonscm.debian.org/cgit/debian-science/packages/freesas.git
 Vcs-Git: git://anonscm.debian.org/debian-science/packages/freesas.git
 Homepage: https://github.com/kif/freesas
-X-Python3-Version: >= 3.4
+X-Python3-Version: >= 3.6
 
 Package: freesas
 Architecture: all
