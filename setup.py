@@ -45,6 +45,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("freesas.setup")
 
 try:
+    from setuptools._distutils.command.clean import clean as Clean
+    from setuptools._distutils.command.build import build as _build
+except (ImportError) as err:
+    print(f"Unable to use setuptools, {type(err)}: {err}")
+    from distutils.command.clean import clean as Clean
+    from distutils.command.build import build as _build
+    
+try:
     from setuptools import Command
     from setuptools.command.build_py import build_py as _build_py
     from setuptools.command.sdist import sdist
@@ -54,8 +62,6 @@ try:
     except ImportError:
         from setuptools.command.build_ext import build_ext
         logger.info("Use setuptools, cython is missing")
-    from setuptools._distutils.command.clean import clean as Clean
-    from setuptools._distutils.command.build import build as _build
 except ImportError as err:
     print(f"Unable to use setuptools, {type(err)}: {err}")
     try:
@@ -70,8 +76,6 @@ except ImportError as err:
     except ImportError:
         from distutils.command.build_ext import build_ext
         logger.info("Use distutils, cython is missing")
-    from distutils.command.clean import clean as Clean
-    from distutils.command.build import build as _build
 try:
     import sphinx
     import sphinx.util.console
