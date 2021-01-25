@@ -7,7 +7,6 @@ Priority: extra
 Build-Depends: cython3,
                debhelper (>=9.20150101+deb8u2),
                python3-all-dev,
-               python3-distutils,
                python3-setuptools,
                python3-numpy,
                python3-matplotlib,
