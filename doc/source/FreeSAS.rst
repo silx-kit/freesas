@@ -1,5 +1,5 @@
-General introduction
-====================
+Presentation of FreeSAS
+=======================
 
 FreeSAS is a Python package with small angles scattering tools in a MIT
 type license. It provides:
