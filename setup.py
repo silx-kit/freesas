@@ -57,7 +57,7 @@ try:
     from setuptools._distutils.command.clean import clean as Clean
     from setuptools._distutils.command.build import build as _build
 except ImportError as err:
-    print(f"Unable to use setuptools, {type(err)}: {err})
+    print(f"Unable to use setuptools, {type(err)}: {err}")
     try:
         from numpy.distutils.core import Command
     except ImportError:
