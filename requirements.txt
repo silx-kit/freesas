@@ -5,4 +5,5 @@ setuptools
 matplotlib
 sphinx
 sphinxcontrib-programoutput
+silx
 pyFAI
