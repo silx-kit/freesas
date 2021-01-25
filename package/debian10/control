@@ -19,7 +19,7 @@ Build-Depends: cython3,
                openstack-pkg-tools,
                help2man,
                dh-python,
-               sphinx_rtd_theme 
+               python3-sphinx-rtd-theme 
 Standards-Version: 3.9.8
 Vcs-Browser: https://anonscm.debian.org/cgit/debian-science/packages/freesas.git
 Vcs-Git: git://anonscm.debian.org/debian-science/packages/freesas.git
