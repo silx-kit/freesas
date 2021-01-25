@@ -1,5 +1,5 @@
-General introduction to FreeSAS
-===============================
+General introduction
+====================
 
 FreeSAS is a Python package with small angles scattering tools in a MIT
 type license. It provides:
@@ -8,6 +8,7 @@ type license. It provides:
 * cormap: Comparison of a set of (saxs) curves to decide if they are the same or not
 * bift: Bayesian inverse fourier transform
 * supcomb: overlay and averageing of dummy-atom models
+* extract_ascii: a tool to extract `.dat` files from HDF5 files provided at ESRF-BM29  
 
 
 Introduction
@@ -44,3 +45,4 @@ Project
    installation	
    test
    coverage
+   changelog
