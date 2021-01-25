@@ -1,7 +1,7 @@
 Change-log
 ##########
 
-FreeSAS v0.9.0 25/01/2021
+FreeSAS v0.8.5 25/01/2021
 =========================
 - BIFT for invert Fourier Transform 
 - New implementation of auto-guinier
