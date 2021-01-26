@@ -1,4 +1,4 @@
-Beed model alignment
+Bead model alignment
 ....................
 
 Here are presented some basics way to use beed-model alignment in FreeSAS as a library.

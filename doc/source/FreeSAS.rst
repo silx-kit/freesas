@@ -4,11 +4,11 @@ Presentation of FreeSAS
 FreeSAS is a Python package with small angles scattering tools in a MIT
 type license. It provides:
 
-* autorg: Automatique radius of giration assessement based on Guinier law
+* autorg: Automatic radius of gyration assessment based on Guinier law
 * cormap: Comparison of a set of (saxs) curves to decide if they are the same or not
 * bift: Bayesian inverse fourier transform
-* supcomb: overlay and averageing of dummy-atom models
-* extract_ascii: a tool to extract `.dat` files from HDF5 files provided at ESRF-BM29  
+* supcomb: overlay and averaging of dummy-atom models
+* extract_ascii: a tool to extract `.dat` files from HDF5 files provided at ESRF-BM29
 
 
 Introduction
@@ -26,7 +26,7 @@ FreeSAS code is available on Github at https://github.com/kif/freesas .
 Usage
 -----
 
-   
+
 .. toctree::
    :maxdepth: 2
 
@@ -42,7 +42,7 @@ Project
 .. toctree::
    :maxdepth: 1
 
-   installation	
+   installation
    test
    coverage
    changelog
