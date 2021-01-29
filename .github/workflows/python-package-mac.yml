@@ -14,14 +14,14 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
-        xcode: [latest-stable, 10, 11]
+        xcode-version: [latest-stable, 10, 11]
 
     steps:
     - uses: actions/checkout@v2
-    - name: Configure xcode
+    - name: Configure xcode ${{ matrix.xcode-version }}
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '11'
+        xcode-version: ${{ matrix.xcode-version }}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
