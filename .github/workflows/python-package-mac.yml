@@ -23,9 +23,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Configure xcode
       run: |
-        xcode-select -p
-        xcode-select --install
-        xcode-select -p
+        xcode-select --switch ${{matrix.xcode}}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
