@@ -22,7 +22,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure xcode
-      run: 
+      run: |
         xcode-select -p
         xcode-select --install
         xcode-select -p
