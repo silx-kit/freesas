@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
-        xcode: ["/Applications/Xcode_10.0.0.app/Contents/Developer", "/Applications/Xcode_11.0.0.app/Contents/Developer"]
+        xcode: ["/Applications/Xcode_10.3.app/Contents/Developer", "/Applications/Xcode_11.4.1.app/Contents/Developer"]
 
     env:
         DEVELOPER_DIR: ${{matrix.xcode}}
