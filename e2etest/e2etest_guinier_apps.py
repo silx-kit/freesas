@@ -35,7 +35,9 @@ class TestFreeSAS(unittest.TestCase):
             stderr=STDOUT,
             check=True,
         )
-        self.assertEqual(run_app.returncode, 0, msg=f"{app_name} completed well")
+        self.assertEqual(
+            run_app.returncode, 0, msg=f"{app_name} completed well"
+        )
         run_app_output = str(run_app.stdout, "utf-8")[:-1]
         self.assertFalse(
             linesep in run_app_output,
@@ -89,7 +91,7 @@ class TestFreeSAS(unittest.TestCase):
             self.assertTrue("Rg" in result, f"Rg in {app_name} output")
 
     def test_csv_output_with_two_files(self):
-        """Test wether the about in csv format is consistent"""
+        """Test whether the output in csv format is consistent"""
         app_name: str = self.extra_arg["app"]
         test_output_name = pathlib.Path(self.cwd, f"{app_name}.csv")
         try:
@@ -123,7 +125,9 @@ class TestFreeSAS(unittest.TestCase):
         with open(test_output_name, "r") as test_output_file:
             test_output_header = test_output_file.readline()[:-1].split(",")
             test_output_result = test_output_file.readlines()
-        test_output_result = [line[:-1].split(",") for line in test_output_result]
+        test_output_result = [
+            line[:-1].split(",") for line in test_output_result
+        ]
         expected_header = {
             "File",
             "Rg",
@@ -230,15 +234,134 @@ class TestFreeSAS(unittest.TestCase):
                     msg=f"Aggregation number for SASDF52 by {app_name} below 0.1",
                 )
 
+    def test_ssv_output_with_two_files(self):
+        """Test wether the output in the ssv table has the correct dimensions"""
+        app_name: str = self.extra_arg["app"]
+        test_output_name = pathlib.Path(self.cwd, f"{app_name}.ssv")
+        try:
+            test_output_name.unlink()
+        except FileNotFoundError:
+            pass
+        run_app = run(
+            [
+                app_name,
+                str(self.bsa_filename),
+                str(self.sas_curve2_filename),
+                "-o",
+                test_output_name,
+                "-f",
+                "ssv",
+            ],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_app.returncode,
+            0,
+            msg=f"{app_name} for 2 files to csv completed well",
+        )
+        self.assertEqual(
+            run_app.stdout,
+            b"",
+            msg=f"{app_name} for 2 files to ssv provided no output to stdout",
+        )
+        with open(test_output_name, "r") as test_output_file:
+            test_output_result = test_output_file.readlines()
+        test_output_result = [line[:-1].split() for line in test_output_result]
+
+        self.assertEqual(
+            len(test_output_result),
+            2,
+            msg=f"results created by {app_name} in native have the expected number of rows",
+        )
+        self.assertTrue(
+            len(test_output_result[0]) == 9
+            and len(test_output_result[1]) == 9,
+            msg=f"results created by {app_name} in ssv have the expected number of elements",
+        )
+        self.assertEqual(
+            {str(self.bsa_filename), str(self.sas_curve2_filename)},
+            {
+                test_output_result[0][-1],
+                test_output_result[1][-1],
+            },
+            msg=f"ssv file created by {app_name} contains the filenames at the end of each row",
+        )
+
+    def test_native_output_with_two_files(self):
+        """Test wether the output in the antive format has the correct dimensions"""
+        app_name: str = self.extra_arg["app"]
+        test_output_name = pathlib.Path(self.cwd, f"{app_name}.txt")
+        try:
+            test_output_name.unlink()
+        except FileNotFoundError:
+            pass
+        run_app = run(
+            [
+                app_name,
+                str(self.bsa_filename),
+                str(self.sas_curve2_filename),
+                "-o",
+                test_output_name,
+            ],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_app.returncode,
+            0,
+            msg=f"{app_name} for 2 files to native completed well",
+        )
+        self.assertEqual(
+            run_app.stdout,
+            b"",
+            msg=f"{app_name} for 2 files to native provided no output to stdout",
+        )
+        with open(test_output_name, "r") as test_output_file:
+            test_output_result = test_output_file.readlines()
+        test_output_result = [line[:-1].split() for line in test_output_result]
+
+        self.assertEqual(
+            len(test_output_result),
+            2,
+            msg=f"results created by {app_name} in native have the expected number of rows",
+        )
+        self.assertTrue(
+            len(test_output_result[0]) == 5
+            and len(test_output_result[1]) == 5,
+            msg=f"results created by {app_name} in native have the expected number of elements",
+        )
+        self.assertEqual(
+            {str(self.bsa_filename), str(self.sas_curve2_filename)},
+            {
+                test_output_result[0][0],
+                test_output_result[1][0],
+            },
+            msg=f"native file created by {app_name} contains "
+            "the filenames at the start of each row",
+        )
+
 
 def suite():
     test_suite = unittest.TestSuite()
     for app in ["auto_gpa.py", "auto_guinier.py", "autorg.py"]:
-        test_suite.addTest(TestFreeSAS("test_one_bm29_bsa_without_arguments", app=app))
+        test_suite.addTest(
+            TestFreeSAS("test_one_bm29_bsa_without_arguments", app=app)
+        )
         test_suite.addTest(
             TestFreeSAS("test_two_easy_files_without_arguments", app=app)
         )
-        test_suite.addTest(TestFreeSAS("test_csv_output_with_two_files", app=app))
+        test_suite.addTest(
+            TestFreeSAS("test_csv_output_with_two_files", app=app)
+        )
+        test_suite.addTest(
+            TestFreeSAS("test_ssv_output_with_two_files", app=app)
+        )
+        test_suite.addTest(
+            TestFreeSAS("test_native_output_with_two_files", app=app)
+        )
     return test_suite
 
 
