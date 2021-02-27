@@ -30,7 +30,7 @@ class TestFreeSAS(unittest.TestCase):
         """
         app_name: str = self.extra_arg["app"]
         run_app = run(
-            [app_name, str(self.bsa_filename)],
+            ["autorg.py", str(self.bsa_filename)],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
