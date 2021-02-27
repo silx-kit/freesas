@@ -30,7 +30,7 @@ class TestFreeSAS(unittest.TestCase):
         """
         app_name: str = self.extra_arg["app"]
         run_app = run(
-            ["autorg.py", str(self.bsa_filename)],
+            [app_name, str(self.bsa_filename)],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -346,7 +346,7 @@ class TestFreeSAS(unittest.TestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
-    for app in ["auto_gpa.py", "auto_guinier.py", "autorg.py"]:
+    for app in ["auto_gpapy", "auto_guinierpy", "autorgpy"]:
         test_suite.addTest(
             TestFreeSAS("test_one_bm29_bsa_without_arguments", app=app)
         )

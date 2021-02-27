@@ -51,16 +51,19 @@ except (ImportError) as err:
     print(f"Unable to use setuptools, {type(err)}: {err}")
     from distutils.command.clean import clean as Clean
     from distutils.command.build import build as _build
-    
+
 try:
     from setuptools import Command
     from setuptools.command.build_py import build_py as _build_py
     from setuptools.command.sdist import sdist
+
     try:
         from Cython.Build import build_ext
+
         logger.info("Use setuptools with cython")
     except ImportError:
         from setuptools.command.build_ext import build_ext
+
         logger.info("Use setuptools, cython is missing")
 except ImportError as err:
     print(f"Unable to use setuptools, {type(err)}: {err}")
@@ -70,26 +73,36 @@ except ImportError as err:
         from distutils.core import Command
     from distutils.command.build_py import build_py as _build_py
     from distutils.command.sdist import sdist
+
     try:
         from Cython.Build import build_ext
+
         logger.info("Use distutils with cython")
     except ImportError:
         from distutils.command.build_ext import build_ext
+
         logger.info("Use distutils, cython is missing")
 try:
     import sphinx
     import sphinx.util.console
+
     sphinx.util.console.color_terminal = lambda: False
     from sphinx.setup_command import BuildDoc
 except ImportError:
     sphinx = None
 
-if "LANG" not in os.environ and platform.system() == "Darwin" and sys.version_info[0] > 2:
-    print("""WARNING: the LANG environment variable is not defined,
+if (
+    "LANG" not in os.environ
+    and platform.system() == "Darwin"
+    and sys.version_info[0] > 2
+):
+    print(
+        """WARNING: the LANG environment variable is not defined,
 an utf-8 LANG is mandatory to use setup.py, you may face unexpected UnicodeError.
 export LANG=en_US.utf-8
 export LC_ALL=en_US.utf-8
-""")
+"""
+    )
 
 
 def get_version():
@@ -97,6 +110,7 @@ def get_version():
     dirname = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, dirname)
     import version
+
     sys.path = sys.path[1:]
     return version.strictversion
 
@@ -110,24 +124,25 @@ def get_readme():
     return long_description
 
 
-classifiers = ["Development Status :: 5 - Production/Stable",
-               "Environment :: Console",
-               "Intended Audience :: Developers",
-               "Intended Audience :: Education",
-               "Intended Audience :: Science/Research",
-               "License :: OSI Approved :: MIT License",
-               "Natural Language :: English",
-               "Operating System :: MacOS :: MacOS X",
-               "Operating System :: Microsoft :: Windows",
-               "Operating System :: Unix",
-               "Operating System :: POSIX",
-               "Programming Language :: Cython",
-               "Programming Language :: Python :: 3",
-               "Programming Language :: Python :: Implementation :: CPython",
-               "Topic :: Scientific/Engineering :: Physics",
-               "Topic :: Software Development :: Libraries :: Python Modules",
-               "Topic :: Scientific/Engineering :: Bio-Informatics"
-               ]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Operating System :: POSIX",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 
 # ########## #
 # version.py #
@@ -142,8 +157,9 @@ class build_py(_build_py):
     def find_package_modules(self, package, package_dir):
         modules = _build_py.find_package_modules(self, package, package_dir)
         if package == PROJECT:
-            modules.append((PROJECT, '_version', 'version.py'))
+            modules.append((PROJECT, "_version", "version.py"))
         return modules
+
 
 ########
 # Test #
@@ -152,6 +168,7 @@ class build_py(_build_py):
 
 class PyTest(Command):
     """Command to start tests running the script: run_tests.py"""
+
     user_options = []
 
     description = "Execute the unittests"
@@ -164,9 +181,11 @@ class PyTest(Command):
 
     def run(self):
         import subprocess
-        errno = subprocess.call([sys.executable, 'run_tests.py'])
+
+        errno = subprocess.call([sys.executable, "run_tests.py"])
         if errno != 0:
             raise SystemExit(errno)
+
 
 # ################### #
 # build_doc command   #
@@ -177,6 +196,7 @@ if sphinx is None:
 
     class SphinxExpectedCommand(Command):
         """Command to inform that sphinx is missing"""
+
         user_options = []
 
         def initialize_options(self):
@@ -187,8 +207,9 @@ if sphinx is None:
 
         def run(self):
             raise RuntimeError(
-                'Sphinx is required to build or test the documentation.\n'
-                'Please install Sphinx (http://www.sphinx-doc.org).')
+                "Sphinx is required to build or test the documentation.\n"
+                "Please install Sphinx (http://www.sphinx-doc.org)."
+            )
 
 
 class BuildMan(Command):
@@ -207,8 +228,8 @@ class BuildMan(Command):
     def entry_points_iterator(self):
         """Iterate other entry points available on the project."""
         entry_points = self.distribution.entry_points
-        console_scripts = entry_points.get('console_scripts', [])
-        gui_scripts = entry_points.get('gui_scripts', [])
+        console_scripts = entry_points.get("console_scripts", [])
+        gui_scripts = entry_points.get("gui_scripts", [])
         scripts = []
         scripts.extend(console_scripts)
         scripts.extend(gui_scripts)
@@ -222,7 +243,9 @@ class BuildMan(Command):
             function_name = elements[1].strip()
             yield target_name, module_name, function_name
 
-    def run_targeted_script(self, target_name, script_name, env, log_output=False):
+    def run_targeted_script(
+        self, target_name, script_name, env, log_output=False
+    ):
         """Execute targeted script using --help and --version to help checking
         errors. help2man is not very helpful to do it for us.
 
@@ -240,13 +263,16 @@ class BuildMan(Command):
             except ImportError:
                 # Python 2
                 import os
-                DEVNULL = open(os.devnull, 'wb')
-            extra_args = {'stdout': DEVNULL, 'stderr': DEVNULL}
+
+                DEVNULL = open(os.devnull, "wb")
+            extra_args = {"stdout": DEVNULL, "stderr": DEVNULL}
 
         succeeded = True
         command_line = [sys.executable, script_name, "--help"]
         if log_output:
-            logger.info("See the following execution of: %s", " ".join(command_line))
+            logger.info(
+                "See the following execution of: %s", " ".join(command_line)
+            )
         p = subprocess.Popen(command_line, env=env, **extra_args)
         status = p.wait()
         if log_output:
@@ -254,7 +280,9 @@ class BuildMan(Command):
         succeeded = succeeded and status == 0
         command_line = [sys.executable, script_name, "--version"]
         if log_output:
-            logger.info("See the following execution of: %s", " ".join(command_line))
+            logger.info(
+                "See the following execution of: %s", " ".join(command_line)
+            )
         p = subprocess.Popen(command_line, env=env, **extra_args)
         status = p.wait()
         if log_output:
@@ -263,7 +291,7 @@ class BuildMan(Command):
         return succeeded
 
     def run(self):
-        build = self.get_finalized_command('build')
+        build = self.get_finalized_command("build")
         path = sys.path
         path.insert(0, os.path.abspath(build.build_lib))
 
@@ -274,6 +302,7 @@ class BuildMan(Command):
         import subprocess
         import tempfile
         import stat
+
         script_name = None
         workdir = tempfile.mkdtemp()
 
@@ -304,18 +333,35 @@ class BuildMan(Command):
                     command_line.append("--no-discard-stderr")
                     # Then we dont know if the documentation will contains
                     # durtty things
-                    succeeded = self.run_targeted_script(target_name, script_name, env, False)
+                    succeeded = self.run_targeted_script(
+                        target_name, script_name, env, False
+                    )
                     if not succeeded:
-                        logger.info("Error while generating man file for target '%s'.", target_name)
-                        self.run_targeted_script(target_name, script_name, env, True)
-                        raise RuntimeError("Fail to generate '%s' man documentation" % target_name)
+                        logger.info(
+                            "Error while generating man file for target '%s'.",
+                            target_name,
+                        )
+                        self.run_targeted_script(
+                            target_name, script_name, env, True
+                        )
+                        raise RuntimeError(
+                            "Fail to generate '%s' man documentation"
+                            % target_name
+                        )
 
                 p = subprocess.Popen(command_line, env=env)
                 status = p.wait()
                 if status != 0:
-                    logger.info("Error while generating man file for target '%s'.", target_name)
-                    self.run_targeted_script(target_name, script_name, env, True)
-                    raise RuntimeError("Fail to generate '%s' man documentation" % target_name)
+                    logger.info(
+                        "Error while generating man file for target '%s'.",
+                        target_name,
+                    )
+                    self.run_targeted_script(
+                        target_name, script_name, env, True
+                    )
+                    raise RuntimeError(
+                        "Fail to generate '%s' man documentation" % target_name
+                    )
             finally:
                 # clean up the script
                 if script_name is not None:
@@ -336,7 +382,7 @@ if sphinx is not None:
             # code so that the documentation is built on this and not a
             # previously installed version
 
-            build = self.get_finalized_command('build')
+            build = self.get_finalized_command("build")
             sys.path.insert(0, os.path.abspath(build.build_lib))
 
             # # Copy .ui files to the path:
@@ -352,12 +398,13 @@ if sphinx is not None:
             #             shutil.copy(src, idst)
 
             # Build the Users Guide in HTML and TeX format
-            for builder in ['html', 'latex']:
+            for builder in ["html", "latex"]:
                 self.builder = builder
                 self.builder_target_dir = os.path.join(self.build_dir, builder)
                 self.mkpath(self.builder_target_dir)
                 BuildDoc.run(self)
             sys.path.pop(0)
+
 
 else:
     BuildDocCommand = SphinxExpectedCommand
@@ -379,16 +426,17 @@ if sphinx is not None:
             # code so that the documentation is built on this and not a
             # previously installed version
 
-            build = self.get_finalized_command('build')
+            build = self.get_finalized_command("build")
             sys.path.insert(0, os.path.abspath(build.build_lib))
 
             # Build the Users Guide in HTML and TeX format
-            for builder in ['doctest']:
+            for builder in ["doctest"]:
                 self.builder = builder
                 self.builder_target_dir = os.path.join(self.build_dir, builder)
                 self.mkpath(self.builder_target_dir)
                 BuildDoc.run(self)
             sys.path.pop(0)
+
 
 else:
     TestDocCommand = SphinxExpectedCommand
@@ -398,7 +446,7 @@ else:
 # ############################# #
 
 
-def configuration(parent_package='', top_path=None):
+def configuration(parent_package="", top_path=None):
     """Recursive construction of package info to be used in setup().
 
     See http://docs.scipy.org/doc/numpy/reference/distutils.html#numpy.distutils.misc_util.Configuration
@@ -408,15 +456,18 @@ def configuration(parent_package='', top_path=None):
     except ImportError:
         raise ImportError(
             "To install this package, you must install numpy first\n"
-            "(See https://pypi.python.org/pypi/numpy)")
+            "(See https://pypi.python.org/pypi/numpy)"
+        )
     config = Configuration(None, parent_package, top_path)
     config.set_options(
         ignore_setup_xxx_py=True,
         assume_default_configuration=True,
         delegate_options_to_subpackages=True,
-        quiet=True)
+        quiet=True,
+    )
     config.add_subpackage(PROJECT)
     return config
+
 
 # ############## #
 # Compiler flags #
@@ -427,16 +478,17 @@ class Build(_build):
     """Command to support more user options for the build."""
 
     user_options = [
-        ('no-openmp', None,
-         "do not use OpenMP for compiled extension modules"),
-        ('openmp', None,
-         "use OpenMP for the compiled extension modules"),
-        ('force-cython', None,
-         "recompile all Cython extension modules"),
+        (
+            "no-openmp",
+            None,
+            "do not use OpenMP for compiled extension modules",
+        ),
+        ("openmp", None, "use OpenMP for the compiled extension modules"),
+        ("force-cython", None, "recompile all Cython extension modules"),
     ]
     user_options.extend(_build.user_options)
 
-    boolean_options = ['no-openmp', 'openmp', 'force-cython']
+    boolean_options = ["no-openmp", "openmp", "force-cython"]
     boolean_options.extend(_build.boolean_options)
 
     def initialize_options(self):
@@ -488,7 +540,9 @@ class Build(_build):
                 # By default Xcode5 & XCode6 do not support OpenMP, Xcode4 is OK.
                 osx = tuple([int(i) for i in platform.mac_ver()[0].split(".")])
                 if osx >= (10, 8):
-                    logger.warning("OpenMP support ignored. Your platform does not support it.")
+                    logger.warning(
+                        "OpenMP support ignored. Your platform does not support it."
+                    )
                     use_openmp = False
 
         # Remove attributes used by distutils parsing
@@ -508,11 +562,11 @@ class BuildExt(build_ext):
     - If building with MSVC, compiler flags are converted from gcc flags.
     """
 
-    COMPILE_ARGS_CONVERTER = {'-fopenmp': '/openmp'}
+    COMPILE_ARGS_CONVERTER = {"-fopenmp": "/openmp"}
 
-    LINK_ARGS_CONVERTER = {'-fopenmp': ''}
+    LINK_ARGS_CONVERTER = {"-fopenmp": ""}
 
-    description = 'Build extensions'
+    description = "Build extensions"
 
     def finalize_options(self):
         build_ext.finalize_options(self)
@@ -528,12 +582,12 @@ class BuildExt(build_ext):
         """
         # Cytonize
         from Cython.Build import cythonize
+
         patched_exts = cythonize(
-                                 [ext],
-                                 compiler_directives={'embedsignature': True,
-                                 'language_level': 3},
-                                 force=self.force_cython,
-                                 compile_time_env={"HAVE_OPENMP": self.use_openmp}
+            [ext],
+            compiler_directives={"embedsignature": True, "language_level": 3},
+            force=self.force_cython,
+            compile_time_env={"HAVE_OPENMP": self.use_openmp},
         )
 
         ext.sources = patched_exts[0].sources
@@ -541,39 +595,53 @@ class BuildExt(build_ext):
         # Remove OpenMP flags if OpenMP is disabled
         if not self.use_openmp:
             ext.extra_compile_args = [
-                f for f in ext.extra_compile_args if f != '-fopenmp']
+                f for f in ext.extra_compile_args if f != "-fopenmp"
+            ]
             ext.extra_link_args = [
-                f for f in ext.extra_link_args if f != '-fopenmp']
+                f for f in ext.extra_link_args if f != "-fopenmp"
+            ]
 
         # Convert flags from gcc to MSVC if required
-        if self.compiler.compiler_type == 'msvc':
-            extra_compile_args = [self.COMPILE_ARGS_CONVERTER.get(f, f)
-                                  for f in ext.extra_compile_args]
+        if self.compiler.compiler_type == "msvc":
+            extra_compile_args = [
+                self.COMPILE_ARGS_CONVERTER.get(f, f)
+                for f in ext.extra_compile_args
+            ]
             # Avoid empty arg
             ext.extra_compile_args = [arg for arg in extra_compile_args if arg]
 
-            extra_link_args = [self.LINK_ARGS_CONVERTER.get(f, f)
-                               for f in ext.extra_link_args]
+            extra_link_args = [
+                self.LINK_ARGS_CONVERTER.get(f, f) for f in ext.extra_link_args
+            ]
             # Avoid empty arg
             ext.extra_link_args = [arg for arg in extra_link_args if arg]
 
-        elif self.compiler.compiler_type == 'unix':
+        elif self.compiler.compiler_type == "unix":
             # Avoids runtime symbol collision for manylinux1 platform
             # See issue #1070
-            extern = 'extern "C" ' if ext.language == 'c++' else ''
-            return_type = 'void' if sys.version_info[0] <= 2 else 'PyObject*'
+            extern = 'extern "C" ' if ext.language == "c++" else ""
+            return_type = "void" if sys.version_info[0] <= 2 else "PyObject*"
 
-            ext.extra_compile_args.append('-fvisibility=hidden')
+            ext.extra_compile_args.append("-fvisibility=hidden")
 
             import numpy
-            numpy_version = [int(i) for i in numpy.version.short_version.split(".", 2)[:2]]
+
+            numpy_version = [
+                int(i) for i in numpy.version.short_version.split(".", 2)[:2]
+            ]
             if numpy_version < [1, 16]:
                 ext.extra_compile_args.append(
-                    '''-D'PyMODINIT_FUNC=%s__attribute__((visibility("default"))) %s ' ''' % (extern, return_type))
+                    """-D'PyMODINIT_FUNC=%s__attribute__((visibility("default"))) %s ' """
+                    % (extern, return_type)
+                )
             else:
                 ext.define_macros.append(
-                    ('PyMODINIT_FUNC',
-                     '%s__attribute__((visibility("default"))) %s ' % (extern, return_type)))
+                    (
+                        "PyMODINIT_FUNC",
+                        '%s__attribute__((visibility("default"))) %s '
+                        % (extern, return_type),
+                    )
+                )
 
     def is_debug_interpreter(self):
         """
@@ -630,7 +698,7 @@ class BuildExt(build_ext):
                 args.append("-O0")
             # only strip asserts in release mode
             if not debug_mode:
-                args.append('-DNDEBUG')
+                args.append("-DNDEBUG")
             # patch options
             self.compiler.compiler_so = list(args)
 
@@ -639,6 +707,7 @@ class BuildExt(build_ext):
         for ext in self.extensions:
             self.patch_extension(ext)
         build_ext.build_extensions(self)
+
 
 ################################################################################
 # Clean command
@@ -674,9 +743,10 @@ class CleanCommand(Clean):
         :returns: A list of path without magic
         """
         import fnmatch
+
         path_list2 = []
         for pattern in path_list:
-            for root, _, filenames in os.walk('.'):
+            for root, _, filenames in os.walk("."):
                 for filename in fnmatch.filter(filenames, pattern):
                     path_list2.append(os.path.join(root, filename))
         return path_list2
@@ -685,8 +755,12 @@ class CleanCommand(Clean):
         Clean.run(self)
 
         cython_files = self.find(["*.pyx"])
-        cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
-        cythonized_files += [path.replace(".pyx", ".cpp") for path in cython_files]
+        cythonized_files = [
+            path.replace(".pyx", ".c") for path in cython_files
+        ]
+        cythonized_files += [
+            path.replace(".pyx", ".cpp") for path in cython_files
+        ]
 
         # really remove the directories
         # and not only if they are empty
@@ -705,6 +779,7 @@ class CleanCommand(Clean):
                 except OSError:
                     pass
 
+
 ################################################################################
 # Debian source tree
 ################################################################################
@@ -720,11 +795,14 @@ class sdist_debian(sdist):
     * include .l man files
     """
 
-    description = "Create a source distribution for Debian (tarball, zip file, etc.)"
+    description = (
+        "Create a source distribution for Debian (tarball, zip file, etc.)"
+    )
 
     @staticmethod
     def get_debian_name():
         import version
+
         name = "%s_%s" % (PROJECT, version.debianversion)
         return name
 
@@ -740,7 +818,9 @@ class sdist_debian(sdist):
         for root, _, files in os.walk(search_root):
             for afile in files:
                 if os.path.splitext(afile)[1].lower() == ".pyx":
-                    base_file = os.path.join(root, afile)[len(search_root) + 1:-4]
+                    base_file = os.path.join(root, afile)[
+                        len(search_root) + 1 : -4
+                    ]
                     self.filelist.exclude_pattern(pattern=base_file + ".c")
                     self.filelist.exclude_pattern(pattern=base_file + ".cpp")
                     self.filelist.exclude_pattern(pattern=base_file + ".html")
@@ -763,10 +843,13 @@ class sdist_debian(sdist):
         # sp = dest.split("-")
         # base = sp[:-1]
         # nr = sp[-1]
-        debian_arch = os.path.join(dirname, self.get_debian_name() + ".orig.tar.gz")
+        debian_arch = os.path.join(
+            dirname, self.get_debian_name() + ".orig.tar.gz"
+        )
         os.rename(self.archive_files[0], debian_arch)
         self.archive_files = [debian_arch]
         print("Building debian .orig.tar.gz in %s" % self.archive_files[0])
+
 
 # ##### #
 # setup #
@@ -781,6 +864,7 @@ def get_project_configuration(dry_run):
         numpy_requested_version = ""
     else:
         from numpy.version import version as numpy_version
+
         numpy_requested_version = ">=%s" % numpy_version
         logger.info("Install requires: numpy %s", numpy_requested_version)
 
@@ -790,12 +874,10 @@ def get_project_configuration(dry_run):
         # for the script launcher
         "setuptools",
         "six",
-        "scipy"]
+        "scipy",
+    ]
 
-    setup_requires = ["setuptools",
-                      "numpy",
-                      "cython",
-                      "scipy"]
+    setup_requires = ["setuptools", "numpy", "cython", "scipy"]
 
     package_data = {
         # Resources files for silx
@@ -816,15 +898,16 @@ def get_project_configuration(dry_run):
     }
 
     entry_points = {
-        'console_scripts': ['auto_gpa.py = freesas.app.auto_gpa:main',
-                            'auto_guinier.py = freesas.app.auto_guinier:main',
-                            'autorg.py = freesas.app.autorg:main',
-                            'cormap.py = freesas.app.cormap:main',
-                            'supycomb.py = freesas.app.supycomb:main',
-                            'bift.py = freesas.app.bift:main',
-                            'freesas = freesas.app.plot_sas:main',
-                            'extract_ascii = freesas.app.extract_ascii:main',
-                           ],
+        "console_scripts": [
+            "auto_gpapy = freesas.app.auto_gpa:main",
+            "auto_guinierpy = freesas.app.auto_guinier:main",
+            "autorgpy = freesas.app.autorg:main",
+            "cormap.py = freesas.app.cormap:main",
+            "supycomb.py = freesas.app.supycomb:main",
+            "bift.py = freesas.app.bift:main",
+            "freesas = freesas.app.plot_sas:main",
+            "extract_ascii = freesas.app.extract_ascii:main",
+        ],
         # 'gui_scripts': [],
     }
 
@@ -837,7 +920,8 @@ def get_project_configuration(dry_run):
         build_ext=BuildExt,
         build_man=BuildMan,
         clean=CleanCommand,
-        debian_src=sdist_debian)
+        debian_src=sdist_debian,
+    )
 
     if dry_run:
         # DRY_RUN implies actions which do not require NumPy
@@ -850,27 +934,28 @@ def get_project_configuration(dry_run):
         config = configuration()
         setup_kwargs = config.todict()
 
-    setup_kwargs.update(name=PROJECT,
-                        version=get_version(),
-                        url="http://www.silx.org/",
-                        author="Guillaume Bonamis, Martha Brennich, Jerome Kieffer",
-                        author_email="jerome.kieffer@esrf.fr",
-                        classifiers=classifiers,
-                        description="Free tools to analyze Small angle scattering data",
-                        long_description=get_readme(),
-                        install_requires=install_requires,
-                        setup_requires=setup_requires,
-                        cmdclass=cmdclass,
-                        package_data=package_data,
-                        zip_safe=False,
-                        entry_points=entry_points,
-                        python_requires='>=3.6',
-                        )
-#      packages=["freesas", "freesas.test"],
-#      data_files=glob.glob("testdata/*"),
-#      scripts=script_files,
-#      install_requires=['numpy', "six"],
-#      ext_modules=ext_modules,
+    setup_kwargs.update(
+        name=PROJECT,
+        version=get_version(),
+        url="http://www.silx.org/",
+        author="Guillaume Bonamis, Martha Brennich, Jerome Kieffer",
+        author_email="jerome.kieffer@esrf.fr",
+        classifiers=classifiers,
+        description="Free tools to analyze Small angle scattering data",
+        long_description=get_readme(),
+        install_requires=install_requires,
+        setup_requires=setup_requires,
+        cmdclass=cmdclass,
+        package_data=package_data,
+        zip_safe=False,
+        entry_points=entry_points,
+        python_requires=">=3.6",
+    )
+    #      packages=["freesas", "freesas.test"],
+    #      data_files=glob.glob("testdata/*"),
+    #      scripts=script_files,
+    #      install_requires=['numpy', "six"],
+    #      ext_modules=ext_modules,
 
     return setup_kwargs
 
@@ -883,24 +968,31 @@ def setup_package():
     """
 
     # Check if action requires build/install
-    dry_run = len(sys.argv) == 1 or (len(sys.argv) >= 2 and (
-        '--help' in sys.argv[1:] or
-        sys.argv[1] in ('--help-commands', 'egg_info', '--version',
-                        'clean', '--name')))
+    dry_run = len(sys.argv) == 1 or (
+        len(sys.argv) >= 2
+        and (
+            "--help" in sys.argv[1:]
+            or sys.argv[1]
+            in ("--help-commands", "egg_info", "--version", "clean", "--name")
+        )
+    )
 
     if dry_run:
         # DRY_RUN implies actions which do not require dependencies, like NumPy
         try:
             from setuptools import setup
+
             logger.info("Use setuptools.setup")
         except ImportError:
             from distutils.core import setup
+
             logger.info("Use distutils.core.setup")
     else:
         try:
             from setuptools import setup
         except ImportError:
             from numpy.distutils.core import setup
+
             logger.info("Use numpy.distutils.setup")
 
     setup_kwargs = get_project_configuration(dry_run)
