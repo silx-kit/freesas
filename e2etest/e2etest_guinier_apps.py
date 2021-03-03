@@ -9,6 +9,7 @@ import pathlib
 import logging
 from subprocess import run, PIPE, STDOUT
 from os import linesep
+from os.path import normpath
 from platform import system
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class TestFreeSAS(unittest.TestCase):
         """
         app_name: str = self.extra_arg["app"]
         run_app = run(
-            [app_name, str(self.bsa_filename)],
+            [app_name, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
