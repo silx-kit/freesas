@@ -9,6 +9,7 @@ import pathlib
 import logging
 from subprocess import run, PIPE, STDOUT
 from os import linesep
+from platform import system
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class TestFreeSAS(unittest.TestCase):
 
     def test_one_bm29_bsa_without_arguments(self):
         """
-        Test whether auto_gpa.py on BSA data from BM29 returns one line.
+        Test whether guinier fit apps on BSA data from BM29 returns one line.
         """
         app_name: str = self.extra_arg["app"]
         run_app = run(
@@ -38,7 +39,10 @@ class TestFreeSAS(unittest.TestCase):
         self.assertEqual(
             run_app.returncode, 0, msg=f"{app_name} completed well"
         )
-        run_app_output = str(run_app.stdout, "utf-8")[:-1]
+        if system() == "Windows":
+            run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+        else:
+            run_app_output = str(run_app.stdout, "utf-8")[:-1]
         self.assertFalse(
             linesep in run_app_output,
             "One line of output of {app_name}",
@@ -47,7 +51,7 @@ class TestFreeSAS(unittest.TestCase):
             str(self.bsa_filename) in run_app_output,
             msg="filename of testdata found in output of {app_name}",
         )
-        self.assertTrue("I₀" in run_app_output, msg=f"I₀ in {app_name}")
+        self.assertTrue("I0" in run_app_output, msg=f"I0 in {app_name}")
         self.assertTrue("Rg" in run_app_output, msg=f"Rg in {app_name}")
 
     def test_two_easy_files_without_arguments(self):
@@ -70,12 +74,18 @@ class TestFreeSAS(unittest.TestCase):
             0,
             msg=f"{app_name} for 2 files completed well",
         )
+        if system() == "Windows":
+            run_app_output_raw = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+            run_app_output = run_app_output_raw.split("\\n")[:-1]
+        else:
+            run_app_output_raw = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output = run_app_output_raw.split(linesep)
         self.assertTrue(
-            str(self.bsa_filename) in str(run_app.stdout, "utf-8")
-            and str(self.sas_curve2_filename) in str(run_app.stdout, "utf-8"),
+            str(self.bsa_filename) in run_app_output_raw
+            and str(self.sas_curve2_filename) in run_app_output_raw,
             f"filename of testdata found in output in output of {app_name}",
         )
-        run_app_output = str(run_app.stdout, "utf-8")[:-1].split(linesep)
+
         self.assertEqual(
             len(run_app_output),
             2,
@@ -87,7 +97,7 @@ class TestFreeSAS(unittest.TestCase):
                 or str(self.sas_curve2_filename) in result,
                 f"filename of testdata not found in result line for {app_name}",
             )
-            self.assertTrue("I" in result, f"I₀ in {app_name} output")
+            self.assertTrue("I" in result, f"I0 in {app_name} output")
             self.assertTrue("Rg" in result, f"Rg in {app_name} output")
 
     def test_csv_output_with_two_files(self):
@@ -346,7 +356,9 @@ class TestFreeSAS(unittest.TestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
-    for app in ["auto_gpapy", "auto_guinierpy", "autorgpy"]:
+    for app in ["auto_gpa.py", "auto_guinier.py", "autorg.py"]:
+        if system() == "Windows":
+            app += ".exe"
         test_suite.addTest(
             TestFreeSAS("test_one_bm29_bsa_without_arguments", app=app)
         )
