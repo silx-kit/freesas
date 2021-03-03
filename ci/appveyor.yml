@@ -64,6 +64,7 @@ test_script:
     #end to end tests
     - "mkdir empty"
     - "cd empty"
+    - "freesas ../e2etest/e2etest_data/bsa_005_sub.dat -o test.png"
     - "auto_gpa.py.exe ../e2etest/e2etest_data/bsa_005_sub.dat"
     - "python ../e2etest/e2etest.py"
 
