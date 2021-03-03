@@ -133,7 +133,7 @@ class TestFreeSAS(unittest.TestCase):
             b"",
             msg=f"{app_name} for 2 files to csv provided no output to stdout",
         )
-        with open(test_output_name, "r") as test_output_file:
+        with open(str(test_output_name), "r") as test_output_file:
             test_output_header = test_output_file.readline()[:-1].split(",")
             test_output_result = test_output_file.readlines()
         test_output_result = [
@@ -277,7 +277,7 @@ class TestFreeSAS(unittest.TestCase):
             b"",
             msg=f"{app_name} for 2 files to ssv provided no output to stdout",
         )
-        with open(test_output_name, "r") as test_output_file:
+        with open(str(test_output_name), "r") as test_output_file:
             test_output_result = test_output_file.readlines()
         test_output_result = [line[:-1].split() for line in test_output_result]
 
@@ -330,7 +330,7 @@ class TestFreeSAS(unittest.TestCase):
             b"",
             msg=f"{app_name} for 2 files to native provided no output to stdout",
         )
-        with open(test_output_name, "r") as test_output_file:
+        with open(str(test_output_name), "r") as test_output_file:
             test_output_result = test_output_file.readlines()
         test_output_result = [line[:-1].split() for line in test_output_result]
 
