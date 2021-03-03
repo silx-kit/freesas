@@ -32,11 +32,13 @@ __date__ = "05/06/2020"
 import sys
 import logging
 import platform
-from os import linesep
+from os import linesep as os_linesep
 from pathlib import Path
 from freesas import autorg
-from freesas.sasio import load_scattering_data, \
-                          convert_inverse_angstrom_to_nanometer
+from freesas.sasio import (
+    load_scattering_data,
+    convert_inverse_angstrom_to_nanometer,
+)
 from .sas_argparser import GuinierParser
 
 logging.basicConfig(level=logging.WARNING)
@@ -47,17 +49,20 @@ if sys.version_info < (3, 6):
 
 
 def parse():
-    """ Parse input and return list of files.
+    """Parse input and return list of files.
     :return: list of input files
     """
-    description = "Calculate the radius of gyration using Guinier law" \
-                  " for a set of scattering curves"
+    description = (
+        "Calculate the radius of gyration using Guinier law"
+        " for a set of scattering curves"
+    )
     epilog = """autorg.py is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
     As this is reverse engineered, some constants and results may differ
     """
-    parser = GuinierParser(prog="autorg.py", description=description,
-                           epilog=epilog)
+    parser = GuinierParser(
+        prog="autorg.py", description=description, epilog=epilog
+    )
     return parser.parse_args()
 
 
@@ -76,11 +81,16 @@ def main():
 
     if args.output:
         dst = open(args.output, "w")
+        linesep = "\n"
     else:
         dst = sys.stdout
+        linesep = os_linesep
 
     if args.format == "csv":
-        dst.write("File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated" + linesep)
+        dst.write(
+            "File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated"
+            + linesep
+        )
 
     for afile in files:
         logger.info("Processing %s", afile)
@@ -94,15 +104,16 @@ def main():
             try:
                 rg = autorg.autoRg(data)
             except Exception as err:
-                sys.stdout.write("%s, %s: %s\n" %
-                                 (afile, err.__class__.__name__, err))
+                sys.stdout.write(
+                    "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
+                )
             else:
                 if args.format == "csv":
                     res = f"{afile},{rg.Rg:6.4f},{rg.sigma_Rg:6.4f},{rg.I0:6.4f},{rg.sigma_I0:6.4f},{rg.start_point:3},{rg.end_point:3},{rg.quality:6.4f},{rg.aggregated:6.4f}"
                 elif args.format == "ssv":
                     res = f"{rg.Rg:6.4f} {rg.sigma_Rg:6.4f} {rg.I0:6.4f} {rg.sigma_I0:6.4f} {rg.start_point:3} {rg.end_point:3} {rg.quality:6.4f} {rg.aggregated:6.4f} {afile}"
                 else:
-                    res = "%s %s"%(afile, rg)
+                    res = "%s %s" % (afile, rg)
                 dst.write(res)
                 dst.write(linesep)
                 dst.flush()
