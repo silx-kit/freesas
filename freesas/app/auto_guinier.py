@@ -56,12 +56,12 @@ def parse():
         "Calculate the radius of gyration using linear fitting of"
         "logarithmic intensities for a set of scattering curves"
     )
-    epilog = """auto_guinier.py is an open-source implementation of
+    epilog = """free_guinier is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
     As this tool used a different theory, some results may differ
     """
     parser = GuinierParser(
-        prog="auto_guinier.py", description=description, epilog=epilog
+        prog="free_guinier", description=description, epilog=epilog
     )
     return parser.parse_args()
 

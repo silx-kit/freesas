@@ -357,7 +357,7 @@ class TestFreeSAS(unittest.TestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
-    for app in ["auto_gpa.py", "auto_guinier.py", "autorg.py"]:
+    for app in ["free_gpa", "free_guinier", "free_rg"]:
         if system() == "Windows":
             app += ".exe"
         test_suite.addTest(

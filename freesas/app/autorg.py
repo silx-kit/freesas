@@ -56,12 +56,12 @@ def parse():
         "Calculate the radius of gyration using Guinier law"
         " for a set of scattering curves"
     )
-    epilog = """autorg.py is an open-source implementation of
+    epilog = """free_rg is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
     As this is reverse engineered, some constants and results may differ
     """
     parser = GuinierParser(
-        prog="autorg.py", description=description, epilog=epilog
+        prog="free_rg", description=description, epilog=epilog
     )
     return parser.parse_args()
 

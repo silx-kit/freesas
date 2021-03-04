@@ -56,12 +56,12 @@ def parse():
         "Calculate the radius of gyration using Guinier"
         " Peak Analysis (Putnam 2016) for a set of scattering curves"
     )
-    epilog = """auto_gpa.py is an open-source implementation of
+    epilog = """free_gpa is an open-source implementation of
     the autorg algorithm originately part of the ATSAS suite.
     As this tool used a different theory, some results may differ
     """
     parser = GuinierParser(
-        prog="auto_gpa.py", description=description, epilog=epilog
+        prog="free_gpa", description=description, epilog=epilog
     )
     return parser.parse_args()
 
