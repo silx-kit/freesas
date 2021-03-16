@@ -10,6 +10,7 @@ import os
 import logging
 import freesas
 from freesas.cormap import gof
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
 import numpy
@@ -21,21 +22,22 @@ from .sas_argparser import SASParser
 datum = namedtuple("datum", ["index", "filename", "data"])
 
 import platform
+
 operatingSystem = platform.system()
 if operatingSystem == "Windows":
     import glob
 
 
 def parse():
-    """ Parse input and return list of files.
+    """Parse input and return list of files.
     :return: list of input files
     """
     description = "Measure pair-wise similarity of spectra "
-    epilog = """cormap.py is an open-source implementation of
+    epilog = """cormapy is an open-source implementation of
     the cormap algorithm in datcmp (from ATSAS).
     It does not scale the data and assume they are already scaled
     """
-    parser = SASParser(prog="cormap.py", description=description, epilog=epilog)
+    parser = SASParser(prog="cormapy", description=description, epilog=epilog)
     parser.add_file_argument(help_text="dat files to compare")
 
     args = parser.parse_args()
@@ -52,9 +54,10 @@ def parse():
 
 
 def compare(lstfiles):
-    res = ["Pair-wise Correlation Map",
-           ""
-           "                                C       Pr(>C)"]
+    res = [
+        "Pair-wise Correlation Map",
+        "" "                                C       Pr(>C)",
+    ]
     data = []
     for i, f in enumerate(lstfiles):
         try:
@@ -67,10 +70,14 @@ def compare(lstfiles):
         data.append(d)
     for a, b in combinations(data, 2):
         r = gof(a.data, b.data)
-        res.append("%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P))
+        res.append(
+            "%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P)
+        )
     res.append("")
     for a in data:
-        res.append("%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename))
+        res.append(
+            "%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename)
+        )
     res.append("")
     print(os.linesep.join(res))
     return res

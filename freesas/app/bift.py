@@ -37,20 +37,25 @@ from os import linesep
 from pathlib import Path
 from numpy import float32
 from freesas import bift
-from freesas.sasio import load_scattering_data, \
-                          convert_inverse_angstrom_to_nanometer
+from freesas.sasio import (
+    load_scattering_data,
+    convert_inverse_angstrom_to_nanometer,
+)
 from .sas_argparser import SASParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
 
+
 def parse():
-    """ Parse input and return list of files.
+    """Parse input and return list of files.
     :return: list of input files
     """
-    description = "Calculate the density as function of distance p(r)"\
-                  " curve from an I(q) scattering curve"
-    epilog = """bift.py is a Python implementation of the Bayesian Inverse Fourier Transform
+    description = (
+        "Calculate the density as function of distance p(r)"
+        " curve from an I(q) scattering curve"
+    )
+    epilog = """free_bift is a Python implementation of the Bayesian Inverse Fourier Transform
 
     This code is the implementation of
     Steen Hansen J. Appl. Cryst. (2000). 33, 1415-1421
@@ -61,18 +66,40 @@ def parse():
     It aims at being a drop in replacement for datgnom of the ATSAS suite.
 
     """
-    parser = SASParser(prog="bift.py", description=description, epilog=epilog)
+    parser = SASParser(
+        prog="free_bift", description=description, epilog=epilog
+    )
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
     parser.add_output_filename_argument()
     parser.add_q_unit_argument()
-    parser.add_argument("-n", "--npt", default=100, type=int,
-                        help="number of points in p(r) curve")
-    parser.add_argument("-s", "--scan", default=27, type=int,
-                        help="Initial alpha-scan size to guess the start parameter")
-    parser.add_argument("-m", "--mc", default=100, type=int,
-                        help="Number of Monte-Carlo samples in post-refinement")
-    parser.add_argument("-t", "--threshold", default=2.0, type=float,
-                        help="Sample at average ± threshold*sigma in MC")
+    parser.add_argument(
+        "-n",
+        "--npt",
+        default=100,
+        type=int,
+        help="number of points in p(r) curve",
+    )
+    parser.add_argument(
+        "-s",
+        "--scan",
+        default=27,
+        type=int,
+        help="Initial alpha-scan size to guess the start parameter",
+    )
+    parser.add_argument(
+        "-m",
+        "--mc",
+        default=100,
+        type=int,
+        help="Number of Monte-Carlo samples in post-refinement",
+    )
+    parser.add_argument(
+        "-t",
+        "--threshold",
+        default=2.0,
+        type=float,
+        help="Sample at average ± threshold*sigma in MC",
+    )
 
     args = parser.parse_args()
 
@@ -105,8 +132,9 @@ def main():
                     traceback.print_exc(file=sys.stdout)
             else:
                 try:
-                    stats = bo.monte_carlo_sampling(args.mc, args.threshold,
-                                                    npt=args.npt)
+                    stats = bo.monte_carlo_sampling(
+                        args.mc, args.threshold, npt=args.npt
+                    )
                 except RuntimeError as err:
                     print("%s: %s %s" % (afile, err.__class__.__name__, err))
                     if logging.root.level < logging.WARNING:
