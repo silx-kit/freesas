@@ -6,7 +6,7 @@ import logging
 import platform
 from os import linesep as os_linesep
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List
 from argparse import Namespace
 from numpy import ndarray
 from freesas.autorg import RG_RESULT
@@ -14,6 +14,52 @@ from freesas.sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )
+
+
+def set_logging_level(verbose_flag: int) -> None:
+    """
+    Set logging level according to verbose flaf of argparser
+    :param verbose_flag: int flag for logging level
+    """
+    if verbose_flag == 1:
+        logging.root.setLevel(logging.INFO)
+    elif verbose_flag >= 2:
+        logging.root.setLevel(logging.DEBUG)
+
+
+def collect_files(file_list: List[str]) -> List[Path]:
+    """
+    Take file list from argparser and return list of paths
+    :param file_list: file list as returned by the argparser
+    """
+    files = [Path(i) for i in file_list if Path(i).exists()]
+    if platform.system() == "Windows" and files == []:
+        files = list(Path.cwd().glob(file_list[0]))
+        files.sort()
+    return files
+
+
+def get_header(format: str, linesep: str) -> str:
+    """Return appropriate header line for selected output format"""
+    if format == "csv":
+        header = (
+            ",".join(
+                (
+                    "File",
+                    "Rg",
+                    "Rg StDev",
+                    "I(0)",
+                    "I(0) StDev",
+                    "First point",
+                    "Last point",
+                    "Quality,Aggregated",
+                )
+            )
+            + linesep
+        )
+    else:
+        header = ""
+    return header
 
 
 def run_guinier_fit(
@@ -29,16 +75,9 @@ def run_guinier_fit(
     :param logger: a Logger
     """
     args = parser()
-    if args.verbose == 1:
-        logging.root.setLevel(logging.INFO)
-    elif args.verbose >= 2:
-        logging.root.setLevel(logging.DEBUG)
-    files = [Path(i) for i in args.file if Path(i).exists()]
-    if platform.system() == "Windows" and files == []:
-        files = list(Path.cwd().glob(args.file[0]))
-        files.sort()
-    input_len = len(files)
-    logger.debug("%s input files", input_len)
+    set_logging_level(args.verbose)
+    files = collect_files(args.file)
+    logger.debug("%s input files", len(files))
 
     if args.output:
         dst = open(args.output, "w")
@@ -47,11 +86,7 @@ def run_guinier_fit(
         dst = sys.stdout
         linesep = os_linesep
 
-    if args.format == "csv":
-        dst.write(
-            "File,Rg,Rg StDev,I(0),I(0) StDev,First point,"
-            "Last point,Quality,Aggregated" + linesep
-        )
+    dst.write(get_header(args.format, linesep))
 
     for afile in files:
         logger.info("Processing %s", afile)
