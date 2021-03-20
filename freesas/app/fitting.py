@@ -58,9 +58,9 @@ def get_linesep(output_destination: IO[str]) -> str:
     """
     # pylint: disable=R1705
     if output_destination == sys.stdout:
-        return "\n"
-    else:
         return os_linesep
+    else:
+        return "\n"
 
 
 def get_header(output_format: str, linesep: str) -> str:
