@@ -6,7 +6,7 @@ import logging
 import platform
 from os import linesep as os_linesep
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional, IO
 from argparse import Namespace
 from numpy import ndarray
 from freesas.autorg import RG_RESULT
@@ -39,10 +39,35 @@ def collect_files(file_list: List[str]) -> List[Path]:
     return files
 
 
-def get_header(format: str, linesep: str) -> str:
+def get_output_destination(output_path: Optional[Path]) -> IO[str]:
+    """
+    Return file or stdout object to write output to
+    :param output_path: None if output to stdout, else Path to outputfile
+    """
+    # pylint: disable=R1705
+    if output_path is not None:
+        return open(output_path, "w")
+    else:
+        return sys.stdout
+
+
+def get_linesep(output_destination: IO[str]) -> str:
+    """
+    Get the appropriate linesep depending on the output destination.
+    :param output_destination: an IO object, e.g. an open file or stdout
+    """
+    # pylint: disable=R1705
+    if output_destination == sys.stdout:
+        return "\n"
+    else:
+        return os_linesep
+
+
+def get_header(output_format: str, linesep: str) -> str:
     """Return appropriate header line for selected output format"""
-    if format == "csv":
-        header = (
+    # pylint: disable=R1705
+    if output_format == "csv":
+        return (
             ",".join(
                 (
                     "File",
@@ -58,8 +83,7 @@ def get_header(format: str, linesep: str) -> str:
             + linesep
         )
     else:
-        header = ""
-    return header
+        return ""
 
 
 def run_guinier_fit(
@@ -79,14 +103,10 @@ def run_guinier_fit(
     files = collect_files(args.file)
     logger.debug("%s input files", len(files))
 
-    if args.output:
-        dst = open(args.output, "w")
-        linesep = "\n"
-    else:
-        dst = sys.stdout
-        linesep = os_linesep
+    output_destination = get_output_destination(args.output)
+    linesep = get_linesep(output_destination)
 
-    dst.write(get_header(args.format, linesep))
+    output_destination.write(get_header(args.format, linesep))
 
     for afile in files:
         logger.info("Processing %s", afile)
@@ -110,8 +130,8 @@ def run_guinier_fit(
                     res = f"{rg.Rg:6.4f} {rg.sigma_Rg:6.4f} {rg.I0:6.4f} {rg.sigma_I0:6.4f} {rg.start_point:3} {rg.end_point:3} {rg.quality:6.4f} {rg.aggregated:6.4f} {afile}"
                 else:
                     res = "%s %s" % (afile, rg)
-                dst.write(res)
-                dst.write(linesep)
-                dst.flush()
+                output_destination.write(res)
+                output_destination.write(linesep)
+                output_destination.flush()
     if args.output:
-        dst.close()
+        output_destination.close()

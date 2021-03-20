@@ -40,7 +40,7 @@ import logging
 from argparse import Namespace
 from freesas.autorg import autoRg
 from .sas_argparser import GuinierParser
-from .guinier_fitting import run_guinier_fit
+from .fitting import run_guinier_fit
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")
