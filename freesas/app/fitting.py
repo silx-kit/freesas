@@ -35,6 +35,7 @@ def collect_files(file_list: List[str]) -> List[Path]:
     """
     Take file list from argparser and return list of paths
     :param file_list: file list as returned by the argparser
+    :return: A list of Path objects which includes only existing files
     """
     files = [Path(i) for i in file_list if Path(i).exists()]
     if platform.system() == "Windows" and files == []:
@@ -47,6 +48,7 @@ def get_output_destination(output_path: Optional[Path]) -> IO[str]:
     """
     Return file or stdout object to write output to
     :param output_path: None if output to stdout, else Path to outputfile
+    :return: opened file with write access or sys.stdout
     """
     # pylint: disable=R1705
     if output_path is not None:
@@ -59,6 +61,7 @@ def get_linesep(output_destination: IO[str]) -> str:
     """
     Get the appropriate linesep depending on the output destination.
     :param output_destination: an IO object, e.g. an open file or stdout
+    :return: string with the correct linesep
     """
     # pylint: disable=R1705
     if output_destination == sys.stdout:
@@ -68,7 +71,10 @@ def get_linesep(output_destination: IO[str]) -> str:
 
 
 def get_header(output_format: str, linesep: str) -> str:
-    """Return appropriate header line for selected output format"""
+    """Return appropriate header line for selected output format
+    :param output_format: output format from string parser
+    :param linesep: correct linesep for chosen destination
+    :return: a one-line string"""
     # pylint: disable=R1705
     if output_format == "csv":
         return (
@@ -88,6 +94,46 @@ def get_header(output_format: str, linesep: str) -> str:
         )
     else:
         return ""
+
+
+def rg_result_to_output_line(
+    rg_result: RG_RESULT, afile: Path, output_format: str
+) -> str:
+    """Return result line formatted according to selected output format
+    :param rg_result: Result of an rg fit
+    :param afile: The name of the file that was processed
+    :param output_format: The chosen output format
+    :return: a one-line string without linesep"""
+    # pylint: disable=R1705
+    if output_format == "csv":
+        return ",".join(
+            [
+                f"{afile}",
+                f"{rg_result.Rg:6.4f}",
+                f"{rg_result.sigma_Rg:6.4f}",
+                f"{rg_result.I0:6.4f}",
+                f"{rg_result.sigma_I0:6.4f}",
+                f"{rg_result.start_point:3}",
+                f"{rg_result.end_point:3}",
+                f"{rg_result.quality:6.4f}",
+                f"{rg_result.aggregated:6.4f}",
+            ]
+        )
+    elif output_format == "ssv":
+        return " ".join(
+            [
+                f"{rg_result.Rg:6.4f}",
+                f"{rg_result.sigma_Rg:6.4f}",
+                f"{rg_result.I0:6.4f} {rg_result.sigma_I0:6.4f}",
+                f"{rg_result.start_point:3}",
+                f"{rg_result.end_point:3}",
+                f"{rg_result.quality:6.4f}",
+                f"{rg_result.aggregated:6.4f}",
+                f"{afile}",
+            ]
+        )
+    else:
+        return "%s %s" % (afile, rg_result)
 
 
 def run_guinier_fit(
@@ -124,7 +170,7 @@ def run_guinier_fit(
             if args.unit == "Å":
                 data = convert_inverse_angstrom_to_nanometer(data)
             try:
-                rg = fit_function(data)
+                rg_result = fit_function(data)
             except (
                 InsufficientDataError,
                 NoGuinierRegionError,
@@ -135,12 +181,7 @@ def run_guinier_fit(
                     "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
                 )
             else:
-                if args.format == "csv":
-                    res = f"{afile},{rg.Rg:6.4f},{rg.sigma_Rg:6.4f},{rg.I0:6.4f},{rg.sigma_I0:6.4f},{rg.start_point:3},{rg.end_point:3},{rg.quality:6.4f},{rg.aggregated:6.4f}"
-                elif args.format == "ssv":
-                    res = f"{rg.Rg:6.4f} {rg.sigma_Rg:6.4f} {rg.I0:6.4f} {rg.sigma_I0:6.4f} {rg.start_point:3} {rg.end_point:3} {rg.quality:6.4f} {rg.aggregated:6.4f} {afile}"
-                else:
-                    res = "%s %s" % (afile, rg)
+                res = rg_result_to_output_line(rg_result, afile, args.format)
                 output_destination.write(res)
                 output_destination.write(linesep)
                 output_destination.flush()
