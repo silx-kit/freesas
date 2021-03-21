@@ -37,7 +37,6 @@ __date__ = "19/03/2021"
 
 import sys
 import logging
-from argparse import Namespace
 from freesas.autorg import autoRg
 from .sas_argparser import GuinierParser
 from .fitting import run_guinier_fit
@@ -49,9 +48,9 @@ if sys.version_info < (3, 6):
     logger.error("This code uses F-strings and requires Python 3.6+")
 
 
-def parse() -> Namespace:
-    """Parse input and return list of files.
-    :return: list of input files
+def build_parser() -> GuinierParser:
+    """Build parser for input and return list of files.
+    :return: parser
     """
     description = (
         "Calculate the radius of gyration using Guinier law"
@@ -61,14 +60,15 @@ def parse() -> Namespace:
     the autorg algorithm originately part of the ATSAS suite.
     As this is reverse engineered, some constants and results may differ
     """
-    parser = GuinierParser(
+    return GuinierParser(
         prog="free_rg", description=description, epilog=epilog
     )
-    return parser.parse_args()
 
 
 def main() -> None:
-    run_guinier_fit(fit_function=autoRg, parser=parse, logger=logger)
+    """Entry point for free_rg app"""
+    parser = build_parser()
+    run_guinier_fit(fit_function=autoRg, parser=parser, logger=logger)
 
 
 if __name__ == "__main__":

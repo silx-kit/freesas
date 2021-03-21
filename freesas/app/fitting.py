@@ -7,13 +7,13 @@ import platform
 from os import linesep as os_linesep
 from pathlib import Path
 from typing import Callable, List, Optional, IO
-from argparse import Namespace
 from numpy import ndarray
 from freesas.autorg import RG_RESULT
 from freesas.sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )
+from .sas_argparser import GuinierParser
 
 
 def set_logging_level(verbose_flag: int) -> None:
@@ -88,7 +88,7 @@ def get_header(output_format: str, linesep: str) -> str:
 
 def run_guinier_fit(
     fit_function: Callable[[ndarray], RG_RESULT],
-    parser: Callable[[], Namespace],
+    parser: GuinierParser,
     logger: logging.Logger,
 ) -> None:
     """
@@ -98,7 +98,7 @@ def run_guinier_fit(
     :param parser: a function that returns the output of argparse.parse()
     :param logger: a Logger
     """
-    args = parser()
+    args = parser.parse_args()
     set_logging_level(args.verbose)
     files = collect_files(args.file)
     logger.debug("%s input files", len(files))
