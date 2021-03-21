@@ -135,7 +135,6 @@ def rg_result_to_output_line(
                     f"{rg_result.quality:6.4f}",
                     f"{rg_result.aggregated:6.4f}",
                     f"{afile}",
-                    linesep,
                 ]
             )
             + linesep
