@@ -8,7 +8,11 @@ from os import linesep as os_linesep
 from pathlib import Path
 from typing import Callable, List, Optional, IO
 from numpy import ndarray
-from freesas.autorg import RG_RESULT
+from freesas.autorg import (
+    RG_RESULT,
+    InsufficientDataError,
+    NoGuinierRegionError,
+)
 from freesas.sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
@@ -112,14 +116,21 @@ def run_guinier_fit(
         logger.info("Processing %s", afile)
         try:
             data = load_scattering_data(afile)
-        except:
+        except OSError:
+            logger.error("Unable to read file %s", afile)
+        except ValueError:
             logger.error("Unable to parse file %s", afile)
         else:
             if args.unit == "Å":
                 data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 rg = fit_function(data)
-            except Exception as err:
+            except (
+                InsufficientDataError,
+                NoGuinierRegionError,
+                ValueError,
+                IndexError,
+            ) as err:
                 sys.stdout.write(
                     "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
                 )
@@ -133,5 +144,5 @@ def run_guinier_fit(
                 output_destination.write(res)
                 output_destination.write(linesep)
                 output_destination.flush()
-    if args.output:
+    if output_destination is not sys.stdout:
         output_destination.close()
