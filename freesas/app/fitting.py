@@ -97,43 +97,51 @@ def get_header(output_format: str, linesep: str) -> str:
 
 
 def rg_result_to_output_line(
-    rg_result: RG_RESULT, afile: Path, output_format: str
+    rg_result: RG_RESULT, afile: Path, output_format: str, linesep: str
 ) -> str:
     """Return result line formatted according to selected output format
     :param rg_result: Result of an rg fit
     :param afile: The name of the file that was processed
     :param output_format: The chosen output format
-    :return: a one-line string without linesep"""
+    :param linesep: correct linesep for chosen destination
+    :return: a one-line string including linesep"""
     # pylint: disable=R1705
     if output_format == "csv":
-        return ",".join(
-            [
-                f"{afile}",
-                f"{rg_result.Rg:6.4f}",
-                f"{rg_result.sigma_Rg:6.4f}",
-                f"{rg_result.I0:6.4f}",
-                f"{rg_result.sigma_I0:6.4f}",
-                f"{rg_result.start_point:3}",
-                f"{rg_result.end_point:3}",
-                f"{rg_result.quality:6.4f}",
-                f"{rg_result.aggregated:6.4f}",
-            ]
+        return (
+            ",".join(
+                [
+                    f"{afile}",
+                    f"{rg_result.Rg:6.4f}",
+                    f"{rg_result.sigma_Rg:6.4f}",
+                    f"{rg_result.I0:6.4f}",
+                    f"{rg_result.sigma_I0:6.4f}",
+                    f"{rg_result.start_point:3}",
+                    f"{rg_result.end_point:3}",
+                    f"{rg_result.quality:6.4f}",
+                    f"{rg_result.aggregated:6.4f}",
+                ]
+            )
+            + linesep
         )
     elif output_format == "ssv":
-        return " ".join(
-            [
-                f"{rg_result.Rg:6.4f}",
-                f"{rg_result.sigma_Rg:6.4f}",
-                f"{rg_result.I0:6.4f} {rg_result.sigma_I0:6.4f}",
-                f"{rg_result.start_point:3}",
-                f"{rg_result.end_point:3}",
-                f"{rg_result.quality:6.4f}",
-                f"{rg_result.aggregated:6.4f}",
-                f"{afile}",
-            ]
+        return (
+            " ".join(
+                [
+                    f"{rg_result.Rg:6.4f}",
+                    f"{rg_result.sigma_Rg:6.4f}",
+                    f"{rg_result.I0:6.4f} {rg_result.sigma_I0:6.4f}",
+                    f"{rg_result.start_point:3}",
+                    f"{rg_result.end_point:3}",
+                    f"{rg_result.quality:6.4f}",
+                    f"{rg_result.aggregated:6.4f}",
+                    f"{afile}",
+                    linesep,
+                ]
+            )
+            + linesep
         )
     else:
-        return "%s %s" % (afile, rg_result)
+        return f"{afile} {rg_result}{linesep}"
 
 
 def run_guinier_fit(
@@ -181,9 +189,10 @@ def run_guinier_fit(
                     "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
                 )
             else:
-                res = rg_result_to_output_line(rg_result, afile, args.format)
+                res = rg_result_to_output_line(
+                    rg_result, afile, args.format, linesep
+                )
                 output_destination.write(res)
-                output_destination.write(linesep)
                 output_destination.flush()
     if output_destination is not sys.stdout:
         output_destination.close()
