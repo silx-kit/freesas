@@ -1,6 +1,14 @@
 """This module provides a function which reads in the data,
 performs the guinier fit with a given algotithm and reates the input."""
 
+__authors__ = ["Martha Brennich"]
+__contact__ = "martha.brennich@googlemail.com"
+__license__ = "MIT"
+__copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
+__date__ = "21/03/2021"
+__status__ = "development"
+__docformat__ = "restructuredtext"
+
 import sys
 import logging
 import platform
