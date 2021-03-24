@@ -30,7 +30,7 @@ __copyright__ = "2017-2020, ESRF"
 __date__ = "05/06/2020"
 
 
-__author__ = "Jérôme Kieffer, Martha Brennich"
+__author__ = ["Jérôme Kieffer", "Martha Brennich"]
 __license__ = "MIT"
 __copyright__ = "2021, ESRF"
 __date__ = "19/03/2021"
@@ -38,8 +38,8 @@ __date__ = "19/03/2021"
 import sys
 import logging
 from freesas.autorg import autoRg
-from .sas_argparser import GuinierParser
-from .fitting import run_guinier_fit
+from freesas.sas_argparser import GuinierParser
+from freesas.fitting import run_guinier_fit
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")

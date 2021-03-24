@@ -7,7 +7,7 @@ __date__ = "09/07/2020"
 import logging
 from os.path import dirname, abspath
 from freesas.align import InputModels, AlignModels
-from .sas_argparser import SASParser
+from freesas.sas_argparser import SASParser
 
 base = dirname(dirname(abspath(__file__)))
 

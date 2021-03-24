@@ -17,7 +17,7 @@ import numpy
 from itertools import combinations
 from collections import namedtuple
 from freesas.sasio import load_scattering_data
-from .sas_argparser import SASParser
+from freesas.sas_argparser import SASParser
 
 datum = namedtuple("datum", ["index", "filename", "data"])
 

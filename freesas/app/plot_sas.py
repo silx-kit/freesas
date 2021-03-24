@@ -42,7 +42,7 @@ from freesas.sasio import (
     convert_inverse_angstrom_to_nanometer,
 )
 from freesas.autorg import InsufficientDataError, NoGuinierRegionError
-from .sas_argparser import SASParser
+from freesas.sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")

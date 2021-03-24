@@ -16,12 +16,12 @@ from os import linesep as os_linesep
 from pathlib import Path
 from typing import Callable, List, Optional, IO
 from numpy import ndarray
-from freesas.autorg import (
+from .autorg import (
     RG_RESULT,
     InsufficientDataError,
     NoGuinierRegionError,
 )
-from freesas.sasio import (
+from .sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )

@@ -24,7 +24,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__author__ = "Jérôme Kieffer, Martha Brennich"
+__author__ = ["Jérôme Kieffer", "Martha Brennich"]
 __license__ = "MIT"
 __copyright__ = "2021, ESRF"
 __date__ = "19/03/2021"
@@ -32,8 +32,8 @@ __date__ = "19/03/2021"
 import sys
 import logging
 from freesas.autorg import auto_gpa
-from .sas_argparser import GuinierParser
-from .fitting import run_guinier_fit
+from freesas.sas_argparser import GuinierParser
+from freesas.fitting import run_guinier_fit
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")
