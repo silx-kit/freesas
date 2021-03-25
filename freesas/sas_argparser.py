@@ -66,9 +66,9 @@ class SASParser:
         )
         self.add_argument("-V", "--version", action="version", version=version)
 
-    def parse_args(self):
+    def parse_args(self, *args, **kwargs):
         """ Wrapper for argparse parse_args() """
-        return self.parser.parse_args()
+        return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
         """ Wrapper for argparse add_argument() """
@@ -151,9 +151,9 @@ class GuinierParser:
         )
         self.parser.add_q_unit_argument()
 
-    def parse_args(self):
+    def parse_args(self, *args, **kwargs):
         """ Wrapper for SASParser parse_args() """
-        return self.parser.parse_args()
+        return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
         """ Wrapper for SASParser add_argument() """
