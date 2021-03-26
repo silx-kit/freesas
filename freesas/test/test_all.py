@@ -20,13 +20,13 @@ from . import test_sas_argparser
 
 def suite():
     testSuite = unittest.TestSuite()
-    testSuite.addTest(test_bift.suite())
-    testSuite.addTest(test_model.suite())
-    testSuite.addTest(test_align.suite())
-    testSuite.addTest(test_distance.suite())
-    testSuite.addTest(test_cormap.suite())
-    testSuite.addTest(test_autorg.suite())
-    testSuite.addTest(test_sasio.suite())
+    # testSuite.addTest(test_bift.suite())
+    # testSuite.addTest(test_model.suite())
+    # testSuite.addTest(test_align.suite())
+    # testSuite.addTest(test_distance.suite())
+    # testSuite.addTest(test_cormap.suite())
+    # testSuite.addTest(test_autorg.suite())
+    # testSuite.addTest(test_sasio.suite())
     testSuite.addTest(test_sas_argparser.suite())
     return testSuite
 
