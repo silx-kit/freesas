@@ -42,6 +42,86 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser states that the FILE argument is missing if no file provided",
         )
 
+    def minimal_parser_usage_includes_program_name(self):
+        """
+        Test that minimal parser includes the provided program in the usage string.
+        """
+        basic_parser = SASParser("test❤️", "description", "epilog")
+
+        self.assertTrue(
+            "test❤️" in basic_parser.usage,
+            msg="SASParser usage includes program name",
+        )
+
+    def minimal_guinier_parser_usage_includes_program_name(self):
+        """
+        Test that minimal parser includes the provided program in the usage string.
+        """
+        basic_parser = GuinierParser("test❤️", "description", "epilog")
+
+        self.assertTrue(
+            "test❤️" in basic_parser.usage,
+            msg="GuinierParser usage includes program name",
+        )
+
+    def minimal_guinier_parser_help_includes_program_description_epilog(self):
+        """
+        Test that minimal guinier parser includes help includes
+        the provided program name, description and epilog.
+        """
+        basic_parser = GuinierParser("test❤️", "description📚", "epilog🎦")
+        output_catcher = io.StringIO()
+
+        try:
+            with contextlib.redirect_stdout(output_catcher):
+                _ = basic_parser.parse_args(["--help"])
+        except SystemExit:
+            pass
+
+        self.assertTrue(
+            "test❤️" in output_catcher.getvalue(),
+            msg="GuinierParser outputs program name in help",
+        )
+
+        self.assertTrue(
+            "description📚" in output_catcher.getvalue(),
+            msg="GuinierParser outputs description in help",
+        )
+
+        self.assertTrue(
+            "epilog🎦" in output_catcher.getvalue(),
+            msg="GuinierParser outputs eplilog name in help",
+        )
+
+    def minimal_parser_help_includes_program_description_epilog(self):
+        """
+        Test that minimal parser includes help includes
+        the provided program name, description and epilog.
+        """
+        basic_parser = SASParser("test❤️", "description📚", "epilog🎦")
+        output_catcher = io.StringIO()
+
+        try:
+            with contextlib.redirect_stdout(output_catcher):
+                _ = basic_parser.parse_args(["--help"])
+        except SystemExit:
+            pass
+
+        self.assertTrue(
+            "test❤️" in output_catcher.getvalue(),
+            msg="SASParser outputs program name in help",
+        )
+
+        self.assertTrue(
+            "description📚" in output_catcher.getvalue(),
+            msg="SASParser outputs description in help",
+        )
+
+        self.assertTrue(
+            "epilog🎦" in output_catcher.getvalue(),
+            msg="SASParser outputs eplilog name in help",
+        )
+
     def minimal_parser_default_verbosity_level_is_0(self):
         """
         Test that the parser sets the verbosity to 0 if no args are provided
@@ -157,6 +237,22 @@ def suite():
     )
     test_suite.addTest(
         TestSasArgParser("minimal_guinier_parser_requires_file_argument")
+    )
+    test_suite.addTest(
+        TestSasArgParser("minimal_parser_usage_includes_program_name")
+    )
+    test_suite.addTest(
+        TestSasArgParser("minimal_guinier_parser_usage_includes_program_name")
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "minimal_parser_help_includes_program_description_epilog"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "minimal_guinier_parser_help_includes_program_description_epilog"
+        )
     )
     return test_suite
 
