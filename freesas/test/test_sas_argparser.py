@@ -8,6 +8,7 @@ __date__ = "25/03/2022"
 
 import unittest
 import logging
+from pathlib import Path
 import freesas
 from freesas import dated_version as freesas_version
 from freesas.sas_argparser import SASParser, GuinierParser
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 class TestSasArgParser(unittest.TestCase):
     def minimal_guinier_parser_requires_file_argument(self):
         """
-        Test that parser provides error if no file argument is provided.
+        Test that Guinier parser provides error if no file argument is provided.
         """
         basic_parser = GuinierParser("program", "description", "epilog")
         output_catcher = io.StringIO()
@@ -40,6 +41,49 @@ class TestSasArgParser(unittest.TestCase):
             "the following arguments are required: FILE"
             in output_catcher.getvalue(),
             msg="GuinierParser states that the FILE argument is missing if no file provided",
+        )
+
+    def minimal_guinier_parser_parses_list_of_files(self):
+        """
+        Test that the Guinier parsers parses a list of files.
+        """
+        basic_parser = GuinierParser("program", "description", "epilog")
+
+        parsed_arguments = basic_parser.parse_args(["afile", "bfile", "cfile"])
+
+        self.assertEqual(
+            set(parsed_arguments.file),
+            {"afile", "bfile", "cfile"},
+            msg="GuinierParser parses list of files",
+        )
+
+    def add_file_argument_enables_SASParser_to_recognize_file_lists(
+        self,
+    ):
+        """
+        Test that add_file_argument adds the ability to parse a file list to SASParser.
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+
+        # Before running add_file_argument a file argument ist not recognized
+        output_catcher = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(output_catcher):
+                _ = basic_parser.parse_args(["afile"])
+        except SystemExit:
+            pass
+        self.assertTrue(
+            "unrecognized arguments: afile" in output_catcher.getvalue(),
+            msg="Minimal SASParser does not recognize file argument",
+        )
+
+        basic_parser.add_file_argument(help_text="file help")
+        parsed_arguments = basic_parser.parse_args(["afile", "bfile", "cfile"])
+
+        self.assertEqual(
+            set(parsed_arguments.file),
+            {"afile", "bfile", "cfile"},
+            msg="GuinierParser parses list of files",
         )
 
     def minimal_parser_usage_includes_program_name(self):
@@ -214,6 +258,48 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser outputs consistent date",
         )
 
+    def minimal_guinier_parser_accepts_output_file_argument(self):
+        """
+        Test that minimal Guinier parser accepts one output file argument.
+        """
+        basic_parser = GuinierParser("program", "description", "epilog")
+        parsed_arguments = basic_parser.parse_args(["afile", "-o", "out.file"])
+
+        self.assertEqual(
+            parsed_arguments.output,
+            Path("out.file"),
+            msg="Minimal GuinierParser accepts output file argument",
+        )
+
+    def add_output_filename_argument_adds_output_file_argument_to_SASParser(
+        self,
+    ):
+        """
+        Test that add_output_filename_argument adds one output file argument to as SASParser.
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+
+        # Before running add_output_filename_argument -o file is not regognized
+        output_catcher = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(output_catcher):
+                _ = basic_parser.parse_args(["-o", "out.file"])
+        except SystemExit:
+            pass
+        self.assertTrue(
+            "unrecognized arguments: -o out.file" in output_catcher.getvalue(),
+            msg="Minimal SASParser does not recognize -o argument",
+        )
+
+        basic_parser.add_output_filename_argument()
+        parsed_arguments = basic_parser.parse_args(["-o", "out.file"])
+
+        self.assertEqual(
+            parsed_arguments.output,
+            Path("out.file"),
+            msg="SASParser accepts output file argument after running add_output_filename_argument()",
+        )
+
 
 def suite():
     test_suite = unittest.TestSuite()
@@ -252,6 +338,22 @@ def suite():
     test_suite.addTest(
         TestSasArgParser(
             "minimal_guinier_parser_help_includes_program_description_epilog"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser("minimal_guinier_parser_accepts_output_file_argument")
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "add_output_filename_argument_adds_output_file_argument_to_SASParser"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser("minimal_guinier_parser_parses_list_of_files")
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "add_file_argument_enables_SASParser_to_recognize_file_lists"
         )
     )
     return test_suite
