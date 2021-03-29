@@ -65,7 +65,7 @@ class TestSasArgParser(unittest.TestCase):
         """
         basic_parser = SASParser("program", "description", "epilog")
 
-        # Before running add_file_argument a file argument ist not recognized
+        # Before running add_file_argument a file argument is not recognized
         output_catcher = io.StringIO()
         try:
             with contextlib.redirect_stderr(output_catcher):
@@ -300,6 +300,150 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser accepts output file argument after running add_output_filename_argument()",
         )
 
+    def minimal_guinier_parser_accepts_output_format_argument(self):
+        """
+        Test that minimal Guinier parser accepts one output data format argument.
+        """
+        basic_parser = GuinierParser("program", "description", "epilog")
+        parsed_arguments = basic_parser.parse_args(["afile", "-f", "aformat"])
+
+        self.assertEqual(
+            parsed_arguments.format,
+            "aformat",
+            msg="Minimal GuinierParser accepts output data format argument",
+        )
+
+    def add_output_data_format_adds_output_format_argument_to_SASParser(
+        self,
+    ):
+        """
+        Test that add_output_data_format adds one output data format argument to as SASParser.
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+
+        # Before running add_output_filename_argument -o file is not regognized
+        output_catcher = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(output_catcher):
+                _ = basic_parser.parse_args(["-f", "aformat"])
+        except SystemExit:
+            pass
+        self.assertTrue(
+            "unrecognized arguments: -f aformat" in output_catcher.getvalue(),
+            msg="Minimal SASParser does not recognize -f argument",
+        )
+
+        basic_parser.add_output_data_format()
+        parsed_arguments = basic_parser.parse_args(["-f", "aformat"])
+
+        self.assertEqual(
+            parsed_arguments.format,
+            "aformat",
+            msg="SASParser accepts output data format argument after running add_output_data_format()",
+        )
+
+    def minimal_guinier_parser_accepts_q_unit_argument(self):
+        """
+        Test that minimal Guinier parser accepts a q unit argument.
+        """
+        basic_parser = GuinierParser("program", "description", "epilog")
+        parsed_arguments = basic_parser.parse_args(["afile", "-u", "nm"])
+
+        self.assertEqual(
+            parsed_arguments.unit,
+            "nm",
+            msg="Minimal GuinierParser accepts q unit argument",
+        )
+
+    def add_q_unit_argument_adds_add_q_unit_argument_to_SASParser(
+        self,
+    ):
+        """
+        Test that add_q_unit_argument adds a q unit argument to as SASParser.
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+
+        # Before running add_output_filename_argument -o file is not regognized
+        output_catcher = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(output_catcher):
+                _ = basic_parser.parse_args(["-u", "nm"])
+        except SystemExit:
+            pass
+        self.assertTrue(
+            "unrecognized arguments: -u nm" in output_catcher.getvalue(),
+            msg="Minimal SASParser does not recognize -u argument",
+        )
+
+        basic_parser.add_q_unit_argument()
+        parsed_arguments = basic_parser.parse_args(["-u", "nm"])
+
+        self.assertEqual(
+            parsed_arguments.unit,
+            "nm",
+            msg="SASParser accepts q unit argument after running add_q_unit_argument()",
+        )
+
+    def add_q_unit_argument_allows_only_predefined_units(
+        self,
+    ):
+        """
+        Test that the q unit argument of a SASparser only accepts "nm", "Å", "A".
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+        basic_parser.add_q_unit_argument()
+
+        # First the accepted cases
+        parsed_arguments = basic_parser.parse_args(["-u", "nm"])
+        self.assertEqual(
+            parsed_arguments.unit,
+            "nm",
+            msg="SASParser accepts unit format nm",
+        )
+
+        parsed_arguments = basic_parser.parse_args(["-u", "A"])
+        self.assertEqual(
+            parsed_arguments.unit,
+            "Å",
+            msg="SASParser accepts unit format A",
+        )
+
+        parsed_arguments = basic_parser.parse_args(["-u", "Å"])
+        self.assertEqual(
+            parsed_arguments.unit,
+            "Å",
+            msg="SASParser accepts unit format A",
+        )
+
+        # And now something we do not support
+        output_catcher = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(output_catcher):
+                _ = basic_parser.parse_args(["-u", "m"])
+        except SystemExit:
+            pass
+        self.assertTrue(
+            "argument -u/--unit: invalid choice: 'm' (choose from 'nm', 'Å', 'A')"
+            in output_catcher.getvalue(),
+            msg="SASParser does not accept '-u m' argument",
+        )
+
+    def add_q_unit_A_gets_converted_to_Å(
+        self,
+    ):
+        """
+        Test that q unit input "A" gets converted to "Å".
+        """
+        basic_parser = SASParser("program", "description", "epilog")
+        basic_parser.add_q_unit_argument()
+
+        parsed_arguments = basic_parser.parse_args(["-u", "A"])
+        self.assertEqual(
+            parsed_arguments.unit,
+            "Å",
+            msg="SASParser converts unit input 'A' to 'Å'",
+        )
+
 
 def suite():
     test_suite = unittest.TestSuite()
@@ -355,6 +499,30 @@ def suite():
         TestSasArgParser(
             "add_file_argument_enables_SASParser_to_recognize_file_lists"
         )
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "minimal_guinier_parser_accepts_output_format_argument"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "add_output_data_format_adds_output_format_argument_to_SASParser"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser("minimal_guinier_parser_accepts_q_unit_argument")
+    )
+    test_suite.addTest(
+        TestSasArgParser(
+            "add_q_unit_argument_adds_add_q_unit_argument_to_SASParser"
+        )
+    )
+    test_suite.addTest(
+        TestSasArgParser("add_q_unit_argument_allows_only_predefined_units")
+    )
+    test_suite.addTest(
+        TestSasArgParser("add_q_unit_A_gets_converted_to_Å")
     )
     return test_suite
 
