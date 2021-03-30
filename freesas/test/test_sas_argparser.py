@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # coding: utf-8
 
+"""Test the functionality of SASParser and GuinierParser"""
+
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
 __date__ = "25/03/2022"
@@ -8,14 +10,12 @@ __date__ = "25/03/2022"
 
 import unittest
 import logging
+import io
+import contextlib
 from pathlib import Path
-import freesas
 from freesas import dated_version as freesas_version
 from freesas.sas_argparser import SASParser, GuinierParser
 
-import io
-import contextlib
-from sys import version_info
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +297,8 @@ class TestSasArgParser(unittest.TestCase):
         self.assertEqual(
             parsed_arguments.output,
             Path("out.file"),
-            msg="SASParser accepts output file argument after running add_output_filename_argument()",
+            msg="SASParser accepts output file argument"
+            "after running add_output_filename_argument()",
         )
 
     def minimal_guinier_parser_accepts_output_format_argument(self):
@@ -339,7 +340,8 @@ class TestSasArgParser(unittest.TestCase):
         self.assertEqual(
             parsed_arguments.format,
             "aformat",
-            msg="SASParser accepts output data format argument after running add_output_data_format()",
+            msg="SASParser accepts output data format argument"
+            "after running add_output_data_format()",
         )
 
     def minimal_guinier_parser_accepts_q_unit_argument(self):
@@ -416,7 +418,8 @@ class TestSasArgParser(unittest.TestCase):
 
     def SASParser_q_unit_argument_does_not_allow_not_predefined_units(self):
         """
-        Test that the q unit argument of a SASparser does not accept aunit that is not "nm", "Å", "A".
+        Test that the q unit argument of a SASparser does not accept a
+        unit that is not "nm", "Å", "A".
         """
         basic_parser = SASParser("program", "description", "epilog")
         basic_parser.add_q_unit_argument()
@@ -482,7 +485,8 @@ class TestSasArgParser(unittest.TestCase):
         self,
     ):
         """
-        Test that the q unit argument of a Guinierparser does not accept aunit that is not "nm", "Å", "A".
+        Test that the q unit argument of a Guinierparser does not accept a
+        unit that is not "nm", "Å", "A".
         """
         basic_parser = GuinierParser("program", "description", "epilog")
 
