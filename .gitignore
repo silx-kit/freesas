@@ -41,6 +41,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.rst
 
 # Translations
 *.mo
@@ -57,3 +58,7 @@ target/
 
 #IDEs
 workspace.code-workspace
+
+
+# OS files
+.DS_Store
