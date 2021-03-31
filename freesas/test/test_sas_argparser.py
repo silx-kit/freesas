@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestSasArgParser(unittest.TestCase):
-    def minimal_guinier_parser_requires_file_argument(self):
+    def test_minimal_guinier_parser_requires_file_argument(self):
         """
         Test that Guinier parser provides error if no file argument is provided.
         """
@@ -43,7 +43,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser states that the FILE argument is missing if no file provided",
         )
 
-    def minimal_guinier_parser_parses_list_of_files(self):
+    def test_minimal_guinier_parser_parses_list_of_files(self):
         """
         Test that the Guinier parsers parses a list of files.
         """
@@ -57,7 +57,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser parses list of files",
         )
 
-    def add_file_argument_enables_SASParser_to_recognize_file_lists(
+    def test_add_file_argument_enables_SASParser_to_recognize_file_lists(
         self,
     ):
         """
@@ -86,7 +86,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser parses list of files",
         )
 
-    def minimal_parser_usage_includes_program_name(self):
+    def test_minimal_parser_usage_includes_program_name(self):
         """
         Test that minimal parser includes the provided program in the usage string.
         """
@@ -97,7 +97,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser usage includes program name",
         )
 
-    def minimal_guinier_parser_usage_includes_program_name(self):
+    def test_minimal_guinier_parser_usage_includes_program_name(self):
         """
         Test that minimal parser includes the provided program in the usage string.
         """
@@ -108,7 +108,9 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser usage includes program name",
         )
 
-    def minimal_guinier_parser_help_includes_program_description_epilog(self):
+    def test_minimal_guinier_parser_help_includes_program_description_epilog(
+        self,
+    ):
         """
         Test that minimal guinier parser includes help includes
         the provided program name, description and epilog.
@@ -137,7 +139,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser outputs eplilog name in help",
         )
 
-    def minimal_parser_help_includes_program_description_epilog(self):
+    def test_minimal_parser_help_includes_program_description_epilog(self):
         """
         Test that minimal parser includes help includes
         the provided program name, description and epilog.
@@ -166,7 +168,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser outputs eplilog name in help",
         )
 
-    def minimal_parser_default_verbosity_level_is_0(self):
+    def test_minimal_parser_default_verbosity_level_is_0(self):
         """
         Test that the parser sets the verbosity to 0 if no args are provided
         """
@@ -178,7 +180,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser default verbosity is 0",
         )
 
-    def minimal_guinier_parser_default_verbosity_level_is_0(self):
+    def test_minimal_guinier_parser_default_verbosity_level_is_0(self):
         """
         Test that the Guinier parser sets the verbosity to 0 if no args are provided
         """
@@ -190,7 +192,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser default verbosity is 0",
         )
 
-    def minimal_parser_accumulates_verbosity_level(self):
+    def test_minimal_parser_accumulates_verbosity_level(self):
         """
         Test that the parser parser increases the verbosity level to two
         if -vv argument is provided.
@@ -203,7 +205,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser verbosity increased to 2 by -vv",
         )
 
-    def minimal_guinier_parser_accumulates_verbosity_level(self):
+    def test_minimal_guinier_parser_accumulates_verbosity_level(self):
         """
         Test that the parser parser increases the verbosity level to two
         if -vv argument is provided.
@@ -216,7 +218,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser verbosity increased to 2 by -vv",
         )
 
-    def minimal_parser_provides_correct_version(self):
+    def test_minimal_parser_provides_correct_version(self):
         """
         Test that parser provides the correct app version.
         """
@@ -237,7 +239,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser outputs consistent date",
         )
 
-    def minimal_guinier_parser_provides_correct_version(self):
+    def test_minimal_guinier_parser_provides_correct_version(self):
         """
         Test that parser provides the correct app version.
         """
@@ -258,7 +260,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser outputs consistent date",
         )
 
-    def minimal_guinier_parser_accepts_output_file_argument(self):
+    def test_minimal_guinier_parser_accepts_output_file_argument(self):
         """
         Test that minimal Guinier parser accepts one output file argument.
         """
@@ -271,7 +273,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="Minimal GuinierParser accepts output file argument",
         )
 
-    def add_output_filename_argument_adds_output_file_argument_to_SASParser(
+    def test_add_output_filename_argument_adds_output_file_argument_to_SASParser(
         self,
     ):
         """
@@ -301,7 +303,7 @@ class TestSasArgParser(unittest.TestCase):
             "after running add_output_filename_argument()",
         )
 
-    def minimal_guinier_parser_accepts_output_format_argument(self):
+    def test_minimal_guinier_parser_accepts_output_format_argument(self):
         """
         Test that minimal Guinier parser accepts one output data format argument.
         """
@@ -314,7 +316,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="Minimal GuinierParser accepts output data format argument",
         )
 
-    def add_output_data_format_adds_output_format_argument_to_SASParser(
+    def test_add_output_data_format_adds_output_format_argument_to_SASParser(
         self,
     ):
         """
@@ -344,7 +346,7 @@ class TestSasArgParser(unittest.TestCase):
             "after running add_output_data_format()",
         )
 
-    def minimal_guinier_parser_accepts_q_unit_argument(self):
+    def test_minimal_guinier_parser_accepts_q_unit_argument(self):
         """
         Test that minimal Guinier parser accepts a q unit argument.
         """
@@ -357,7 +359,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="Minimal GuinierParser accepts q unit argument",
         )
 
-    def add_q_unit_argument_adds_add_q_unit_argument_to_SASParser(
+    def test_add_q_unit_argument_adds_add_q_unit_argument_to_SASParser(
         self,
     ):
         """
@@ -386,7 +388,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser accepts q unit argument after running add_q_unit_argument()",
         )
 
-    def SASParser_q_unit_argument_allows_predefined_units(
+    def test_SASParser_q_unit_argument_allows_predefined_units(
         self,
     ):
         """
@@ -416,7 +418,9 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser accepts unit format A",
         )
 
-    def SASParser_q_unit_argument_does_not_allow_not_predefined_units(self):
+    def test_SASParser_q_unit_argument_does_not_allow_not_predefined_units(
+        self,
+    ):
         """
         Test that the q unit argument of a SASparser does not accept a
         unit that is not "nm", "Å", "A".
@@ -436,7 +440,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser does not accept '-u m' argument",
         )
 
-    def SASParser_q_unit_A_gets_converted_to_Å(
+    def test_SASParser_q_unit_A_gets_converted_to_Å(
         self,
     ):
         """
@@ -452,7 +456,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser converts unit input 'A' to 'Å'",
         )
 
-    def GuinierParser_q_unit_argument_allows_predefined_units(
+    def test_GuinierParser_q_unit_argument_allows_predefined_units(
         self,
     ):
         """
@@ -481,7 +485,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser accepts unit format A",
         )
 
-    def GuinierParser_q_unit_argument_does_not_allow_not_predefined_units(
+    def test_GuinierParser_q_unit_argument_does_not_allow_not_predefined_units(
         self,
     ):
         """
@@ -502,7 +506,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser does not accept '-u m' argument",
         )
 
-    def GuinierParser_q_unit_A_gets_converted_to_Å(
+    def test_GuinierParser_q_unit_A_gets_converted_to_Å(
         self,
     ):
         """
@@ -517,7 +521,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="SASParser converts unit input 'A' to 'Å'",
         )
 
-    def add_argument_adds_an_argument_to_a_SASParser(
+    def test_add_argument_adds_an_argument_to_a_SASParser(
         self,
     ):
         """
@@ -550,7 +554,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="-c argument added to SASParser",
         )
 
-    def add_argument_adds_an_argument_to_a_GuinierParser(
+    def test_add_argument_adds_an_argument_to_a_GuinierParser(
         self,
     ):
         """
@@ -586,108 +590,11 @@ class TestSasArgParser(unittest.TestCase):
 
 
 def suite():
+    """Build a test suite from the TestSasArgParser class"""
     test_suite = unittest.TestSuite()
-    test_suite.addTest(
-        TestSasArgParser("minimal_parser_provides_correct_version")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_provides_correct_version")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_parser_default_verbosity_level_is_0")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_default_verbosity_level_is_0")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_parser_accumulates_verbosity_level")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_accumulates_verbosity_level")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_requires_file_argument")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_parser_usage_includes_program_name")
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_usage_includes_program_name")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "minimal_parser_help_includes_program_description_epilog"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "minimal_guinier_parser_help_includes_program_description_epilog"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_accepts_output_file_argument")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "add_output_filename_argument_adds_output_file_argument_to_SASParser"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_parses_list_of_files")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "add_file_argument_enables_SASParser_to_recognize_file_lists"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "minimal_guinier_parser_accepts_output_format_argument"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "add_output_data_format_adds_output_format_argument_to_SASParser"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("minimal_guinier_parser_accepts_q_unit_argument")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "add_q_unit_argument_adds_add_q_unit_argument_to_SASParser"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("SASParser_q_unit_argument_allows_predefined_units")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "SASParser_q_unit_argument_does_not_allow_not_predefined_units"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("SASParser_q_unit_A_gets_converted_to_Å")
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "GuinierParser_q_unit_argument_allows_predefined_units"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser(
-            "GuinierParser_q_unit_argument_does_not_allow_not_predefined_units"
-        )
-    )
-    test_suite.addTest(
-        TestSasArgParser("GuinierParser_q_unit_A_gets_converted_to_Å")
-    )
-    test_suite.addTest(
-        TestSasArgParser("add_argument_adds_an_argument_to_a_SASParser")
-    )
-    test_suite.addTest(
-        TestSasArgParser("add_argument_adds_an_argument_to_a_GuinierParser")
-    )
+    for class_element in dir(TestSasArgParser):
+        if class_element.startswith("test"):
+            test_suite.addTest(TestSasArgParser(class_element))
     return test_suite
 
 
