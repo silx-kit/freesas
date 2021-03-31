@@ -12,6 +12,7 @@ import argparse
 from pathlib import Path
 from freesas import dated_version as freesas_version
 
+
 def parse_unit(unit_input: str) -> str:
     """
     Parser for sloppy acceptance of unit flags.
@@ -21,10 +22,11 @@ def parse_unit(unit_input: str) -> str:
     :return: cast of user input to known flag if sloppy rule defined,
              else user input.
     """
-    if unit_input == "A": # pylint: disable=R1705
+    if unit_input == "A":  # pylint: disable=R1705
         return "Å"
     else:
         return unit_input
+
 
 class SASParser:
 
@@ -45,16 +47,24 @@ class SASParser:
         :param kwargs:       additional kwargs for argparse ArgumentParser
         """
 
-        usage = "%s [OPTIONS] FILES " %(prog)
-        version = "%s version %s from %s" %(prog, freesas_version.version,
-                                            freesas_version.date)
+        usage = "%s [OPTIONS] FILES " % (prog)
+        version = "%s version %s from %s" % (
+            prog,
+            freesas_version.version,
+            freesas_version.date,
+        )
 
-        self.parser = argparse.ArgumentParser(usage=usage,
-                                              description=description,
-                                              epilog=epilog, **kwargs)
-        self.add_argument("-v", "--verbose", default=0,
-                          help="switch to verbose mode", action='count')
-        self.add_argument("-V", "--version", action='version', version=version)
+        self.parser = argparse.ArgumentParser(
+            usage=usage, description=description, epilog=epilog, **kwargs
+        )
+        self.add_argument(
+            "-v",
+            "--verbose",
+            default=0,
+            help="switch to verbose mode",
+            action="count",
+        )
+        self.add_argument("-V", "--version", action="version", version=version)
 
     def parse_args(self):
         """ Wrapper for argparse parse_args() """
@@ -70,30 +80,46 @@ class SASParser:
 
         :param help_text: specific help text to be displayed
         """
-        self.add_argument("file", metavar="FILE", nargs='+',
-                          help=help_text)
-
+        self.add_argument("file", metavar="FILE", nargs="+", help=help_text)
 
     def add_q_unit_argument(self):
         """
         Add default argument for selecting length unit of input data
         between Å and nm. nm is default.
         """
-        self.add_argument("-u", "--unit", action='store',
-                          choices=["nm", "Å", "A"],
-                          help="Unit for q: inverse nm or Ångstrom?",
-                          default="nm", type=parse_unit)
+        self.add_argument(
+            "-u",
+            "--unit",
+            action="store",
+            choices=["nm", "Å", "A"],
+            help="Unit for q: inverse nm or Ångstrom?",
+            default="nm",
+            type=parse_unit,
+        )
 
     def add_output_filename_argument(self):
         """ Add default argument for specifying output format. """
-        self.add_argument("-o", "--output", action='store',
-                          help="Output filename", default=None, type=Path)
+        self.add_argument(
+            "-o",
+            "--output",
+            action="store",
+            help="Output filename",
+            default=None,
+            type=Path,
+        )
 
     def add_output_data_format(self, *formats: str, default: str = None):
         """ Add default argument for specifying output format. """
-        help_string = "Output format: " +  ", ".join(formats)
-        self.add_argument("-f", "--format", action='store',
-                          help=help_string, default=default, type=str)
+        help_string = "Output format: " + ", ".join(formats)
+        self.add_argument(
+            "-f",
+            "--format",
+            action="store",
+            help=help_string,
+            default=default,
+            type=str,
+        )
+
 
 class GuinierParser:
     """
@@ -115,12 +141,14 @@ class GuinierParser:
         """
 
         file_help_text = "dat files of the scattering curves"
-        self.parser = SASParser(prog=prog, description=description,
-                                epilog=epilog, **kwargs)
+        self.parser = SASParser(
+            prog=prog, description=description, epilog=epilog, **kwargs
+        )
         self.parser.add_file_argument(help_text=file_help_text)
         self.parser.add_output_filename_argument()
-        self.parser.add_output_data_format("native", "csv", "ssf",
-                                           default="native")
+        self.parser.add_output_data_format(
+            "native", "csv", "ssf", default="native"
+        )
         self.parser.add_q_unit_argument()
 
     def parse_args(self):

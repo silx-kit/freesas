@@ -24,6 +24,6 @@
 # ###########################################################################*/
 """This package contains the application provided by the launcher"""
 
-__authors__ = ["V. Valls"]
+__authors__ = ["Jérôme Kieffer", "Martha Brennich"]
 __license__ = "MIT"
-__date__ = "30/03/2017"
+__date__ = "2021/03/24"

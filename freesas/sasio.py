@@ -18,13 +18,14 @@ __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __date__ = "25/07/2020"
 __status__ = "development"
-__docformat__ = 'restructuredtext'
+__docformat__ = "restructuredtext"
 
 from typing import List, Union
 from os import PathLike
 from numpy import loadtxt, array, ndarray
 
 PathType = Union[PathLike, str, bytes]
+
 
 def load_scattering_data(filename: PathType) -> ndarray:
     """
@@ -47,12 +48,15 @@ def load_scattering_data(filename: PathType) -> ndarray:
             try:
                 data = parse_ascii_data(text, number_of_columns=3)
             except ValueError:
-                raise ValueError("File does not seem to be "
-                                 "in the format q, I, err. ")
+                raise ValueError(
+                    "File does not seem to be " "in the format q, I, err. "
+                )
     return data
 
-def parse_ascii_data(input_file_text: List[str],
-                     number_of_columns: int) -> ndarray:
+
+def parse_ascii_data(
+    input_file_text: List[str], number_of_columns: int
+) -> ndarray:
     """
     Parse data from an ascii file into an N column numpy array
 
@@ -73,11 +77,12 @@ def parse_ascii_data(input_file_text: List[str],
                     raise
     if data == []:
         raise ValueError
-    data = array(data)
-    return data
+    return array(data)
 
-def convert_inverse_angstrom_to_nanometer(data_in_inverse_angstrom: ndarray) \
-                                            -> ndarray:
+
+def convert_inverse_angstrom_to_nanometer(
+    data_in_inverse_angstrom: ndarray,
+) -> ndarray:
     """
     Convert data with q in 1/Å to 1/nm.
 
@@ -86,4 +91,4 @@ def convert_inverse_angstrom_to_nanometer(data_in_inverse_angstrom: ndarray) \
     :return: numpy array with 3 column (q_in_inverse_nm,I,err)
     """
     q_in_angstrom, intensity, err = data_in_inverse_angstrom.T
-    return array([q_in_angstrom*10.0, intensity, err]).T
+    return array([q_in_angstrom * 10.0, intensity, err]).T

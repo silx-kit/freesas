@@ -41,7 +41,7 @@ from freesas.sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )
-from .sas_argparser import SASParser
+from freesas.sas_argparser import SASParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
