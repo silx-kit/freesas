@@ -30,7 +30,7 @@ from .sas_argparser import GuinierParser
 
 def set_logging_level(verbose_flag: int) -> None:
     """
-    Set logging level according to verbose flaf of argparser
+    Set logging level according to verbose flag of argparser
     :param verbose_flag: int flag for logging level
     """
     if verbose_flag == 1:
