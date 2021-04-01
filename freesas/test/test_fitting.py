@@ -10,6 +10,10 @@ __date__ = "25/03/2022"
 
 import unittest
 import logging
+import sys
+import importlib
+import platform
+from io import StringIO
 from freesas.fitting import set_logging_level
 
 
@@ -17,6 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 class TestFitting(unittest.TestCase):
+    def reload_os_and_fitting(self):
+        """Some tests patch os and need to reload the modules"""
+        os = importlib.import_module("os")
+        os = importlib.reload(os)
+        fit = importlib.import_module("freesas.fitting")
+        fit = importlib.reload(fit)
+        return fit
+
     def test_set_logging_level_does_not_change_logging_level_if_input_lower_1(
         self,
     ):
@@ -86,13 +98,79 @@ class TestFitting(unittest.TestCase):
         # Ensure that initial logging level is restored
         logging.root.setLevel(initial_logging_level)
 
+    @unittest.mock.patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    def test_get_linesep_returns_rn_if_output_is_stdout_on_windows(self):
+        """
+        Test that get_linesep() returns \r\n if output destination is sys.stdout on Windows.
+        """
+        # Reload to apply patches
+        with unittest.mock.patch("sys.builtin_module_names", ["nt"]):
+            fit = self.reload_os_and_fitting()
+
+        get_linesep = getattr(fit, "get_linesep")
+        self.assertEqual(get_linesep(sys.stdout), "\r\n")
+
+        # Cleanup
+        _ = self.reload_os_and_fitting()
+
+    def test_get_linesep_returns_n_if_output_is_stdout_on_posix(
+        self,
+    ):
+        """
+        Test that get_linesep() returns \n if output destination is sys.stdout on Posix.
+        Only should run on posix.
+        """
+
+        fit = importlib.import_module("freesas.fitting")
+        get_linesep = getattr(fit, "get_linesep")
+
+        self.assertEqual(get_linesep(sys.stdout), "\n")
+
+    @unittest.mock.patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    def test_get_linesep_returns_n_if_output_is_filestream_on_windows(self):
+        """
+        Test that get_linesep() returns \n if output destination is a filestream on Windows.
+        """
+        # Reload to apply patches
+        with unittest.mock.patch("sys.builtin_module_names", ["nt"]):
+            fit = self.reload_os_and_fitting()
+
+        get_linesep = getattr(fit, "get_linesep")
+
+        output_dest = StringIO()
+        self.assertEqual(get_linesep(output_dest), "\n")
+
+        # Cleanup
+        _ = self.reload_os_and_fitting()
+
+    def test_get_linesep_returns_n_if_output_is_filestream_on_posix(
+        self,
+    ):
+        """
+        Test that get_linesep() returns \n if output destination is filestream on Posix.
+        Only should run on posix.
+        """
+
+        fit = importlib.import_module("freesas.fitting")
+        get_linesep = getattr(fit, "get_linesep")
+
+        output_dest = StringIO()
+        self.assertEqual(get_linesep(output_dest), "\n")
+
 
 def suite():
     """Build a test suite from the TestFitting class"""
     test_suite = unittest.TestSuite()
     for class_element in dir(TestFitting):
-        if class_element.startswith("test"):
-            test_suite.addTest(TestFitting(class_element))
+        if platform.system() == "Windows":
+            if (
+                class_element.startswith("test")
+                and not "posix" in class_element
+            ):
+                test_suite.addTest(TestFitting(class_element))
+        else:
+            if class_element.startswith("test"):
+                test_suite.addTest(TestFitting(class_element))
     return test_suite
 
 
