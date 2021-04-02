@@ -168,22 +168,19 @@ class TestFitting(unittest.TestCase):
         output_dest = StringIO()
         self.assertEqual(get_linesep(output_dest), "\n")
 
-    @patch("__main__.open", mock_open())
     def test_get_output_destination_with_path_input_returns_writable_testIO(
         self,
     ):
         """Test that by calling get_output_destination with a Path as input
         we obtain write access to the file of Path"""
-        with get_output_destination(Path("test")) as destination:
-            self.assertEqual(
-                type(destination),
-                TextIOWrapper,
-                msg="file destination has type TextIOWrapper",
-            )
-            self.assertTrue(
-                destination.writable(),
-                msg="file destination is writable",
-            )
+        mocked_open = mock_open()
+        with patch("builtins.open", mocked_open):
+            with get_output_destination(Path("test")) as destination:
+                self.assertTrue(
+                    destination.writable(),
+                    msg="file destination is writable",
+                )
+        mocked_open.assert_called_once_with(Path("test"), "w")
 
     def test_get_output_destination_withou_input_returns_stdout(
         self,
