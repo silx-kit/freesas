@@ -5,16 +5,27 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "25/03/2022"
+__date__ = "02/04/2021"
 
 
 import unittest
+from unittest.mock import patch
 import logging
 import sys
 import importlib
 import platform
-from io import StringIO
-from freesas.fitting import set_logging_level
+from io import StringIO, TextIOWrapper
+from pathlib import Path
+from freesas.fitting import (
+    set_logging_level,
+    get_output_destination,
+    get_header,
+)
+
+if sys.version_info.minor > 6:
+    from unittest.mock import mock_open
+else:
+    from .mock_open_38 import mock_open
 
 
 logger = logging.getLogger(__name__)
@@ -98,13 +109,13 @@ class TestFitting(unittest.TestCase):
         # Ensure that initial logging level is restored
         logging.root.setLevel(initial_logging_level)
 
-    @unittest.mock.patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    @patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
     def test_get_linesep_returns_rn_if_output_is_stdout_on_windows(self):
         """
         Test that get_linesep() returns \r\n if output destination is sys.stdout on Windows.
         """
         # Reload to apply patches
-        with unittest.mock.patch("sys.builtin_module_names", ["nt"]):
+        with patch("sys.builtin_module_names", ["nt"]):
             fit = self.reload_os_and_fitting()
 
         get_linesep = getattr(fit, "get_linesep")
@@ -126,13 +137,13 @@ class TestFitting(unittest.TestCase):
 
         self.assertEqual(get_linesep(sys.stdout), "\n")
 
-    @unittest.mock.patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    @patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
     def test_get_linesep_returns_n_if_output_is_filestream_on_windows(self):
         """
         Test that get_linesep() returns \n if output destination is a filestream on Windows.
         """
         # Reload to apply patches
-        with unittest.mock.patch("sys.builtin_module_names", ["nt"]):
+        with patch("sys.builtin_module_names", ["nt"]):
             fit = self.reload_os_and_fitting()
 
         get_linesep = getattr(fit, "get_linesep")
@@ -156,6 +167,79 @@ class TestFitting(unittest.TestCase):
 
         output_dest = StringIO()
         self.assertEqual(get_linesep(output_dest), "\n")
+
+    @patch("__main__.open", mock_open())
+    def test_get_output_destination_with_path_input_returns_writable_testIO(
+        self,
+    ):
+        """Test that by calling get_output_destination with a Path as input
+        we obtain write access to the file of Path"""
+        with get_output_destination(Path("test")) as destination:
+            self.assertEqual(
+                type(destination),
+                TextIOWrapper,
+                msg="file destination has type TextIOWrapper",
+            )
+            self.assertTrue(
+                destination.writable(),
+                msg="file destination is writable",
+            )
+
+    def test_get_output_destination_withou_input_returns_stdout(
+        self,
+    ):
+        """Test that by calling get_output_destination without input
+        we obtain sys.stdout"""
+        destination = get_output_destination()
+        self.assertEqual(
+            destination,
+            sys.stdout,
+            msg="default destination is sys.stdout",
+        )
+
+    def test_get_header_for_csv(
+        self,
+    ):
+        """Test that by calling get_header with input csv we get the correct line"""
+        header = get_header("csv", "linesep")
+        self.assertEqual(
+            header,
+            "File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregatedlinesep",
+            msg="csv header is correct",
+        )
+
+    def test_get_header_for_ssv(
+        self,
+    ):
+        """Test that by calling get_header with input ssv we get an empty string"""
+        header = get_header("ssv", "linesep")
+        self.assertEqual(
+            header,
+            "",
+            msg="ssv header is correct",
+        )
+
+    def test_get_header_for_native(
+        self,
+    ):
+        """Test that by calling get_header with input native we get an empty string"""
+        header = get_header("native", "linesep")
+        self.assertEqual(
+            header,
+            "",
+            msg="native header is correct",
+        )
+
+    def test_get_header_without_input_format(
+        self,
+    ):
+        """Test that by calling get_header without input format we get an empty string"""
+        header = get_header(None, "linesep")
+        self.assertEqual(
+            header,
+            "",
+            msg="header for undefined format is correct",
+        )
 
 
 def suite():

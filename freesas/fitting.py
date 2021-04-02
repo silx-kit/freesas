@@ -52,7 +52,7 @@ def collect_files(file_list: List[str]) -> List[Path]:
     return files
 
 
-def get_output_destination(output_path: Optional[Path]) -> IO[str]:
+def get_output_destination(output_path: Optional[Path] = None) -> IO[str]:
     """
     Return file or stdout object to write output to
     :param output_path: None if output to stdout, else Path to outputfile
