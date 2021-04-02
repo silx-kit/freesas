@@ -51,7 +51,7 @@ class TestFitting(unittest.TestCase):
         self.assertEqual(
             logging.root.level,
             initial_logging_level,
-            msg="settting verbosity to 0 dos not affect logging level",
+            msg="setting verbosity to 0 dos not affect logging level",
         )
         set_logging_level(-2)
         self.assertEqual(
@@ -168,7 +168,7 @@ class TestFitting(unittest.TestCase):
         output_dest = StringIO()
         self.assertEqual(get_linesep(output_dest), "\n")
 
-    def test_get_output_destination_with_path_input_returns_writable_testIO(
+    def test_get_output_destination_with_path_input_returns_writable_IO(
         self,
     ):
         """Test that by calling get_output_destination with a Path as input
@@ -182,17 +182,17 @@ class TestFitting(unittest.TestCase):
                 )
         mocked_open.assert_called_once_with(Path("test"), "w")
 
-    def test_get_output_destination_withou_input_returns_stdout(
+    def test_get_output_destination_without_input_returns_stdout(
         self,
     ):
         """Test that by calling get_output_destination without input
         we obtain sys.stdout"""
-        destination = get_output_destination()
-        self.assertEqual(
-            destination,
-            sys.stdout,
-            msg="default destination is sys.stdout",
-        )
+        with get_output_destination() as destination:
+            self.assertEqual(
+                destination,
+                sys.stdout,
+                msg="default destination is sys.stdout",
+            )
 
     def test_get_header_for_csv(
         self,
