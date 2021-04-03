@@ -176,7 +176,12 @@ def run_guinier_fit(
     with get_output_destination(args.output) as output_destination:
         linesep = get_linesep(output_destination)
 
-        output_destination.write(get_header(args.format, linesep))
+        output_destination.write(
+            get_header(
+                linesep,
+                args.format,
+            )
+        )
 
         for afile in files:
             logger.info("Processing %s", afile)
