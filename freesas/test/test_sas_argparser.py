@@ -13,8 +13,8 @@ import logging
 import io
 import contextlib
 from pathlib import Path
-from freesas import dated_version as freesas_version
-from freesas.sas_argparser import SASParser, GuinierParser
+from .. import dated_version as freesas_version
+from ..sas_argparser import SASParser, GuinierParser
 
 
 logger = logging.getLogger(__name__)
