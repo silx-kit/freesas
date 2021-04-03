@@ -202,7 +202,10 @@ def run_guinier_fit(
                     )
                 else:
                     res = rg_result_to_output_line(
-                        rg_result, afile, args.format, linesep
+                        rg_result,
+                        afile,
+                        linesep,
+                        args.format,
                     )
                     output_destination.write(res)
                     output_destination.flush()
