@@ -83,7 +83,7 @@ def get_linesep(output_destination: IO[str]) -> str:
         return "\n"
 
 
-def get_header(output_format: str, linesep: str) -> str:
+def get_header(linesep: str, output_format: str = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -110,7 +110,7 @@ def get_header(output_format: str, linesep: str) -> str:
 
 
 def rg_result_to_output_line(
-    rg_result: RG_RESULT, afile: Path, output_format: str, linesep: str
+    rg_result: RG_RESULT, afile: Path, linesep: str, output_format: str = None
 ) -> str:
     """Return result line formatted according to selected output format
     :param rg_result: Result of an rg fit
