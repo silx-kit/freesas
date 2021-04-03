@@ -39,7 +39,7 @@ def reload_os_and_fitting():
     """Some tests patch os and need to reload the modules"""
     os = importlib.import_module("os")
     os = importlib.reload(os)
-    fit = importlib.import_module("freesas.fitting")
+    fit = importlib.import_module("..fitting", "freesas.subpkg")
     fit = importlib.reload(fit)
     return fit
 
@@ -259,7 +259,7 @@ class TestFitting(unittest.TestCase):
         with patch("os.stat", mocked_stat):
             local_pathlib = importlib.import_module("pathlib")
             local_pathlib = importlib.reload(local_pathlib)
-            fit = importlib.import_module("freesas.fitting")
+            fit = importlib.import_module("..fitting", "freesas.subpkg")
             fit = importlib.reload(fit)
             self.assertEqual(
                 fit.collect_files(["testgood", "testbad"]),
@@ -284,7 +284,7 @@ class TestFitting(unittest.TestCase):
         )
         with patch("os.stat", mocked_stat):
             with patch.object(pathlib.Path, "glob", mocked_glob):
-                fit = importlib.import_module("freesas.fitting")
+                fit = importlib.import_module("..fitting", "freesas.subpkg")
                 fit = importlib.reload(fit)
                 self.assertEqual(
                     fit.collect_files(["testgood"]),
