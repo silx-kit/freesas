@@ -9,17 +9,18 @@ __date__ = "02/04/2021"
 
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import logging
 import sys
 import importlib
 import platform
 from io import StringIO, TextIOWrapper
-from pathlib import Path
+import pathlib
 from freesas.fitting import (
     set_logging_level,
     get_output_destination,
     get_header,
+    collect_files,
 )
 
 if sys.version_info.minor > 6:
@@ -109,7 +110,7 @@ class TestFitting(unittest.TestCase):
         # Ensure that initial logging level is restored
         logging.root.setLevel(initial_logging_level)
 
-    @patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    @patch.dict("sys.modules", {"nt": MagicMock()})
     def test_get_linesep_returns_rn_if_output_is_stdout_on_windows(self):
         """
         Test that get_linesep() returns \r\n if output destination is sys.stdout on Windows.
@@ -122,7 +123,7 @@ class TestFitting(unittest.TestCase):
         self.assertEqual(get_linesep(sys.stdout), "\r\n")
 
         # Cleanup
-        _ = self.reload_os_and_fitting()
+        self.reload_os_and_fitting()
 
     def test_get_linesep_returns_n_if_output_is_stdout_on_posix(
         self,
@@ -137,7 +138,7 @@ class TestFitting(unittest.TestCase):
 
         self.assertEqual(get_linesep(sys.stdout), "\n")
 
-    @patch.dict("sys.modules", {"nt": unittest.mock.MagicMock()})
+    @patch.dict("sys.modules", {"nt": MagicMock()})
     def test_get_linesep_returns_n_if_output_is_filestream_on_windows(self):
         """
         Test that get_linesep() returns \n if output destination is a filestream on Windows.
@@ -175,12 +176,12 @@ class TestFitting(unittest.TestCase):
         we obtain write access to the file of Path"""
         mocked_open = mock_open()
         with patch("builtins.open", mocked_open):
-            with get_output_destination(Path("test")) as destination:
+            with get_output_destination(pathlib.Path("test")) as destination:
                 self.assertTrue(
                     destination.writable(),
                     msg="file destination is writable",
                 )
-        mocked_open.assert_called_once_with(Path("test"), "w")
+        mocked_open.assert_called_once_with(pathlib.Path("test"), "w")
 
     def test_get_output_destination_without_input_returns_stdout(
         self,
@@ -193,6 +194,14 @@ class TestFitting(unittest.TestCase):
                 sys.stdout,
                 msg="default destination is sys.stdout",
             )
+
+    def test_closing_get_output_destination_does_not_close_stdout(
+        self,
+    ):
+        """Test that get_output_destination() can be safely used without closing sys.stdout"""
+        with get_output_destination() as _:
+            pass
+        sys.stdout.write("test")
 
     def test_get_header_for_csv(
         self,
@@ -237,6 +246,58 @@ class TestFitting(unittest.TestCase):
             "",
             msg="header for undefined format is correct",
         )
+
+    def test_collect_files_only_returns_existing_files(self):
+        """Test that collect_files discards strings that do not match an existing file"""
+
+        def os_stat_mock(path):
+            if "good" in path.name:
+                pass
+            else:
+                raise ValueError
+
+        mocked_stat = MagicMock(side_effect=os_stat_mock)
+        with patch("os.stat", mocked_stat):
+            local_pathlib = importlib.import_module("pathlib")
+            local_pathlib = importlib.reload(local_pathlib)
+            MyPath = getattr(local_pathlib, "Path")
+            fit = importlib.import_module("freesas.fitting")
+            fit = importlib.reload(fit)
+            collect_files = getattr(fit, "collect_files")
+            self.assertEqual(
+                collect_files(["testgood", "testbad"]),
+                [MyPath("testgood")],
+            )
+        # Reload without the patch
+        local_pathlib = importlib.reload(local_pathlib)
+        self.reload_os_and_fitting()
+
+    @patch("platform.system", MagicMock(return_value="Windows"))
+    def test_collect_files_globs_on_windows(self):
+        """Test that collect_files globs on Windows if no existent files provided"""
+
+        def os_stat_mock(path):
+            raise ValueError
+
+        mocked_stat = MagicMock(side_effect=os_stat_mock)
+        mocked_glob = MagicMock(
+            side_effect=[
+                (p for p in [pathlib.Path("pathA"), pathlib.Path("pathB")])
+            ]
+        )
+        with patch("os.stat", mocked_stat):
+            with patch.object(pathlib.Path, "glob", mocked_glob):
+                fit = importlib.import_module("freesas.fitting")
+                fit = importlib.reload(fit)
+                collect_files = getattr(fit, "collect_files")
+                self.assertEqual(
+                    collect_files(["testgood"]),
+                    [pathlib.Path("pathA"), pathlib.Path("pathB")],
+                )
+        mocked_glob.assert_called_once()
+
+        # Reload without the patch
+        self.reload_os_and_fitting()
 
 
 def suite():
