@@ -22,6 +22,7 @@ from ..fitting import (
     get_output_destination,
     get_header,
     rg_result_to_output_line,
+    get_linesep,
 )
 from ..autorg import RG_RESULT
 
@@ -122,8 +123,7 @@ class TestFitting(unittest.TestCase):
         with patch("sys.builtin_module_names", ["nt"]):
             fit = reload_os_and_fitting()
 
-        get_linesep = getattr(fit, "get_linesep")
-        self.assertEqual(get_linesep(sys.stdout), "\r\n")
+        self.assertEqual(fit.get_linesep(sys.stdout), "\r\n")
 
         # Cleanup
         reload_os_and_fitting()
@@ -135,10 +135,6 @@ class TestFitting(unittest.TestCase):
         Test that get_linesep() returns \n if output destination is sys.stdout on Posix.
         Only should run on posix.
         """
-
-        fit = importlib.import_module("freesas.fitting")
-        get_linesep = getattr(fit, "get_linesep")
-
         self.assertEqual(get_linesep(sys.stdout), "\n")
 
     @patch.dict("sys.modules", {"nt": MagicMock()})
@@ -149,11 +145,8 @@ class TestFitting(unittest.TestCase):
         # Reload to apply patches
         with patch("sys.builtin_module_names", ["nt"]):
             fit = reload_os_and_fitting()
-
-        get_linesep = getattr(fit, "get_linesep")
-
         output_dest = StringIO()
-        self.assertEqual(get_linesep(output_dest), "\n")
+        self.assertEqual(fit.get_linesep(output_dest), "\n")
 
         # Cleanup
         _ = reload_os_and_fitting()
@@ -165,10 +158,6 @@ class TestFitting(unittest.TestCase):
         Test that get_linesep() returns \n if output destination is filestream on Posix.
         Only should run on posix.
         """
-
-        fit = importlib.import_module("freesas.fitting")
-        get_linesep = getattr(fit, "get_linesep")
-
         output_dest = StringIO()
         self.assertEqual(get_linesep(output_dest), "\n")
 
@@ -270,13 +259,11 @@ class TestFitting(unittest.TestCase):
         with patch("os.stat", mocked_stat):
             local_pathlib = importlib.import_module("pathlib")
             local_pathlib = importlib.reload(local_pathlib)
-            MyPath = getattr(local_pathlib, "Path")
             fit = importlib.import_module("freesas.fitting")
             fit = importlib.reload(fit)
-            collect_files = getattr(fit, "collect_files")
             self.assertEqual(
-                collect_files(["testgood", "testbad"]),
-                [MyPath("testgood")],
+                fit.collect_files(["testgood", "testbad"]),
+                [local_pathlib.Path("testgood")],
             )
         # Reload without the patch
         local_pathlib = importlib.reload(local_pathlib)
@@ -299,9 +286,8 @@ class TestFitting(unittest.TestCase):
             with patch.object(pathlib.Path, "glob", mocked_glob):
                 fit = importlib.import_module("freesas.fitting")
                 fit = importlib.reload(fit)
-                collect_files = getattr(fit, "collect_files")
                 self.assertEqual(
-                    collect_files(["testgood"]),
+                    fit.collect_files(["testgood"]),
                     [pathlib.Path("pathA"), pathlib.Path("pathB")],
                     msg="collect_files on windows returns list if fiel argument does not exist",
                 )
