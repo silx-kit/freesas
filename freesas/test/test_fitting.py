@@ -17,14 +17,19 @@ import platform
 from io import StringIO
 import pathlib
 import contextlib
+from types import SimpleNamespace
+from typing import Callable
+import numpy
 from ..fitting import (
     set_logging_level,
     get_output_destination,
     get_header,
     rg_result_to_output_line,
     get_linesep,
+    run_guinier_fit,
 )
 from ..autorg import RG_RESULT
+from ..sas_argparser import GuinierParser
 
 if sys.version_info.minor > 6:
     from unittest.mock import mock_open
@@ -42,6 +47,31 @@ def reload_os_and_fitting():
     fit = importlib.import_module("..fitting", "freesas.subpkg")
     fit = importlib.reload(fit)
     return fit
+
+
+def get_dummy_guinier_parser(**parse_output):
+    """Function which provides a fake GuinierParser with a predefined parse result."""
+
+    def get_mock_parse(**kwargs):
+        def mock_parse():
+            return SimpleNamespace(**kwargs)
+
+        return mock_parse
+
+    parser = GuinierParser(prog="test", description="test", epilog="test")
+    parser.parse_args = get_mock_parse(**parse_output)
+    return parser
+
+
+def counted(function: Callable) -> Callable:
+    """Wrapper for functions to keep track on how often it has been called."""
+
+    def wrapped(*args, **kwargs):
+        wrapped.calls += 1
+        return function(*args, **kwargs)
+
+    wrapped.calls = 0
+    return wrapped
 
 
 class TestFitting(unittest.TestCase):
@@ -353,6 +383,107 @@ class TestFitting(unittest.TestCase):
             obtained_line,
             expected_line,
             msg="line for RG_Result without format specification correct",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            return_value=numpy.array(
+                [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+            )
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_fit_uses_provided_fit_function(self):
+        """Test that run_guinier_fit uses fit function provided in the arguments."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher = StringIO()
+        with contextlib.redirect_stdout(output_catcher):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
+        expected_output = "test Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher.getvalue(),
+            expected_output,
+            msg="run_guinier_fit provides expected output",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            1,
+            msg="Provided fit function was called once",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            return_value=numpy.array(
+                [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+            )
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_fit_iterates_over_files(self):
+        """Test that run_guinier_fit uses fit function provided in the arguments."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher = StringIO()
+        with contextlib.redirect_stdout(output_catcher):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
+        expected_output = (
+            "test Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+            * 2
+        )
+        self.assertEqual(
+            output_catcher.getvalue(),
+            expected_output,
+            msg="run_guinier_fit provides expected output",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            2,
+            msg="Provided fit function was called once",
         )
 
 
