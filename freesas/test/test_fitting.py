@@ -28,7 +28,7 @@ from ..fitting import (
     get_linesep,
     run_guinier_fit,
 )
-from ..autorg import RG_RESULT
+from ..autorg import RG_RESULT, InsufficientDataError, NoGuinierRegionError
 from ..sas_argparser import GuinierParser
 
 if sys.version_info.minor > 6:
@@ -72,6 +72,23 @@ def counted(function: Callable) -> Callable:
 
     wrapped.calls = 0
     return wrapped
+
+
+def build_mock_for_load_scattering_with_Errors(erronous_file: dict):
+    """Create mock for loading of data from a file.
+    The resulting function will raise an error,
+    for files for which an error is provided in errenous_file,
+    and an ndarry for all other files."""
+
+    def mock_for_load_scattering(file: pathlib.Path):
+        if file.name in erronous_file:
+            raise erronous_file[file.name]
+        else:
+            return numpy.array(
+                [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+            )
+
+    return mock_for_load_scattering
 
 
 class TestFitting(unittest.TestCase):
@@ -402,7 +419,8 @@ class TestFitting(unittest.TestCase):
         MagicMock(return_value="linesep"),
     )
     def test_run_guinier_fit_uses_provided_fit_function(self):
-        """Test that run_guinier_fit uses fit function provided in the arguments."""
+        """Test that run_guinier_fit uses fit function provided in the arguments
+        and outputs its result in a line."""
 
         @counted
         def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
@@ -451,7 +469,7 @@ class TestFitting(unittest.TestCase):
         MagicMock(return_value="linesep"),
     )
     def test_run_guinier_fit_iterates_over_files(self):
-        """Test that run_guinier_fit uses fit function provided in the arguments."""
+        """Test that run_guinier_fit calls the provided fit function for each provided file."""
 
         @counted
         def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
@@ -459,7 +477,7 @@ class TestFitting(unittest.TestCase):
 
         dummy_parser = get_dummy_guinier_parser(
             verbose=0,
-            file=[pathlib.Path("test")],
+            file=[pathlib.Path("test"), pathlib.Path("test")],
             output=None,
             format=None,
             unit="nm",
@@ -483,7 +501,389 @@ class TestFitting(unittest.TestCase):
         self.assertEqual(
             dummy_fit_function.calls,
             2,
+            msg="Provided fit function was called twice",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=build_mock_for_load_scattering_with_Errors(
+                {pathlib.Path("test").name: OSError}
+            )
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_file_not_found(self):
+        """Test that run_guinier_fit outputs an error if data loading raises OSError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = (
+            "ERROR:freesas.test.test_fitting:Unable to read file test"
+        )
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            1,
             msg="Provided fit function was called once",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=build_mock_for_load_scattering_with_Errors(
+                {pathlib.Path("test").name: ValueError}
+            )
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_file_not_parsable(self):
+        """Test that run_guinier_fit outputs an error if data loading raises ValueError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = (
+            "ERROR:freesas.test.test_fitting:Unable to parse file test"
+        )
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            1,
+            msg="Provided fit function was called once",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=[
+                numpy.array(
+                    [[0.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+                numpy.array(
+                    [[2.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+            ]
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_fitting_raises_insufficient_data_error(
+        self,
+    ):
+        """Test that run_guinier_fit outputs an error if fitting raises InsufficientDataError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            if input_data[0, 0] <= 0.1:
+                raise InsufficientDataError
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = "test, InsufficientDataError:  "
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output for fitting InsufficientError",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            2,
+            msg="Provided fit function was called twice",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=[
+                numpy.array(
+                    [[0.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+                numpy.array(
+                    [[2.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+            ]
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_fitting_raises_no_guinier_region_error(
+        self,
+    ):
+        """Test that run_guinier_fit outputs an error if fitting raises NoGuinierRegionError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            if input_data[0, 0] <= 0.1:
+                raise NoGuinierRegionError
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = "test, NoGuinierRegionError:  "
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output fitting NoGuinierRegionError",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            2,
+            msg="Provided fit function was called twice",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=[
+                numpy.array(
+                    [[0.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+                numpy.array(
+                    [[2.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+            ]
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_fitting_raises_value_error(
+        self,
+    ):
+        """Test that run_guinier_fit outputs an error if fitting raises ValueError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            if input_data[0, 0] <= 0.1:
+                raise ValueError
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = "test, ValueError: "
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output fitting ValueError",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            2,
+            msg="Provided fit function was called twice",
+        )
+
+    @patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    @patch(
+        "freesas.fitting.load_scattering_data",
+        MagicMock(
+            side_effect=[
+                numpy.array(
+                    [[0.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+                numpy.array(
+                    [[2.0, 1.0, 1.0], [2.0, 2.0, 1.0], [3.0, 3.0, 3.0]]
+                ),
+            ]
+        ),
+    )
+    @patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    def test_run_guinier_outputs_error_if_fitting_raises_index_error(
+        self,
+    ):
+        """Test that run_guinier_fit outputs an error if fitting raises IndexError
+        and continues to the next file."""
+
+        @counted
+        def dummy_fit_function(input_data: numpy.ndarray) -> RG_RESULT:
+            if input_data[0, 0] <= 0.1:
+                raise IndexError
+            return RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
+
+        dummy_parser = get_dummy_guinier_parser(
+            verbose=0,
+            file=[pathlib.Path("test"), pathlib.Path("test2")],
+            output=None,
+            format=None,
+            unit="nm",
+        )
+        output_catcher_stdout = StringIO()
+        output_catcher_stderr = StringIO()
+        with contextlib.redirect_stdout(output_catcher_stdout):
+            with contextlib.redirect_stderr(output_catcher_stderr):
+                run_guinier_fit(
+                    fit_function=dummy_fit_function,
+                    parser=dummy_parser,
+                    logger=logger,
+                )
+        expected_stdout_output = "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
+        self.assertEqual(
+            output_catcher_stdout.getvalue(),
+            expected_stdout_output,
+            msg="run_guinier_fit provides expected stdout output",
+        )
+        expected_stderr_output = "test, IndexError: "
+        self.assertTrue(
+            expected_stderr_output in output_catcher_stderr.getvalue(),
+            msg="run_guinier_fit provides expected stderr output for fitting IndexError",
+        )
+        self.assertEqual(
+            dummy_fit_function.calls,
+            2,
+            msg="Provided fit function was called twice",
         )
 
 

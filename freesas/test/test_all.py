@@ -16,6 +16,7 @@ from . import test_autorg
 from . import test_bift
 from . import test_sasio
 from . import test_sas_argparser
+from . import test_fitting
 
 
 def suite():
@@ -28,6 +29,7 @@ def suite():
     testSuite.addTest(test_autorg.suite())
     testSuite.addTest(test_sasio.suite())
     testSuite.addTest(test_sas_argparser.suite())
+    testSuite.addTest(test_fitting.suite())
     return testSuite
 
 

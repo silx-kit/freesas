@@ -145,7 +145,8 @@ def rg_result_to_output_line(
                 [
                     f"{rg_result.Rg:6.4f}",
                     f"{rg_result.sigma_Rg:6.4f}",
-                    f"{rg_result.I0:6.4f} {rg_result.sigma_I0:6.4f}",
+                    f"{rg_result.I0:6.4f}",
+                    f"{rg_result.sigma_I0:6.4f}",
                     f"{rg_result.start_point:3}",
                     f"{rg_result.end_point:3}",
                     f"{rg_result.quality:6.4f}",
@@ -205,8 +206,8 @@ def run_guinier_fit(
                     ValueError,
                     IndexError,
                 ) as err:
-                    sys.stdout.write(
-                        "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
+                    sys.stderr.write(
+                        f"{afile}, {err.__class__.__name__}: {err} {os_linesep}"
                     )
                 else:
                     res = rg_result_to_output_line(
