@@ -304,7 +304,7 @@ class TestFitting(unittest.TestCase):
                 if sys.version_info.minor > 7:
                     raise ValueError
                 else:
-                    raise OSError(errno=ENOENT)
+                    raise OSError(ENOENT, "dummy")
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         with patch("os.stat", mocked_stat):
@@ -328,7 +328,7 @@ class TestFitting(unittest.TestCase):
             if sys.version_info.minor > 7:
                 raise ValueError
             else:
-                raise OSError(errno=ENOENT)
+                raise OSError(ENOENT, "dummy")
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         mocked_glob = MagicMock(
