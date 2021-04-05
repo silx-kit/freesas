@@ -19,6 +19,7 @@ import pathlib
 import contextlib
 from types import SimpleNamespace
 from typing import Callable
+from errno import ENOENT
 import numpy
 from ..fitting import (
     set_logging_level,
@@ -300,7 +301,10 @@ class TestFitting(unittest.TestCase):
             if "good" in pathlib.Path(path).name:
                 pass
             else:
-                raise ValueError
+                if sys.version_info.minor > 7:
+                    raise ValueError
+                else:
+                    raise OSError(errno=ENOENT)
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         with patch("os.stat", mocked_stat):
@@ -321,7 +325,10 @@ class TestFitting(unittest.TestCase):
         """Test that collect_files globs on Windows if no existent files provided"""
 
         def os_stat_mock(path):
-            raise ValueError
+            if sys.version_info.minor > 7:
+                raise ValueError
+            else:
+                raise OSError(errno=ENOENT)
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         mocked_glob = MagicMock(
