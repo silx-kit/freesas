@@ -268,11 +268,7 @@ def report_rst(cov, package, version="0.0.0", base=""):
 
 def is_debug_python():
     """Returns true if the Python interpreter is in debug mode."""
-    try:
-        import sysconfig
-    except ImportError:  # pragma nocover
-        # Python < 2.7
-        import distutils.sysconfig as sysconfig
+    import sysconfig
 
     if sysconfig.get_config_var("Py_DEBUG"):
         return True
