@@ -34,6 +34,8 @@ class SASParser:
     Wrapper class for argparse ArgumentParser that provides predefined argument.
     """
 
+    usage = ""
+
     def __init__(self, prog: str, description: str, epilog: str, **kwargs):
         """
         Create parser argparse ArgumentParser
@@ -47,7 +49,7 @@ class SASParser:
         :param kwargs:       additional kwargs for argparse ArgumentParser
         """
 
-        usage = "%s [OPTIONS] FILES " % (prog)
+        self.usage = "%s [OPTIONS] FILES " % (prog)
         version = "%s version %s from %s" % (
             prog,
             freesas_version.version,
@@ -55,7 +57,7 @@ class SASParser:
         )
 
         self.parser = argparse.ArgumentParser(
-            usage=usage, description=description, epilog=epilog, **kwargs
+            usage=self.usage, description=description, epilog=epilog, **kwargs
         )
         self.add_argument(
             "-v",
@@ -66,9 +68,9 @@ class SASParser:
         )
         self.add_argument("-V", "--version", action="version", version=version)
 
-    def parse_args(self):
+    def parse_args(self, *args, **kwargs):
         """ Wrapper for argparse parse_args() """
-        return self.parser.parse_args()
+        return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
         """ Wrapper for argparse add_argument() """
@@ -127,6 +129,8 @@ class GuinierParser:
     arguments for auto_rg like programs.
     """
 
+    usage = ""
+
     def __init__(self, prog: str, description: str, epilog: str, **kwargs):
         """
         Create parser argparse ArgumentParser with argument
@@ -150,10 +154,11 @@ class GuinierParser:
             "native", "csv", "ssf", default="native"
         )
         self.parser.add_q_unit_argument()
+        self.usage = self.parser.usage
 
-    def parse_args(self):
+    def parse_args(self, *args, **kwargs):
         """ Wrapper for SASParser parse_args() """
-        return self.parser.parse_args()
+        return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
         """ Wrapper for SASParser add_argument() """

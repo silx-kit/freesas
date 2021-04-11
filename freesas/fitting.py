@@ -14,7 +14,8 @@ import logging
 import platform
 from os import linesep as os_linesep
 from pathlib import Path
-from typing import Callable, List, Optional, IO
+from contextlib import contextmanager
+from typing import Callable, List, Optional, IO, Generator
 from numpy import ndarray
 from .autorg import (
     RG_RESULT,
@@ -30,7 +31,7 @@ from .sas_argparser import GuinierParser
 
 def set_logging_level(verbose_flag: int) -> None:
     """
-    Set logging level according to verbose flaf of argparser
+    Set logging level according to verbose flag of argparser
     :param verbose_flag: int flag for logging level
     """
     if verbose_flag == 1:
@@ -52,7 +53,10 @@ def collect_files(file_list: List[str]) -> List[Path]:
     return files
 
 
-def get_output_destination(output_path: Optional[Path]) -> IO[str]:
+@contextmanager
+def get_output_destination(
+    output_path: Optional[Path] = None,
+) -> Generator[IO[str], None, None]:
     """
     Return file or stdout object to write output to
     :param output_path: None if output to stdout, else Path to outputfile
@@ -60,9 +64,10 @@ def get_output_destination(output_path: Optional[Path]) -> IO[str]:
     """
     # pylint: disable=R1705
     if output_path is not None:
-        return open(output_path, "w")
+        with open(output_path, "w") as destination:
+            yield destination
     else:
-        return sys.stdout
+        yield sys.stdout
 
 
 def get_linesep(output_destination: IO[str]) -> str:
@@ -78,7 +83,7 @@ def get_linesep(output_destination: IO[str]) -> str:
         return "\n"
 
 
-def get_header(output_format: str, linesep: str) -> str:
+def get_header(linesep: str, output_format: Optional[str] = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -105,7 +110,10 @@ def get_header(output_format: str, linesep: str) -> str:
 
 
 def rg_result_to_output_line(
-    rg_result: RG_RESULT, afile: Path, output_format: str, linesep: str
+    rg_result: RG_RESULT,
+    afile: Path,
+    linesep: str,
+    output_format: Optional[str] = None,
 ) -> str:
     """Return result line formatted according to selected output format
     :param rg_result: Result of an rg fit
@@ -137,7 +145,8 @@ def rg_result_to_output_line(
                 [
                     f"{rg_result.Rg:6.4f}",
                     f"{rg_result.sigma_Rg:6.4f}",
-                    f"{rg_result.I0:6.4f} {rg_result.sigma_I0:6.4f}",
+                    f"{rg_result.I0:6.4f}",
+                    f"{rg_result.sigma_I0:6.4f}",
                     f"{rg_result.start_point:3}",
                     f"{rg_result.end_point:3}",
                     f"{rg_result.quality:6.4f}",
@@ -168,38 +177,44 @@ def run_guinier_fit(
     files = collect_files(args.file)
     logger.debug("%s input files", len(files))
 
-    output_destination = get_output_destination(args.output)
-    linesep = get_linesep(output_destination)
+    with get_output_destination(args.output) as output_destination:
+        linesep = get_linesep(output_destination)
 
-    output_destination.write(get_header(args.format, linesep))
+        output_destination.write(
+            get_header(
+                linesep,
+                args.format,
+            )
+        )
 
-    for afile in files:
-        logger.info("Processing %s", afile)
-        try:
-            data = load_scattering_data(afile)
-        except OSError:
-            logger.error("Unable to read file %s", afile)
-        except ValueError:
-            logger.error("Unable to parse file %s", afile)
-        else:
-            if args.unit == "Å":
-                data = convert_inverse_angstrom_to_nanometer(data)
+        for afile in files:
+            logger.info("Processing %s", afile)
             try:
-                rg_result = fit_function(data)
-            except (
-                InsufficientDataError,
-                NoGuinierRegionError,
-                ValueError,
-                IndexError,
-            ) as err:
-                sys.stdout.write(
-                    "%s, %s: %s\n" % (afile, err.__class__.__name__, err)
-                )
+                data = load_scattering_data(afile)
+            except OSError:
+                logger.error("Unable to read file %s", afile)
+            except ValueError:
+                logger.error("Unable to parse file %s", afile)
             else:
-                res = rg_result_to_output_line(
-                    rg_result, afile, args.format, linesep
-                )
-                output_destination.write(res)
-                output_destination.flush()
-    if output_destination is not sys.stdout:
-        output_destination.close()
+                if args.unit == "Å":
+                    data = convert_inverse_angstrom_to_nanometer(data)
+                try:
+                    rg_result = fit_function(data)
+                except (
+                    InsufficientDataError,
+                    NoGuinierRegionError,
+                    ValueError,
+                    IndexError,
+                ) as err:
+                    sys.stderr.write(
+                        f"{afile}, {err.__class__.__name__}: {err} {os_linesep}"
+                    )
+                else:
+                    res = rg_result_to_output_line(
+                        rg_result,
+                        afile,
+                        linesep,
+                        args.format,
+                    )
+                    output_destination.write(res)
+                    output_destination.flush()
