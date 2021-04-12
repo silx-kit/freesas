@@ -89,7 +89,11 @@ logger.setLevel(logging.WARNING)
 logger.info("Python %s %s", sys.version, tuple.__itemsize__ * 8)
 
 
-import resource
+try:
+    import resource
+except ImportError:
+    resource = None
+    logger.warning("resource module missing")
 
 import importlib
 
