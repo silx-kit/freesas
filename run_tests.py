@@ -80,12 +80,14 @@ logging.root.addHandler(createBasicHandler())
 # Capture all default warnings
 logging.captureWarnings(True)
 import warnings
-warnings.simplefilter('default')
+
+warnings.simplefilter("default")
 
 logger = logging.getLogger("run_tests")
 logger.setLevel(logging.WARNING)
 
 logger.info("Python %s %s", sys.version, tuple.__itemsize__ * 8)
+
 
 try:
     import resource
@@ -93,19 +95,9 @@ except ImportError:
     resource = None
     logger.warning("resource module missing")
 
-try:
-    import importlib
-    importer = importlib.import_module
-except ImportError:
+import importlib
 
-    def importer(name):
-        module = __import__(name)
-        # returns the leaf module, instead of the root module
-        subnames = name.split(".")
-        subnames.pop(0)
-        for subname in subnames:
-            module = getattr(module, subname)
-            return module
+importer = importlib.import_module
 
 try:
     import numpy
@@ -129,11 +121,15 @@ def get_project_name(root_dir):
     :return: The name of the project stored in root_dir
     """
     logger.debug("Getting project name in %s", root_dir)
-    p = subprocess.Popen([sys.executable, "setup.py", "--name"],
-                         shell=False, cwd=root_dir, stdout=subprocess.PIPE)
+    p = subprocess.Popen(
+        [sys.executable, "setup.py", "--name"],
+        shell=False,
+        cwd=root_dir,
+        stdout=subprocess.PIPE,
+    )
     name, _stderr_data = p.communicate()
     logger.debug("subprocess ended with rc= %s", p.returncode)
-    return name.split()[-1].decode('ascii')
+    return name.split()[-1].decode("ascii")
 
 
 class TextTestResultWithSkipList(unittest.TextTestResult):
@@ -158,13 +154,14 @@ class TextTestResultWithSkipList(unittest.TextTestResult):
         for err, tests in grouped.items():
             self.stream.writeln(self.separator1)
             for test in tests:
-                self.stream.writeln("%s: %s" % (flavour, self.getDescription(test)))
+                self.stream.writeln(
+                    "%s: %s" % (flavour, self.getDescription(test))
+                )
             self.stream.writeln(self.separator2)
             self.stream.writeln("%s" % err)
 
 
 class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
-
     def __init__(self, *arg, **kwarg):
         unittest.TextTestRunner.resultclass.__init__(self, *arg, **kwarg)
         self.logger = logging.getLogger("memProf")
@@ -174,8 +171,9 @@ class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
     def startTest(self, test):
         unittest.TextTestRunner.resultclass.startTest(self, test)
         if resource:
-            self.__mem_start = \
-                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            self.__mem_start = resource.getrusage(
+                resource.RUSAGE_SELF
+            ).ru_maxrss
         self.__time_start = time.time()
 
     def stopTest(self, test):
@@ -186,13 +184,18 @@ class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
         else:
             ratio = 1e-3
         if resource:
-            memusage = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss -
-                        self.__mem_start) * ratio
+            memusage = (
+                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                - self.__mem_start
+            ) * ratio
         else:
             memusage = 0
-        self.logger.info("Time: %.3fs \t RAM: %.3f Mb\t%s",
-                         time.time() - self.__time_start,
-                         memusage, test.id())
+        self.logger.info(
+            "Time: %.3fs \t RAM: %.3f Mb\t%s",
+            time.time() - self.__time_start,
+            memusage,
+            test.id(),
+        )
 
 
 def report_rst(cov, package, version="0.0.0", base=""):
@@ -205,23 +208,29 @@ def report_rst(cov, package, version="0.0.0", base=""):
     :return: RST string
     """
     import tempfile
+
     fd, fn = tempfile.mkstemp(suffix=".xml")
     os.close(fd)
     cov.xml_report(outfile=fn)
 
     from lxml import etree
+
     xml = etree.parse(fn)
     classes = xml.xpath("//class")
 
     line0 = "Test coverage report for %s" % package
     res = [line0, "=" * len(line0), ""]
-    res.append("Measured on *%s* version %s, %s" %
-               (package, version, time.strftime("%d/%m/%Y")))
-    res += ["",
-            ".. csv-table:: Test suite coverage",
-            '   :header: "Name", "Stmts", "Exec", "Cover"',
-            '   :widths: 35, 8, 8, 8',
-            '']
+    res.append(
+        "Measured on *%s* version %s, %s"
+        % (package, version, time.strftime("%d/%m/%Y"))
+    )
+    res += [
+        "",
+        ".. csv-table:: Test suite coverage",
+        '   :header: "Name", "Stmts", "Exec", "Cover"',
+        "   :widths: 35, 8, 8, 8",
+        "",
+    ]
     tot_sum_lines = 0
     tot_sum_hits = 0
 
@@ -241,25 +250,29 @@ def report_rst(cov, package, version="0.0.0", base=""):
         if base:
             name = os.path.relpath(fname, base)
 
-        res.append('   "%s", "%s", "%s", "%.1f %%"' %
-                   (name, sum_lines, sum_hits, cover))
+        res.append(
+            '   "%s", "%s", "%s", "%.1f %%"'
+            % (name, sum_lines, sum_hits, cover)
+        )
         tot_sum_lines += sum_lines
         tot_sum_hits += sum_hits
     res.append("")
-    res.append('   "%s total", "%s", "%s", "%.1f %%"' %
-               (package, tot_sum_lines, tot_sum_hits,
-                100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0))
+    res.append(
+        '   "%s total", "%s", "%s", "%.1f %%"'
+        % (
+            package,
+            tot_sum_lines,
+            tot_sum_hits,
+            100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0,
+        )
+    )
     res.append("")
     return os.linesep.join(res)
 
 
 def is_debug_python():
     """Returns true if the Python interpreter is in debug mode."""
-    try:
-        import sysconfig
-    except ImportError:  # pragma nocover
-        # Python < 2.7
-        import distutils.sysconfig as sysconfig
+    import sysconfig
 
     if sysconfig.get_config_var("Py_DEBUG"):
         return True
@@ -277,8 +290,11 @@ def build_project(name, root_dir):
     :return: The path to the directory were build was performed
     """
     platform = distutils.util.get_platform()
-    architecture = "lib.%s-%i.%i" % (platform,
-                                     sys.version_info[0], sys.version_info[1])
+    architecture = "lib.%s-%i.%i" % (
+        platform,
+        sys.version_info[0],
+        sys.version_info[1],
+    )
     if is_debug_python():
         architecture += "-pydebug"
 
@@ -291,8 +307,9 @@ def build_project(name, root_dir):
         home = os.path.join(root_dir, "build", architecture)
 
     logger.warning("Building %s to %s", name, home)
-    p = subprocess.Popen([sys.executable, "setup.py", "build"],
-                         shell=False, cwd=root_dir)
+    p = subprocess.Popen(
+        [sys.executable, "setup.py", "build"], shell=False, cwd=root_dir
+    )
     logger.debug("subprocess ended with rc= %s", p.wait())
 
     if os.path.isdir(home):
@@ -305,7 +322,9 @@ def build_project(name, root_dir):
 def import_project_module(project_name, project_dir):
     """Import project module, from the system of from the project directory"""
     # Prevent importing from source directory
-    if (os.path.dirname(os.path.abspath(__file__)) == os.path.abspath(sys.path[0])):
+    if os.path.dirname(os.path.abspath(__file__)) == os.path.abspath(
+        sys.path[0]
+    ):
         removed_from_sys_path = sys.path.pop(0)
         logger.info("Patched sys.path, removed: '%s'", removed_from_sys_path)
 
@@ -314,8 +333,9 @@ def import_project_module(project_name, project_dir):
             module = importer(project_name)
         except ImportError:
             raise ImportError(
-                "%s not installed: Cannot run tests on installed version" %
-                PROJECT_NAME)
+                "%s not installed: Cannot run tests on installed version"
+                % PROJECT_NAME
+            )
     else:  # Use built source
         build_dir = build_project(project_name, project_dir)
         if build_dir is None:
@@ -328,12 +348,14 @@ def import_project_module(project_name, project_dir):
 
 def get_test_options(project_module):
     """Returns the test options if available, else None"""
-    module_name = project_module.__name__ + '.test.utils'
-    logger.info('Import %s', module_name)
+    module_name = project_module.__name__ + ".test.utils"
+    logger.info("Import %s", module_name)
     try:
         test_utils = importer(module_name)
     except ImportError:
-        logger.warning("No module named '%s'. No test options available.", module_name)
+        logger.warning(
+            "No module named '%s'. No test options available.", module_name
+        )
         return None
 
     test_options = getattr(test_utils, "test_options", None)
@@ -346,47 +368,68 @@ if __name__ == "__main__":  # Needed for multiprocessing support on Windows
     logger.info("Project name: %s", PROJECT_NAME)
 
     project_module = import_project_module(PROJECT_NAME, PROJECT_DIR)
-    PROJECT_VERSION = getattr(project_module, 'version', '')
+    PROJECT_VERSION = getattr(project_module, "version", "")
     PROJECT_PATH = project_module.__path__[0]
 
     test_options = get_test_options(project_module)
     """Contains extra configuration for the tests."""
 
     epilog = """Environment variables:
-    WITH_QT_TEST=False to disable graphical tests
     SILX_OPENCL=False to disable OpenCL tests
     SILX_TEST_LOW_MEM=True to disable tests taking large amount of memory
     GPU=False to disable the use of a GPU with OpenCL test
     WITH_GL_TEST=False to disable tests using OpenGL
     """
-    parser = ArgumentParser(description='Run the tests.',
-                            epilog=epilog)
+    parser = ArgumentParser(description="Run the tests.", epilog=epilog)
 
-    parser.add_argument("--installed",
-                        action="store_true", dest="installed", default=False,
-                        help=("Test the installed version instead of" +
-                              "building from the source"))
-    parser.add_argument("-c", "--coverage", dest="coverage",
-                        action="store_true", default=False,
-                        help=("Report code coverage" +
-                              "(requires 'coverage' and 'lxml' module)"))
-    parser.add_argument("-m", "--memprofile", dest="memprofile",
-                        action="store_true", default=False,
-                        help="Report memory profiling")
-    parser.add_argument("-v", "--verbose", default=0,
-                        action="count", dest="verbose",
-                        help="Increase verbosity. Option -v prints additional " +
-                             "INFO messages. Use -vv for full verbosity, " +
-                             "including debug messages and test help strings.")
-    parser.add_argument("--qt-binding", dest="qt_binding", default=None,
-                        help="Force using a Qt binding, from 'PyQt4', 'PyQt5', or 'PySide'")
+    parser.add_argument(
+        "--installed",
+        action="store_true",
+        dest="installed",
+        default=False,
+        help=(
+            "Test the installed version instead of"
+            + "building from the source"
+        ),
+    )
+    parser.add_argument(
+        "-c",
+        "--coverage",
+        dest="coverage",
+        action="store_true",
+        default=False,
+        help=(
+            "Report code coverage" + "(requires 'coverage' and 'lxml' module)"
+        ),
+    )
+    parser.add_argument(
+        "-m",
+        "--memprofile",
+        dest="memprofile",
+        action="store_true",
+        default=False,
+        help="Report memory profiling",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        default=0,
+        action="count",
+        dest="verbose",
+        help="Increase verbosity. Option -v prints additional "
+        + "INFO messages. Use -vv for full verbosity, "
+        + "including debug messages and test help strings.",
+    )
     if test_options is not None:
         test_options.add_parser_argument(parser)
 
     default_test_name = "%s.test.suite" % PROJECT_NAME
-    parser.add_argument("test_name", nargs='*',
-                        default=(default_test_name,),
-                        help="Test names to run (Default: %s)" % default_test_name)
+    parser.add_argument(
+        "test_name",
+        nargs="*",
+        default=(default_test_name,),
+        help="Test names to run (Default: %s)" % default_test_name,
+    )
     options = parser.parse_args()
     sys.argv = [sys.argv[0]]
 
@@ -406,38 +449,19 @@ if __name__ == "__main__":  # Needed for multiprocessing support on Windows
     if options.coverage:
         logger.info("Running test-coverage")
         import coverage
-        omits = ["*test*", "*third_party*", "*/setup.py",
-                 # temporary test modules (silx.math.fit.test.test_fitmanager)
-                 "*customfun.py", ]
+
+        omits = [
+            "*test*",
+            "*third_party*",
+            "*/setup.py",
+            # temporary test modules (silx.math.fit.test.test_fitmanager)
+            "*customfun.py",
+        ]
         try:
             cov = coverage.Coverage(omit=omits)
         except AttributeError:
             cov = coverage.coverage(omit=omits)
         cov.start()
-
-    if options.qt_binding:
-        binding = options.qt_binding.lower()
-        if binding == "pyqt4":
-            logger.info("Force using PyQt4")
-            if sys.version < "3.0.0":
-                try:
-                    import sip
-                    sip.setapi("QString", 2)
-                    sip.setapi("QVariant", 2)
-                except Exception:
-                    logger.warning("Cannot set sip API")
-            import PyQt4.QtCore  # noqa
-        elif binding == "pyqt5":
-            logger.info("Force using PyQt5")
-            import PyQt5.QtCore  # noqa
-        elif binding == "pyside":
-            logger.info("Force using PySide")
-            import PySide.QtCore  # noqa
-        elif binding == "pyside2":
-            logger.info("Force using PySide2")
-            import PySide2.QtCore  # noqa
-        else:
-            raise ValueError("Qt binding '%s' is unknown" % options.qt_binding)
 
     # Run the tests
     runnerArgs = {}
@@ -449,11 +473,12 @@ if __name__ == "__main__":  # Needed for multiprocessing support on Windows
         runnerArgs["resultclass"] = TextTestResultWithSkipList
     runner = unittest.TextTestRunner(**runnerArgs)
 
-    logger.warning("Test %s %s from %s",
-                   PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH)
+    logger.warning(
+        "Test %s %s from %s", PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH
+    )
 
-    test_module_name = PROJECT_NAME + '.test'
-    logger.info('Import %s', test_module_name)
+    test_module_name = PROJECT_NAME + ".test"
+    logger.info("Import %s", test_module_name)
     test_module = importer(test_module_name)
     test_suite = unittest.TestSuite()
 
@@ -466,11 +491,12 @@ if __name__ == "__main__":  # Needed for multiprocessing support on Windows
     if not options.test_name:
         # Do not use test loader to avoid cryptic exception
         # when an error occur during import
-        project_test_suite = getattr(test_module, 'suite')
+        project_test_suite = getattr(test_module, "suite")
         test_suite.addTest(project_test_suite())
     else:
         test_suite.addTest(
-            unittest.defaultTestLoader.loadTestsFromNames(options.test_name))
+            unittest.defaultTestLoader.loadTestsFromNames(options.test_name)
+        )
 
     # Display the result when using CTRL-C
     unittest.installHandler()
@@ -486,6 +512,8 @@ if __name__ == "__main__":  # Needed for multiprocessing support on Windows
         cov.stop()
         cov.save()
         with open("coverage.rst", "w") as fn:
-            fn.write(report_rst(cov, PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH))
+            fn.write(
+                report_rst(cov, PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH)
+            )
 
     sys.exit(exit_status)
