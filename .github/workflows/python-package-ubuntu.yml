@@ -51,4 +51,7 @@ jobs:
     - name: Test build script
       run: |
         sudo apt-get install devscripts
+        sudo apt-get install cython3
+        sudo apt-get install debhelper
+        sudo apt-get install python3-all-dev
         ./build-deb.sh
