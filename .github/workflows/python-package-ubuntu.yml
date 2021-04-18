@@ -50,5 +50,5 @@ jobs:
         python ../e2etest/e2etest.py
     - name: Test build script
       run: |
-        pwd
+        apt-get install devscripts
         ./build-deb.sh
