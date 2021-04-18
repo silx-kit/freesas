@@ -10,6 +10,10 @@ on:
 jobs:
   build:
 
+    defaults:
+      run:
+        working-directory: .
+
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -45,4 +49,6 @@ jobs:
         pip install -r ../e2etest/requirements_e2e.txt
         python ../e2etest/e2etest.py
     - name: Test build script
-      run: build-deb.sh
+      run: |
+        pwd
+        ./build-deb.sh
