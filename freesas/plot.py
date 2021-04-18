@@ -162,8 +162,8 @@ def scatter_plot(
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
     if filename:
-        if format:
-            fig.savefig(filename, format=format)
+        if img_format:
+            fig.savefig(filename, format=img_format)
         else:
             fig.savefig(filename)
     return fig
@@ -173,7 +173,7 @@ def kratky_plot(
     data,
     guinier,
     filename=None,
-    format="svg",
+    img_format="svg",
     unit="nm",
     title="Dimensionless Kratky plot",
     ax=None,
@@ -186,7 +186,7 @@ def kratky_plot(
     :param data: data read from an ASCII file, 3 column (q,I,err)
     :param guinier: output of autoRg
     :param filename: name of the file where the cuve should be saved
-    :param format: image format
+    :param img_format: image format
     :param unit: Unit name for Rg and 1/q
     :param ax: subplot where the plot shall go in
     :return: the matplotlib figure
@@ -249,8 +249,8 @@ def kratky_plot(
     ax.tick_params(axis="y", labelsize=labelsize)
 
     if filename:
-        if format:
-            fig.savefig(filename, format=format)
+        if img_format:
+            fig.savefig(filename, format=img_format)
         else:
             fig.savefig(filename)
     return fig
@@ -260,7 +260,7 @@ def guinier_plot(
     data,
     guinier,
     filename=None,
-    format="png",
+    img_format="png",
     unit="nm",
     ax=None,
     labelsize=None,
@@ -272,7 +272,7 @@ def guinier_plot(
     :param data: data read from an ASCII file, 3 column (q,I,err)
     :param guinier: A RG_RESULT object from AutoRg
     :param  filename: name of the file where the cuve should be saved
-    :param format: image format
+    :param img_format: image format
     :param: ax: subplot where to plot in
     :return: the matplotlib figure
     """
@@ -366,8 +366,8 @@ def guinier_plot(
     ax.tick_params(axis="y", labelsize=labelsize)
 
     if filename:
-        if format:
-            fig.savefig(filename, format=format)
+        if img_format:
+            fig.savefig(filename, format=img_format)
         else:
             fig.savefig(filename)
     return fig
@@ -376,7 +376,7 @@ def guinier_plot(
 def density_plot(
     ift,
     filename=None,
-    format="png",
+    img_format="png",
     unit="nm",
     ax=None,
     labelsize=None,
@@ -387,7 +387,7 @@ def density_plot(
 
     @param ift: An IFT result comming out of BIFT
     @param  filename: name of the file where the cuve should be saved
-    @param format: image format
+    @param img_format: image image format
     @param ax: subplotib where to plot in
     @return: the matplotlib figure
     """
@@ -430,15 +430,20 @@ def density_plot(
     ax.tick_params(axis="y", labelsize=labelsize)
 
     if filename:
-        if format:
-            fig.savefig(filename, format=format)
+        if img_format:
+            fig.savefig(filename, format=img_format)
         else:
             fig.savefig(filename)
     return fig
 
 
 def plot_all(
-    data, filename=None, format=None, unit="nm", labelsize=None, fontsize=None
+    data,
+    filename=None,
+    img_format=None,
+    unit="nm",
+    labelsize=None,
+    fontsize=None,
 ):
     from . import bift, autorg
 
@@ -472,7 +477,7 @@ def plot_all(
         data,
         guinier,
         filename=None,
-        format=None,
+        img_format=None,
         unit=unit,
         ax=ax[0, 1],
         labelsize=labelsize,
@@ -482,7 +487,7 @@ def plot_all(
         data,
         guinier,
         filename=None,
-        format=None,
+        img_format=None,
         unit=unit,
         ax=ax[1, 0],
         labelsize=labelsize,
@@ -491,15 +496,15 @@ def plot_all(
     density_plot(
         ift,
         filename=None,
-        format=None,
+        img_format=None,
         unit=unit,
         ax=ax[1, 1],
         labelsize=labelsize,
         fontsize=fontsize,
     )
     if filename is not None:
-        if format:
-            fig.savefig(filename, format=format)
+        if img_format:
+            fig.savefig(filename, format=img_format)
         else:
             fig.savefig(filename)
     return fig
