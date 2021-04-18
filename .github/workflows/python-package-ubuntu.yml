@@ -50,9 +50,9 @@ jobs:
         python ../e2etest/e2etest.py
     - name: Test build script
       run: |
-        sudo apt-get install devscripts cython3 debhelper python3-all-dev
-        sudo apt-get install python3-numpy python3-matplotlib python3-scipy python3-sphinx 
-        sudo apt-get install python3-sphinxcontrib.programoutput python3-nbsphinx python3-silx
+        sudo apt-get install devscripts cython3 debhelper python3-all-dev python3-sphinx
+        sudo apt-get install python3-numpy python3-matplotlib python3-scipy 
+        sudo apt-get install python3-sphinxcontrib.programoutput python3-nbsphinx 
         sudo apt-get install python3-sphinx-rtd-theme python3-pyfai
         sudo apt-get install openstack-pkg-tools help2man dh-python
         ./build-deb.sh
