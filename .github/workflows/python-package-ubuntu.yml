@@ -44,3 +44,5 @@ jobs:
         cd empty
         pip install -r ../e2etest/requirements_e2e.txt
         python ../e2etest/e2etest.py
+    - name: Test build script
+      run: build-deb.sh

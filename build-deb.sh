@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-#    Project: Silx
-#             https://github.com/silx-kit/silx
+#    Project: FreeSaS
+#             https://github.com/kif/freesas
 #
 #    Copyright (C) 2015-2020 European Synchrotron Radiation Facility, Grenoble, France
 #
@@ -38,11 +38,11 @@ deb_name=$(echo "$source_project" | tr '[:upper:]' '[:lower:]')
 # target system
 if [ -f /etc/debian_version ]
 then 
-    debian_version=$(cat /etc/debian_version | cut -d. -f1 | grep -o '[0-9]*')
+    debian_version=$(< /etc/debian_version cut -d. -f1 | grep -o '[0-9]*')
     if [ -z $debian_version ]
     then
     #we are probably on a ubuntu platform
-        debian_version=$(cat /etc/debian_version | cut -d/ -f1)
+        debian_version=$(< /etc/debian_version  cut -d/ -f1)
         case $debian_version in
             squeeze)
                 debian_version=6
