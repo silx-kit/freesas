@@ -22,7 +22,8 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
-"""The silx package contains the following main sub-packages:
+"""
+The silx package contains the following main sub-packages:
 
 - silx.gui: Qt widgets for data visualization and data file browsing
 - silx.image: Some processing functions for 2D images
@@ -34,8 +35,6 @@
 
 See silx documentation: http://www.silx.org/doc/silx/latest/
 """
-
-from __future__ import absolute_import, print_function, division
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
@@ -51,6 +50,15 @@ project = _os.path.basename(_os.path.dirname(_os.path.abspath(__file__)))
 
 try:
     from ._version import __date__ as date  # noqa
-    from ._version import version, version_info, hexversion, strictversion, dated_version  # noqa
+    from ._version import (
+        version,
+        version_info,
+        hexversion,
+        strictversion,
+        dated_version,
+    )  # noqa
 except ImportError:
-    raise RuntimeError("Do NOT use %s from its sources: build it and use the built version" % project)
+    raise RuntimeError(
+        "Do NOT use %s from its sources: build it and use the built version"
+        % project
+    )
