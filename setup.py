@@ -326,7 +326,7 @@ class BuildMan(Command):
 
                 # execute help2man
                 man_file = "build/man/%s.1" % target_name
-                command_line = ["help2man", script_name, "-o", man_file]
+                command_line = ["help2man", "-N", script_name, "-o", man_file]
                 if not py3:
                     # Before Python 3.4, ArgParser --version was using
                     # stderr to print the version
