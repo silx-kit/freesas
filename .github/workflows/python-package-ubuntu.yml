@@ -54,7 +54,7 @@ jobs:
         pip install -r ../e2etest/requirements_e2e.txt
         python ../e2etest/e2etest.py 
         sudo apt-get install  help2man
-        help2man free_gpa -o demo.man
+        help2man free_gpa -o demo.man --no-discard-stderr
     - name: Test build script
       run: |
         sudo apt-get install devscripts cython3 debhelper python3-all-dev python3-sphinx
