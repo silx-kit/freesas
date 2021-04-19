@@ -325,7 +325,14 @@ class BuildMan(Command):
 
                 # execute help2man
                 man_file = "build/man/%s.1" % target_name
-                command_line = ["help2man", "-N", script_name, "-o", man_file]
+                command_line = [
+                    "help2man",
+                    "-N",
+                    script_name,
+                    "-o",
+                    man_file,
+                    "--no-discard-stderr",
+                ]
 
                 p = subprocess.Popen(command_line, env=env)
                 status = p.wait()
