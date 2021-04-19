@@ -25,6 +25,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+   - name: Set up Perl version for package build 
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: '5.32'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
