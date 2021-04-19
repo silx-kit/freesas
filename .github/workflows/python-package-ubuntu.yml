@@ -52,7 +52,9 @@ jobs:
         mkdir empty
         cd empty
         pip install -r ../e2etest/requirements_e2e.txt
-        python ../e2etest/e2etest.py
+        python ../e2etest/e2etest.py 
+        sudo apt-get install  help2man
+        help2man free_gpa -o demo.man
     - name: Test build script
       run: |
         sudo apt-get install devscripts cython3 debhelper python3-all-dev python3-sphinx
