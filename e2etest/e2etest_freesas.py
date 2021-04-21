@@ -136,7 +136,7 @@ class TestFreeSAS(unittest.TestCase):
             stderr=PIPE,
             stdin=PIPE,
         )
-        stdout, _ = run_freesas.communicate(linesep, timeout=40)
+        stdout, _ = run_freesas.communicate(linesep, timeout=60)
         self.assertEqual(
             run_freesas.returncode, 0, msg="freesas completed well"
         )
