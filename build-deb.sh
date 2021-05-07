@@ -177,7 +177,7 @@ build_deb() {
     cd "${build_directory}"
     tar -xzf "${tarname}"
     
-    directory="${project}-${strictversion}"
+    directory="${project}"-"${strictversion}"
     newname="${deb_name}_${debianversion}.orig.tar.gz"
     
     #echo tarname $tarname newname $newname
