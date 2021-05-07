@@ -39,7 +39,7 @@ deb_name=$(echo "$source_project" | tr '[:upper:]' '[:lower:]')
 if [ -f /etc/debian_version ]
 then 
     debian_version=$(< /etc/debian_version cut -d. -f1 | grep -o '[0-9]*')
-    if [ -z "$debian_version" ]
+    if [ -z $debian_version ]
     then
     #we are probably on a ubuntu platform
         debian_version=$(< /etc/debian_version  cut -d/ -f1)
@@ -70,8 +70,8 @@ else
 fi
 target_system=debian${debian_version}
 
-project_directory="dirname \"$(0)\""
-project_directory="( cd \"$(project_directory)\" && pwd )" # absolutized
+project_directory="`dirname \"$0\"`"
+project_directory="`( cd \"$project_directory\" && pwd )`" # absolutized
 dist_directory=${project_directory}/dist/${target_system}
 build_directory=${project_directory}/build/${target_system}
 
@@ -156,9 +156,9 @@ clean_up()
 {
     echo "Clean working dir:"
     # clean up previous build
-    rm -rf "${build_directory}"
+    rm -rf ${build_directory}
     # create the build context
-    mkdir -p "${build_directory}"
+    mkdir -p ${build_directory}
 }
 
 build_deb() {
