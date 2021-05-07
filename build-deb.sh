@@ -169,9 +169,9 @@ build_deb() {
     clean_up
     python3 setup.py debian_src
     cp -f "dist/${tarname} ${build_directory}"
-    if [ -f dist/"${project}"-testimages.tar.gz ]
+    if [ -f "dist/${project}-testimages.tar.gz" ]
     then
-      cp -f dist/"${project}"-testimages.tar.gz "${build_directory}"
+      cp -f "dist/${project}-testimages.tar.gz ${build_directory}"
     fi
     
     cd "${build_directory}"
@@ -190,11 +190,11 @@ build_deb() {
         ln -s "${tarname} ${newname}"
     fi
     
-    if [ -f "${project}"-testimages.tar.gz ]
+    if [ -f "${project}-testimages.tar.gz" ]
     then
-      if [ ! -h  "${deb_name}_${debianversion}".orig-testimages.tar.gz ]
+      if [ ! -h  "${deb_name}_${debianversion}.orig-testimages.tar.gz" ]
       then
-        ln -s "${project}"-testimages.tar.gz ${deb_name}_${debianversion}.orig-testimages.tar.gz
+        ln -s "${project}-testimages.tar.gz ${deb_name}_${debianversion}.orig-testimages.tar.gz"
       fi
     fi
     
@@ -203,14 +203,14 @@ build_deb() {
     cp "${project_directory}/copyright debian"
     
     #handle test images
-    if [ -f "../${deb_name}_${debianversion}".orig-testimages.tar.gz ]
+    if [ -f "../${deb_name}_${debianversion}.orig-testimages.tar.gz" ]
     then
       if [ ! -d testimages ]
       then
         mkdir testimages
       fi
       cd testimages
-      tar -xzf  "../${deb_name}_${debianversion}".orig-testimages.tar.gz
+      tar -xzf  "../${deb_name}_${debianversion}.orig-testimages.tar.gz"
       cd ..
     else
       # Disable to skip tests during build
@@ -232,8 +232,8 @@ build_deb() {
             ;;
     esac
 
-    dch --force-distribution  -v "${debianversion}"-1 upstream development build of ${project} ${version}
-    dch --force-distribution -D "${debian_name}"-backports -l~bpo${debian_version}+ "${project} snapshot ${version} built for ${target_system}"
+    dch --force-distribution  -v "${debianversion}-1 upstream development build of ${project} ${version}"
+    dch --force-distribution -D "${debian_name}-backports" -l~bpo${debian_version}+ "${project} snapshot ${version} built for ${target_system}"
     dpkg-buildpackage -r
     rc="$?"
     
@@ -256,14 +256,14 @@ build_deb() {
 
 build_stdeb () {
     echo "Build for debian using stdeb"
-    tarname="${project}"-"${strictversion}.tar.gz"
+    tarname="${project}-${strictversion}.tar.gz"
     clean_up
 
     python3 setup.py sdist
     cp -f "dist/${tarname} ${build_directory}"
     cd "${build_directory}"
     tar -xzf "${tarname}"
-    cd "${project}"-"${strictversion}"
+    cd "${project}-${strictversion}"
 
     if [ "$stdeb_all_python" -eq 1 ]; then
       echo Using Python 2+3
