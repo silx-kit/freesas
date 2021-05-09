@@ -48,24 +48,24 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
 
-def set_backend(output: Path = None, outputformat: str = None):
+def set_backend(output: Path = None, output_format: str = None):
     """Explicitely set silent backend based on format or filename
     Needed on MacOS
     @param output: Name of the specified output file
-    @param format: User specified format
+    @param output_format: User specified format
     """
-    if outputformat:
-        outputformat = outputformat.lower()
+    if output_format:
+        output_format = output_format.lower()
     elif output and len(output.suffix) > 0:
-        outputformat = output.suffix.lower()[1:]
-    if outputformat:
-        if outputformat == "svg":
+        output_format = output.suffix.lower()[1:]
+    if output_format:
+        if output_format == "svg":
             switch_backend("svg")
-        elif outputformat in ["ps", "eps"]:
+        elif output_format in ["ps", "eps"]:
             switch_backend("ps")
-        elif outputformat == "pdf":
+        elif output_format == "pdf":
             switch_backend("pdf")
-        elif outputformat == "png":
+        elif output_format == "png":
             switch_backend("agg")
 
 
@@ -118,7 +118,7 @@ def main():
         if len(files) == 1:
             set_backend(args.output, args.format)
         elif len(files) > 1:
-            set_backend(outputformat="pdf")
+            set_backend(output_format="pdf")
     for afile in files:
         try:
             fig = create_figure(afile, args.unit)

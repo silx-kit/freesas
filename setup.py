@@ -312,7 +312,6 @@ class BuildMan(Command):
             # help2man expect a single executable file to extract the help
             # we create it, execute it, and delete it at the end
 
-            py3 = sys.version_info >= (3, 0)
             try:
                 # create a launcher using the right python interpreter
                 script_name = os.path.join(workdir, target_name)
@@ -326,28 +325,14 @@ class BuildMan(Command):
 
                 # execute help2man
                 man_file = "build/man/%s.1" % target_name
-                command_line = ["help2man", script_name, "-o", man_file]
-                if not py3:
-                    # Before Python 3.4, ArgParser --version was using
-                    # stderr to print the version
-                    command_line.append("--no-discard-stderr")
-                    # Then we dont know if the documentation will contains
-                    # durtty things
-                    succeeded = self.run_targeted_script(
-                        target_name, script_name, env, False
-                    )
-                    if not succeeded:
-                        logger.info(
-                            "Error while generating man file for target '%s'.",
-                            target_name,
-                        )
-                        self.run_targeted_script(
-                            target_name, script_name, env, True
-                        )
-                        raise RuntimeError(
-                            "Fail to generate '%s' man documentation"
-                            % target_name
-                        )
+                command_line = [
+                    "help2man",
+                    "-N",
+                    script_name,
+                    "-o",
+                    man_file,
+                    "--no-discard-stderr",
+                ]
 
                 p = subprocess.Popen(command_line, env=env)
                 status = p.wait()
