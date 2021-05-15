@@ -342,13 +342,12 @@ class TestDataCurration(unittest.TestCase):
         )
 
     def test_curate_synthetic_data_with_negative_points(self):
-        """Test that for idealized data the cut-off is at i0/10"""
-        I0 = 1e2
-        data = create_synthetic_data(I0=I0)
-        DTYPE = numpy.float64
-        raw_size = len(data)
-
+        """Test that if one of the first three points is negative, all date before it gets ignored"""
         for negative_point_index in range(3):
+            I0 = 1e2
+            data = create_synthetic_data(I0=I0)
+            DTYPE = numpy.float64
+            raw_size = len(data)
             data[negative_point_index, 1] = -1
 
             q_ary = numpy.empty(raw_size, dtype=DTYPE)
@@ -371,12 +370,12 @@ class TestDataCurration(unittest.TestCase):
                 offsets,
                 data_range,
             )
-            print(offsets[0])
-            # self.assertEqual(
-            #     offsets[0],
-            #     negative_point_index + 1,
-            #     msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
-            # )
+
+            self.assertEqual(
+                offsets[0],
+                negative_point_index + 1,
+                msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
+            )
             # print(data[offsets[data_range[1]] - 1, 1])
             # print(data[negative_point_index + 1, 1])
             # print(data[offsets[data_range[1]] + 1, 1])
