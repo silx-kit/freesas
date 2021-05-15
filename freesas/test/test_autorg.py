@@ -249,6 +249,23 @@ class TestFit(unittest.TestCase):
         )
 
 
+def create_synthetic_data(I0):
+    """Create idealized data for a sphere of radius R0=4 whose Rg should be 4*sqrt(3/5)"""
+    R0 = 4
+    npt = 1000
+
+    Dmax = 2 * R0
+    size = 5000
+    r = numpy.linspace(0, Dmax, npt + 1)
+    p = distribution_sphere(I0, Dmax, npt)
+    q = numpy.linspace(0, 10, size)
+    qr = numpy.outer(q, r / pi)
+    T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
+    I = T.dot(p)
+    err = numpy.sqrt(I)
+    return numpy.vstack((q, I, err)).T[1:]
+
+
 class TestDataCurration(unittest.TestCase):
     testfile = get_datafile("bsa_005_sub.dat")
 
@@ -285,21 +302,10 @@ class TestDataCurration(unittest.TestCase):
             msg="reproduced expected BM29 data range",
         )
 
-    def test_curate_artificial_data(self):
+    def test_curate_synthetic_data(self):
         """Test that for idealized data the cut-off is at i0/10"""
-        R0 = 4
-        npt = 1000
-        I0 = 1e2
-        Dmax = 2 * R0
-        size = 5000
-        r = numpy.linspace(0, Dmax, npt + 1)
-        p = distribution_sphere(I0, Dmax, npt)
-        q = numpy.linspace(0, 10, size)
-        qr = numpy.outer(q, r / pi)
-        T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
-        I = T.dot(p)
-        err = numpy.sqrt(I)
-        data = numpy.vstack((q, I, err)).T
+        data = create_synthetic_data(I0=1e2)
+        I_one = data[0, 1]
         DTYPE = numpy.float64
         raw_size = len(data)
         q_ary = numpy.empty(raw_size, dtype=DTYPE)
@@ -324,21 +330,64 @@ class TestDataCurration(unittest.TestCase):
         )
 
         self.assertEqual(
-            data_range[0],
+            offsets[0],
             0,
             msg="curated data for artificial data starts at 0",
         )
 
         self.assertTrue(
-            I[data_range[1]] > I0 / 10 and I[data_range[1] + 1] < I0 / 10,
-            msg="curated data for artificial data ends at I0/10",
+            data[data_range[1] - 1, 1] > I_one / 10
+            and data[data_range[1] + 1, 1] < I_one / 10,
+            msg="curated data for artificial data ends at approx. I0/10",
         )
 
-        self.assertEqual(
-            data_range[2],
-            size - 1,
-            msg="curated size for artificial data is one less than overall size",
-        )
+    def test_curate_synthetic_data_with_negative_points(self):
+        """Test that for idealized data the cut-off is at i0/10"""
+        I0 = 1e2
+        data = create_synthetic_data(I0=I0)
+        DTYPE = numpy.float64
+        raw_size = len(data)
+
+        for negative_point_index in range(3):
+            data[negative_point_index + 1, 1] = -1
+
+            q_ary = numpy.empty(raw_size, dtype=DTYPE)
+            i_ary = numpy.empty(raw_size, dtype=DTYPE)
+            sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
+            q2_ary = numpy.empty(raw_size, dtype=DTYPE)
+            lgi_ary = numpy.empty(raw_size, dtype=DTYPE)
+            wg_ary = numpy.empty(raw_size, dtype=DTYPE)
+            offsets = numpy.empty(raw_size, dtype=numpy.int32)
+            data_range = numpy.zeros(3, dtype=numpy.int32)
+
+            curate_data(
+                data,
+                q_ary,
+                i_ary,
+                sigma_ary,
+                q2_ary,
+                lgi_ary,
+                wg_ary,
+                offsets,
+                data_range,
+            )
+            print(offsets[0])
+            self.assertEqual(
+                offsets[0],
+                negative_point_index + 1,
+                msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
+            )
+            print(data[offsets[data_range[1]] - 1, 1])
+            print(data[negative_point_index + 1, 1])
+            print(data[offsets[data_range[1]] + 1, 1])
+            print(offsets[data_range[1]])
+            self.assertTrue(
+                data[offsets[data_range[1]] - 1, 1]
+                > data[negative_point_index + 1, 1] / 10
+                and data[data_range[1] + 1, 1]
+                < data[negative_point_index + 1, 1] / 10,
+                msg="curated data for artificial data ends at approx. I(first positive point)/10",
+            )
 
 
 def suite():
@@ -348,7 +397,10 @@ def suite():
     testSuite.addTest(TestFit("test_linear_fit_static"))
     testSuite.addTest(TestFit("test_linspace"))
     testSuite.addTest(TestDataCurration("test_curate_data_BM29_bsa"))
-    testSuite.addTest(TestDataCurration("test_curate_artificial_data"))
+    testSuite.addTest(TestDataCurration("test_curate_synthetic_data"))
+    testSuite.addTest(
+        TestDataCurration("test_curate_synthetic_data_with_negative_points")
+    )
     return testSuite
 
 

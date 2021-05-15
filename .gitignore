@@ -63,3 +63,4 @@ workspace.code-workspace
 
 # OS files
 .DS_Store
+.vscode/settings.json
