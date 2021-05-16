@@ -269,6 +269,10 @@ def create_synthetic_data(I0):
 class TestDataCurration(unittest.TestCase):
     testfile = get_datafile("bsa_005_sub.dat")
 
+    def __init__(self, testName, **extra_kwargs):
+        super(TestDataCurration, self).__init__(testName)
+        self.extra_arg = extra_kwargs
+
     def test_curate_data_BM29_bsa(self):
         """Test data curration of "nice" BM29 data"""
         logger.info("test file: %s", self.testfile)
@@ -343,50 +347,51 @@ class TestDataCurration(unittest.TestCase):
 
     def test_curate_synthetic_data_with_negative_points(self):
         """Test that if one of the first three points is negative, all date before it gets ignored"""
-        for negative_point_index in range(3):
-            I0 = 1e2
-            data = create_synthetic_data(I0=I0)
-            DTYPE = numpy.float64
-            raw_size = len(data)
-            data[negative_point_index, 1] = -1
+        negative_point_index = self.extra_arg["negative_point_index"]
 
-            q_ary = numpy.empty(raw_size, dtype=DTYPE)
-            i_ary = numpy.empty(raw_size, dtype=DTYPE)
-            sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
-            q2_ary = numpy.empty(raw_size, dtype=DTYPE)
-            lgi_ary = numpy.empty(raw_size, dtype=DTYPE)
-            wg_ary = numpy.empty(raw_size, dtype=DTYPE)
-            offsets = numpy.empty(raw_size, dtype=numpy.int32)
-            data_range = numpy.zeros(3, dtype=numpy.int32)
+        I0 = 1e2
+        data = create_synthetic_data(I0=I0)
+        DTYPE = numpy.float64
+        raw_size = len(data)
+        data[negative_point_index, 1] = -1
 
-            curate_data(
-                data,
-                q_ary,
-                i_ary,
-                sigma_ary,
-                q2_ary,
-                lgi_ary,
-                wg_ary,
-                offsets,
-                data_range,
-            )
+        q_ary = numpy.empty(raw_size, dtype=DTYPE)
+        i_ary = numpy.empty(raw_size, dtype=DTYPE)
+        sigma_ary = numpy.empty(raw_size, dtype=DTYPE)
+        q2_ary = numpy.empty(raw_size, dtype=DTYPE)
+        lgi_ary = numpy.empty(raw_size, dtype=DTYPE)
+        wg_ary = numpy.empty(raw_size, dtype=DTYPE)
+        offsets = numpy.empty(raw_size, dtype=numpy.int32)
+        data_range = numpy.zeros(3, dtype=numpy.int32)
 
-            self.assertEqual(
-                offsets[0],
-                negative_point_index + 1,
-                msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
-            )
-            # print(data[offsets[data_range[1]] - 1, 1])
-            # print(data[negative_point_index + 1, 1])
-            # print(data[offsets[data_range[1]] + 1, 1])
-            # print(offsets[data_range[1]])
-            # self.assertTrue(
-            #     data[offsets[data_range[1]] - 1, 1]
-            #     > data[negative_point_index + 1, 1] / 10
-            #     and data[data_range[1] + 1, 1]
-            #     < data[negative_point_index + 1, 1] / 10,
-            #     msg="curated data for artificial data ends at approx. I(first positive point)/10",
-            # )
+        curate_data(
+            data,
+            q_ary,
+            i_ary,
+            sigma_ary,
+            q2_ary,
+            lgi_ary,
+            wg_ary,
+            offsets,
+            data_range,
+        )
+
+        self.assertEqual(
+            offsets[0],
+            negative_point_index + 1,
+            msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
+        )
+        # print(data[offsets[data_range[1]] - 1, 1])
+        # print(data[negative_point_index + 1, 1])
+        # print(data[offsets[data_range[1]] + 1, 1])
+        # print(offsets[data_range[1]])
+        # self.assertTrue(
+        #     data[offsets[data_range[1]] - 1, 1]
+        #     > data[negative_point_index + 1, 1] / 10
+        #     and data[data_range[1] + 1, 1]
+        #     < data[negative_point_index + 1, 1] / 10,
+        #     msg="curated data for artificial data ends at approx. I(first positive point)/10",
+        # )
 
 
 def suite():
@@ -397,9 +402,13 @@ def suite():
     testSuite.addTest(TestFit("test_linspace"))
     testSuite.addTest(TestDataCurration("test_curate_data_BM29_bsa"))
     testSuite.addTest(TestDataCurration("test_curate_synthetic_data"))
-    testSuite.addTest(
-        TestDataCurration("test_curate_synthetic_data_with_negative_points")
-    )
+    for negative_point_index in range(3):
+        testSuite.addTest(
+            TestDataCurration(
+                "test_curate_synthetic_data_with_negative_points",
+                negative_point_index=negative_point_index,
+            )
+        )
     return testSuite
 
 
