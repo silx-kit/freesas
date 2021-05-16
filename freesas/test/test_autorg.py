@@ -381,17 +381,14 @@ class TestDataCurration(unittest.TestCase):
             negative_point_index + 1,
             msg=f"curated data for artificial data starts after negative data point for negative point at {negative_point_index + 1}",
         )
-        # print(data[offsets[data_range[1]] - 1, 1])
-        # print(data[negative_point_index + 1, 1])
-        # print(data[offsets[data_range[1]] + 1, 1])
-        # print(offsets[data_range[1]])
-        # self.assertTrue(
-        #     data[offsets[data_range[1]] - 1, 1]
-        #     > data[negative_point_index + 1, 1] / 10
-        #     and data[data_range[1] + 1, 1]
-        #     < data[negative_point_index + 1, 1] / 10,
-        #     msg="curated data for artificial data ends at approx. I(first positive point)/10",
-        # )
+
+        self.assertTrue(
+            data[offsets[data_range[1]] - 1, 1]
+            > data[negative_point_index + 1, 1] / 10
+            and data[offsets[data_range[1]] + 1, 1]
+            < data[negative_point_index + 1, 1] / 10,
+            msg=f"curated data for artificial data ends at approx. I(point after negaitve point)/10 if negative point at {negative_point_index + 1}",
+        )
 
 
 def suite():
