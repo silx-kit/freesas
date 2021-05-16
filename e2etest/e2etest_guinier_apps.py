@@ -24,7 +24,7 @@ class TestFreeSAS(unittest.TestCase):
     SASDFX7 = pathlib.Path(test_data_location, "SASDFX7.dat")
 
     def __init__(self, testName, **extra_kwargs):
-        super(TestFreeSAS, self).__init__(testName)
+        super().__init__(testName)
         self.extra_arg = extra_kwargs
 
     def test_one_bm29_bsa_without_arguments(self):

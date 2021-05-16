@@ -27,8 +27,13 @@ __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
 __date__ = "10/06/2020"
 
-import numpy
+import logging
 import unittest
+from math import sqrt, pi
+
+import numpy
+from scipy.stats import linregress
+
 from .utilstests import get_datafile
 from ..autorg import (
     autoRg,
@@ -40,9 +45,6 @@ from ..autorg import (
 from .._autorg import curate_data
 from ..invariants import calc_Rambo_Tainer
 from .._bift import distribution_sphere
-from math import sqrt, pi
-from scipy.stats import linregress
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -266,15 +268,17 @@ def create_synthetic_data(I0):
     return numpy.vstack((q, I, err)).T[1:]
 
 
-class TestDataCurration(unittest.TestCase):
+class TestDataCuration(unittest.TestCase):
+    """Tests for the curate_data function."""
+
     testfile = get_datafile("bsa_005_sub.dat")
 
     def __init__(self, testName, **extra_kwargs):
-        super(TestDataCurration, self).__init__(testName)
+        super().__init__(testName)
         self.extra_arg = extra_kwargs
 
     def test_curate_data_BM29_bsa(self):
-        """Test data curration of "nice" BM29 data"""
+        """Test data curration of "nice" BM29 data."""
         logger.info("test file: %s", self.testfile)
         data = numpy.loadtxt(self.testfile)
         DTYPE = numpy.float64
@@ -307,7 +311,7 @@ class TestDataCurration(unittest.TestCase):
         )
 
     def test_curate_synthetic_data(self):
-        """Test that for idealized data the cut-off is at i0/10"""
+        """Test that for idealized data the cut-off is at i0/10."""
         data = create_synthetic_data(I0=1e2)
         I_one = data[0, 1]
         DTYPE = numpy.float64
@@ -346,7 +350,7 @@ class TestDataCurration(unittest.TestCase):
         )
 
     def test_curate_synthetic_data_with_negative_points(self):
-        """Test that if one of the first three points is negative, all date before it gets ignored"""
+        """Test that if one of the first three points is negative, all date before it gets ignored."""
         negative_point_index = self.extra_arg["negative_point_index"]
 
         I0 = 1e2
@@ -392,16 +396,17 @@ class TestDataCurration(unittest.TestCase):
 
 
 def suite():
+    """Generic builder for the test suite."""
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAutoRg("test_atsas"))
     testSuite.addTest(TestAutoRg("test_synthetic"))
     testSuite.addTest(TestFit("test_linear_fit_static"))
     testSuite.addTest(TestFit("test_linspace"))
-    testSuite.addTest(TestDataCurration("test_curate_data_BM29_bsa"))
-    testSuite.addTest(TestDataCurration("test_curate_synthetic_data"))
+    testSuite.addTest(TestDataCuration("test_curate_data_BM29_bsa"))
+    testSuite.addTest(TestDataCuration("test_curate_synthetic_data"))
     for negative_point_index in range(3):
         testSuite.addTest(
-            TestDataCurration(
+            TestDataCuration(
                 "test_curate_synthetic_data_with_negative_points",
                 negative_point_index=negative_point_index,
             )
