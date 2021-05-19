@@ -9,11 +9,9 @@ __copyright__ = "2020, ESRF"
 __date__ = "05/06/2020"
 
 import logging
-
-logger = logging.getLogger(__name__)
-import math
 import numpy
-from ._autorg import (
+from scipy.optimize import curve_fit
+from ._autorg import (  # pylint: disable=E0401
     RG_RESULT,
     autoRg,
     AutoGuinier,
@@ -24,7 +22,9 @@ from ._autorg import (
     DTYPE,
     InsufficientDataError,
 )
-from scipy.optimize import curve_fit
+
+
+logger = logging.getLogger(__name__)
 
 
 def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
@@ -47,41 +47,53 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     :param qRg_min: the default lower bound for the Guinier region.
     :return: autRg result with limited information
     """
-    q = data.T[0]
-    I = data.T[1]
-    err = data.T[2]
 
-    start0 = numpy.argmax(I)
-    stop0 = numpy.where(q > qRg_max / Rg_min)[0][0]
+    def curate_data(data):
+        q = data.T[0]
+        I = data.T[1]
+        err = data.T[2]
 
-    range0 = slice(start0, stop0)
-    q = q[range0]
-    I = I[range0]
-    err = err[range0]
+        start0 = numpy.argmax(I)
+        stop0 = numpy.where(q > qRg_max / Rg_min)[0][0]
 
-    q2 = q ** 2
-    lnI = numpy.log(I)
-    I2_over_sigma2 = err ** 2 / I ** 2
+        range0 = slice(start0, stop0)
+        q = q[range0]
+        I = I[range0]
+        err = err[range0]
 
-    y = I * q
-    p1 = numpy.argmax(y)
+        q2 = q ** 2
+        lnI = numpy.log(I)
+        I2_over_sigma2 = err ** 2 / I ** 2
 
-    # Those are guess from the max position:
-    Rg = (1.5 / q2[p1]) ** 0.5
-    I0 = I[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
+        y = I * q
+        p1 = numpy.argmax(y)
 
-    # Let's cut-down the guinier region from 0.5-1.3 in qRg
-    try:
-        start1 = numpy.where(q > qRg_min / Rg)[0][0]
-    except IndexError:
-        start1 = None
-    try:
-        stop1 = numpy.where(q > qRg_max / Rg)[0][0]
-    except IndexError:
-        stop1 = None
-    range1 = slice(start1, stop1)
-    q1 = q[range1]
-    I1 = I[range1]
+        # Those are guess from the max position:
+        Rg = (1.5 / q2[p1]) ** 0.5
+        I0 = I[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
+
+        # Let's cut-down the guinier region from 0.5-1.3 in qRg
+        try:
+            start1 = numpy.where(q > qRg_min / Rg)[0][0]
+        except IndexError:
+            start1 = None
+        try:
+            stop1 = numpy.where(q > qRg_max / Rg)[0][0]
+        except IndexError:
+            stop1 = None
+        range1 = slice(start1, stop1)
+
+        q1 = q[range1]
+        I1 = I[range1]
+
+        return q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0
+
+    q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0 = curate_data(data)
+    if len(q1) < 3:
+        reduced_data = numpy.delete(data, start0, axis=0)
+        q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0 = curate_data(
+            reduced_data
+        )
 
     x = q1 * q1
     y = I1 * q1

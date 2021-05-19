@@ -42,15 +42,35 @@ from ..autorg import (
     auto_gpa,
     auto_guinier,
 )
-from .._autorg import curate_data
+from .._autorg import curate_data  # pylint: disable=E0401
 from ..invariants import calc_Rambo_Tainer
-from .._bift import distribution_sphere
+from .._bift import distribution_sphere  # pylint: disable=E0401
 
 logger = logging.getLogger(__name__)
 
 
+def create_synthetic_data(R0=4, I0=100):
+    """Create idealized data for a sphere of radius R0=4 whose Rg should be 4*sqrt(3/5)"""
+    npt = 1000
+    Dmax = 2 * R0
+    size = 5000
+    r = numpy.linspace(0, Dmax, npt + 1)
+    p = distribution_sphere(I0, Dmax, npt)
+    q = numpy.linspace(0, 10, size)
+    qr = numpy.outer(q, r / pi)
+    T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
+    I = T.dot(p)
+    err = numpy.sqrt(I)
+    return numpy.vstack((q, I, err)).T[1:]
+
+
 class TestAutoRg(unittest.TestCase):
     testfile = get_datafile("bsa_005_sub.dat")
+
+    def __init__(self, testName, **extra_kwargs):
+        super().__init__(testName)
+        self.extra_arg = extra_kwargs
+
     # Reference implementation
     atsas_autorg = {
         "Version": "Atsas 2.6.1",
@@ -92,18 +112,8 @@ class TestAutoRg(unittest.TestCase):
     def test_synthetic(self):
         "Test based on sythetic data: a sphere of radius R0=4 which Rg should be 4*sqrt(3/5)"
         R0 = 4
-        npt = 1000
-        I0 = 1e2
-        Dmax = 2 * R0
-        size = 5000
-        r = numpy.linspace(0, Dmax, npt + 1)
-        p = distribution_sphere(I0, Dmax, npt)
-        q = numpy.linspace(0, 10, size)
-        qr = numpy.outer(q, r / pi)
-        T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
-        I = T.dot(p)
-        err = numpy.sqrt(I)
-        data = numpy.vstack((q, I, err)).T
+        I0 = 100
+        data = create_synthetic_data(R0=R0, I0=I0)
         Rg = autoRg(data)
         logger.info("auto_rg %s", Rg)
         self.assertAlmostEqual(
@@ -157,6 +167,30 @@ class TestAutoRg(unittest.TestCase):
         rt = calc_Rambo_Tainer(data, guinier)
         self.assertIsNotNone(
             rt, "Rambo-Tainer invariants are actually calculated"
+        )
+
+    def test_auto_gpa_with_outlier(self):
+        """
+        Test that auto_gpa gives reasonalbe results
+        even if one data point is excessively large (e.g. hot pixel)"""
+        outlier_position = self.extra_arg["outlier_position"]
+        R0 = 4
+        I0 = 100
+        data = create_synthetic_data(R0=R0, I0=I0)
+        data[outlier_position, 1] *= 1000
+        gpa = auto_gpa(data)
+        logger.info("auto_gpa %s", gpa)
+        self.assertAlmostEqual(
+            gpa.Rg / (R0 * sqrt(3.0 / 5)),
+            1.00,
+            0,
+            f"In case of outlier at {outlier_position} Rg matches for a sphere",
+        )
+        self.assertAlmostEqual(
+            gpa.I0 / I0,
+            1.0,
+            1,
+            f"In case of outlier at {outlier_position} I0 matches for a sphere",
         )
 
 
@@ -228,6 +262,8 @@ class TestFit(unittest.TestCase):
         )
 
     def test_random(self):
+        """Tests that our linear regression implementation
+        gives the same results as scipy.stats for random data"""
         size = 100
         x = numpy.random.random(size)
         y = 1.6 * x + 5 + numpy.random.random(size)
@@ -249,23 +285,6 @@ class TestFit(unittest.TestCase):
             5,
             "R² value matcheswihtin 4(?) digits",
         )
-
-
-def create_synthetic_data(I0):
-    """Create idealized data for a sphere of radius R0=4 whose Rg should be 4*sqrt(3/5)"""
-    R0 = 4
-    npt = 1000
-
-    Dmax = 2 * R0
-    size = 5000
-    r = numpy.linspace(0, Dmax, npt + 1)
-    p = distribution_sphere(I0, Dmax, npt)
-    q = numpy.linspace(0, 10, size)
-    qr = numpy.outer(q, r / pi)
-    T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
-    I = T.dot(p)
-    err = numpy.sqrt(I)
-    return numpy.vstack((q, I, err)).T[1:]
 
 
 class TestDataCuration(unittest.TestCase):
@@ -312,7 +331,7 @@ class TestDataCuration(unittest.TestCase):
 
     def test_curate_synthetic_data(self):
         """Test that for idealized data the cut-off is at i0/10."""
-        data = create_synthetic_data(I0=1e2)
+        data = create_synthetic_data()
         I_one = data[0, 1]
         DTYPE = numpy.float64
         raw_size = len(data)
@@ -353,8 +372,7 @@ class TestDataCuration(unittest.TestCase):
         """Test that if one of the first three points is negative, all date before it gets ignored."""
         negative_point_index = self.extra_arg["negative_point_index"]
 
-        I0 = 1e2
-        data = create_synthetic_data(I0=I0)
+        data = create_synthetic_data()
         DTYPE = numpy.float64
         raw_size = len(data)
         data[negative_point_index, 1] = -1
@@ -400,6 +418,12 @@ def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestAutoRg("test_atsas"))
     testSuite.addTest(TestAutoRg("test_synthetic"))
+    for outlier_position in range(3):
+        testSuite.addTest(
+            TestAutoRg(
+                "test_auto_gpa_with_outlier", outlier_position=outlier_position
+            )
+        )
     testSuite.addTest(TestFit("test_linear_fit_static"))
     testSuite.addTest(TestFit("test_linspace"))
     testSuite.addTest(TestDataCuration("test_curate_data_BM29_bsa"))
