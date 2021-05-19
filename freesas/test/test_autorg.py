@@ -110,7 +110,7 @@ class TestAutoRg(unittest.TestCase):
         )
 
     def test_synthetic(self):
-        "Test based on sythetic data: a sphere of radius R0=4 which Rg should be 4*sqrt(3/5)"
+        """Test based on sythetic data: a sphere of radius R0=4 which Rg should be 4*sqrt(3/5)"""
         R0 = 4
         I0 = 100
         data = create_synthetic_data(R0=R0, I0=I0)

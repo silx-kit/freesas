@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Functions to generating graphs related to
-"""
+"""Functions for calculating the radius of gyration and forward scattering intensity."""
 
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
@@ -28,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
-    """Uses the GPA theory to guess quickly Rg, the
+    """
+    Uses the GPA theory to guess quickly Rg, the
     radius of gyration and I0, the forwards scattering
 
     The theory is described in `Guinier peak analysis for visual and automated
