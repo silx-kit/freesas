@@ -21,9 +21,10 @@ class TestFreeSAS(unittest.TestCase):
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
     bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
     sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
+    SASDFX7 = pathlib.Path(test_data_location, "SASDFX7.dat")
 
     def __init__(self, testName, **extra_kwargs):
-        super(TestFreeSAS, self).__init__(testName)
+        super().__init__(testName)
         self.extra_arg = extra_kwargs
 
     def test_one_bm29_bsa_without_arguments(self):
@@ -354,6 +355,64 @@ class TestFreeSAS(unittest.TestCase):
             "the filenames at the start of each row",
         )
 
+    def test_rg_of_SASDFX7_is_23Å(self):
+        """
+        SASDFX7 is an example of a dat file with artefacts at small angles.
+        """
+        app_name: str = self.extra_arg["app"]
+        test_output_name = pathlib.Path(self.cwd, f"SASDFX7_{app_name}.csv")
+        try:
+            test_output_name.unlink()
+        except FileNotFoundError:
+            pass
+
+        run_app = run(
+            [
+                app_name,
+                str(self.SASDFX7),
+                "-o",
+                str(test_output_name),
+                "-f",
+                "csv",
+                "-u",
+                "Å",
+            ],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_app.returncode,
+            0,
+            msg=f"{app_name} for SASDFX7 completed well",
+        )
+
+        with open(str(test_output_name), "r") as test_output_file:
+            test_output_header = test_output_file.readline()[:-1].split(",")
+            test_output_result = test_output_file.readline()
+        result = test_output_result[:-1].split(",")
+
+        expected_header = {
+            "File",
+            "Rg",
+            "Rg StDev",
+            "I(0)",
+            "I(0) StDev",
+            "First point",
+            "Last point",
+            "Quality",
+            "Aggregated",
+        }
+
+        index = {}
+        for header_item in expected_header:
+            index[header_item] = test_output_header.index(header_item)
+
+        self.assertTrue(
+            abs(float(result[index["Rg"]]) - 2.3) <= 0.1,
+            msg=f"Rg for SASDFX7 by {app_name} between 2.2 and 2.4",
+        )
+
 
 def suite():
     test_suite = unittest.TestSuite()
@@ -375,6 +434,7 @@ def suite():
         test_suite.addTest(
             TestFreeSAS("test_native_output_with_two_files", app=app)
         )
+        test_suite.addTest(TestFreeSAS("test_rg_of_SASDFX7_is_23Å", app=app))
     return test_suite
 
 

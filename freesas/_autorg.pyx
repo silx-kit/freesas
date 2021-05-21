@@ -330,7 +330,7 @@ cdef class AutoGuinier:
         self.aggregation_threshold = 0
         
     @cython.profile(True)
-    cpdef currate_data(self,
+    cpdef curate_data(self,
                        data, 
                        DTYPE_t[::1] q, 
                        DTYPE_t[::1] intensity,
@@ -894,7 +894,7 @@ cdef class AutoGuinier:
 ################################################################################
 # Old implementation from Matha    
 ################################################################################
-def currate_data(floating[:, :] data, 
+def curate_data(floating[:, :] data, 
                  DTYPE_t[::1] q, 
                  DTYPE_t[::1] intensity,
                  DTYPE_t[::1] sigma,
@@ -907,6 +907,9 @@ def currate_data(floating[:, :] data,
     
     It removed negatives q, intensity, sigmas and also NaNs and infinites
     q, intensity and sigma are ouput array. 
+
+    If the data has more than 3 points, if any of the first three point is negative, 
+    all data preceding it will be removed.
     
     we need also x: q*q, y: log I and w: (err/i)**(-2) 
 
@@ -920,7 +923,7 @@ def currate_data(floating[:, :] data,
     :return: the number of valid points in the array n <=N
     """
     cdef:
-        int idx_in, idx_out, size_in, size_out, start, end, idx
+        int idx_in, idx_out, size_in, size_out, start, end, idx, start_curation
         DTYPE_t one_q, one_i, one_sigma, i_max, i_thres, tmp
         
     size_in = data.shape[0]
@@ -948,7 +951,15 @@ def currate_data(floating[:, :] data,
     start = 0  
     idx_out = 0
     i_max = 0.0
-    for idx_in in range(size_in):
+    start_curation = 0
+
+    if size_in > 3:
+        for idx_in in range(3):
+            if data[idx_in, 1] < 0:
+                start_curation = idx_in
+
+
+    for idx_in in range(start_curation, size_in):
         one_q = data[idx_in, 0]
         one_i = data[idx_in, 1]
         one_sigma = data[idx_in, 2]
@@ -968,7 +979,7 @@ def currate_data(floating[:, :] data,
     
     end = idx_out
     if end > start + 2:
-        i_thres = (i_max + data[start + 1, 1] + data[start + 2, 1]) / (3 * RATIO_INTENSITY)
+        i_thres = (i_max + data[offsets[start + 1], 1] + data[offsets[start + 2], 1]) / (3 * RATIO_INTENSITY)
     else:
         i_thres = i_max / (RATIO_INTENSITY)
     
@@ -1004,7 +1015,7 @@ def autoRg(sasm):
         DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
         DTYPE_t[::1] fit_data
         int[::1] offsets, data_range
-        int raw_size, currated_size, data_start, data_end, data_step
+        int raw_size, curated_size, data_start, data_end, data_step
         int min_window, max_window, window_size, window_step 
         int start, end, nb_fit, array_size, block_size=39 #page of 4k
         int idx_min, idx_max, idx, err
@@ -1021,11 +1032,11 @@ def autoRg(sasm):
     offsets = numpy.empty(raw_size, dtype=numpy.int32)
     data_range = numpy.zeros(3, dtype=numpy.int32)
     
-    currate_data(sasm, q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary, offsets, data_range)
+    curate_data(sasm, q_ary, i_ary, sigma_ary, q2_ary, lgi_ary, wg_ary, offsets, data_range)
     
-    data_start, data_end, currated_size = data_range
+    data_start, data_end, curated_size = data_range
     
-    logger.debug("raw size: %s, currated size: %s start: %s end: %s", raw_size, currated_size, data_start, data_end)
+    logger.debug("raw size: %s, curated size: %s start: %s end: %s", raw_size, curated_size, data_start, data_end)
    
     if (data_end - data_start) < 10:
         raise InsufficientDataError()
