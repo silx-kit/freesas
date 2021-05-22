@@ -10,7 +10,7 @@ __date__ = "11/07/2020"
 
 import sys
 import unittest
-import e2etest_freesas, e2etest_guinier_apps
+import e2etest_freesas, e2etest_guinier_apps, e2etest_bift
 
 
 def suite():
@@ -18,6 +18,7 @@ def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(e2etest_freesas.suite())
     test_suite.addTest(e2etest_guinier_apps.suite())
+    test_suite.addTest(e2etest_bift.suite())
     return test_suite
 
 
