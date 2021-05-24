@@ -125,6 +125,73 @@ class TestBIFT(unittest.TestCase):
             3,
         )
 
+    def test_bm29_bsa_result_numerically_matches_expectations(self):
+        """
+        Test whether the results of the bift app on BM29 BSA give roughly the
+        expected Dmax, I₀ anr Rg and that the first is and the last point is close to 0.
+        """
+        expected_outfile_name = pathlib.Path(
+            self.cwd, self.bsa_filename.name
+        ).with_suffix(".out")
+        try:
+            expected_outfile_name.unlink()
+        except FileNotFoundError:
+            pass
+        run_app = run(
+            ["free_bift", normpath(str(self.bsa_filename))],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_app.returncode, 0, msg="bift on BM29 BSA completed well"
+        )
+        with open(expected_outfile_name, "r") as out_file:
+            out_file_content = out_file.readlines()
+
+        self.assertAlmostEqual(
+            float(out_file_content[1][8:12]),
+            9.75,
+            places=1,
+            msg=f"expected Dmax to be close to 0.75 got {out_file_content[1]}",
+        )
+
+        self.assertAlmostEqual(
+            float(out_file_content[6][6:10]),
+            3.0,
+            places=1,
+            msg=f"expected Rg to be close to 3.0 got {out_file_content[6]}",
+        )
+
+        self.assertAlmostEqual(
+            0.1 * float(out_file_content[7][6:10]),
+            6.1,
+            places=1,
+            msg=f"expected I0 to be close to 60 got {out_file_content[7]}",
+        )
+
+        self.assertEqual(
+            out_file_content[10].strip(),
+            "0.0\t0.0\t0.0",
+            msg=f"Expected first p(r) line to be '0.0     0.0     0.0' got {out_file_content[10]}",
+        )
+
+        last_line_content = out_file_content[-1].split("\t")
+
+        self.assertAlmostEqual(
+            float(last_line_content[0]),
+            9.75,
+            places=1,
+            msg=f"expected last r point to be close to 9.75 got {last_line_content[0]}",
+        )
+
+        self.assertAlmostEqual(
+            float(last_line_content[1]),
+            0,
+            places=3,
+            msg=f"expected last r point to be close to 0 got {last_line_content[1]}",
+        )
+
 
 def suite():
     """Build test suite for free_bift"""
@@ -135,6 +202,9 @@ def suite():
     )
     test_suite.addTest(
         TestBIFT("test_bm29_bsa_out_file_has_the_expected_format")
+    )
+    test_suite.addTest(
+        TestBIFT("test_bm29_bsa_result_numerically_matches_expectations")
     )
     return test_suite
 
