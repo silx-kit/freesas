@@ -7,6 +7,7 @@ __date__ = "27/12/2020"
 import unittest
 import pathlib
 import logging
+from system import platform
 from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
@@ -40,8 +41,9 @@ class TestBIFT(unittest.TestCase):
             expected_outfile_name.unlink()
         except FileNotFoundError:
             pass
+        if s
         run_app = run(
-            ["free_bift", normpath(str(self.bsa_filename))],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -188,7 +190,7 @@ class TestBIFT(unittest.TestCase):
         self.assertAlmostEqual(
             float(last_line_content[1]),
             0,
-            places=3,
+            places=2,
             msg=f"expected last r point to be close to 0 got {last_line_content[1]}",
         )
 
