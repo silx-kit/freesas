@@ -15,7 +15,7 @@ from numpy import loadtxt
 
 logger = logging.getLogger(__name__)
 
-if system == "Windows":
+if system() == "Windows":
     free_bift = "free_bift.exe"
 else:
     free_bift = "free_bift"
