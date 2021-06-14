@@ -11,6 +11,7 @@ from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
+import parse
 from numpy import loadtxt
 
 logger = logging.getLogger(__name__)
@@ -198,6 +199,55 @@ class TestBIFT(unittest.TestCase):
             msg=f"expected last r point to be close to 0 got {last_line_content[1]}",
         )
 
+    def test_free_bift_outputs_one_line_summary(self):
+        """
+        Test whether free_bift app on BM29 BSA puts a one line summary in stdout.
+        """
+        expected_outfile_name = pathlib.Path(
+            self.cwd, self.bsa_filename.name
+        ).with_suffix(".out")
+        try:
+            expected_outfile_name.unlink()
+        except FileNotFoundError:
+            pass
+        run_app = run(
+            [free_bift, normpath(str(self.bsa_filename))],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+        self.assertEqual(
+            run_app.returncode, 0, msg="bift on BM29 BSA completed well"
+        )
+        if system() == "Windows":
+            run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+        else:
+            run_app_output = str(run_app.stdout, "utf-8")[:-1]
+        run_app_output_parsed = parse.parse(
+            "bsa_005_sub.out: Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
+            run_app_output,
+        )
+        self.assertListEqual(
+            list(run_app_output_parsed.named),
+            [
+                "Dmax",
+                "Dmax_err",
+                "alpha",
+                "alpha_err",
+                "S0",
+                "S0_err",
+                "chi_squared",
+                "chi_squared_err",
+                "logP",
+                "logP_err",
+                "Rg",
+                "Rg_err",
+                "I0",
+                "I0_err",
+            ],
+            msg="Could not parse free_bift std output",
+        )
+
 
 def suite():
     """Build test suite for free_bift"""
@@ -212,6 +262,7 @@ def suite():
     test_suite.addTest(
         TestBIFT("test_bm29_bsa_result_numerically_matches_expectations")
     )
+    test_suite.addTest(TestBIFT("test_free_bift_outputs_one_line_summary"))
     return test_suite
 
 
