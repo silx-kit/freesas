@@ -17,7 +17,6 @@ import platform
 from io import StringIO
 import pathlib
 import contextlib
-from functools import wraps
 from types import SimpleNamespace
 from typing import Callable
 from errno import ENOENT
@@ -66,7 +65,6 @@ def get_dummy_guinier_parser(**parse_output):
 
 
 def patch_linesep(test_function):
-
     """Patch fitting.linesep to "linesep"."""
 
     linesep_patch = patch(
@@ -77,7 +75,6 @@ def patch_linesep(test_function):
 
 
 def patch_collect_files(test_function):
-
     """Patch fitting.collect_files to return Paths "test" and "test2"."""
 
     collect_files_patch = patch(
@@ -923,7 +920,9 @@ class TestFitting(unittest.TestCase):
 
 
 def suite():
+
     """Build a test suite from the TestFitting class."""
+
     test_suite = unittest.TestSuite()
     for class_element in dir(TestFitting):
         if platform.system() == "Windows":
