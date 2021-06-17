@@ -10,6 +10,7 @@ import logging
 from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
+from os.path import normpath
 import parse
 from numpy import loadtxt
 
@@ -58,7 +59,7 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, str(self.bsa_filename)],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -77,7 +78,7 @@ class TestBIFT(unittest.TestCase):
         """
 
         _ = run(
-            [free_bift, str(self.bsa_filename)],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -144,7 +145,7 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app_ = run(
-            [free_bift, str(self.bsa_filename)],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -202,7 +203,7 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, str(self.bsa_filename)],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -243,7 +244,7 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, str(self.bsa_filename)],
+            [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
