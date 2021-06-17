@@ -31,22 +31,33 @@ class TestBIFT(unittest.TestCase):
     bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
     sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
     SASDFX7 = pathlib.Path(test_data_location, "SASDFX7.dat")
+    expected_outfile_name_bsa = pathlib.Path(
+        cwd, bsa_filename.name
+    ).with_suffix(".out")
 
     def __init__(self, testName, **extra_kwargs):
         super().__init__(testName)
         self.extra_arg = extra_kwargs
 
+    def remove_output_files(self):
+        try:
+            self.expected_outfile_name_bsa.unlink()
+        except FileNotFoundError:
+            pass
+
+    def setUp(self):
+        self.remove_output_files()
+        return super().setUp()
+
+    def tearDown(self):
+        self.remove_output_files()
+        return super().tearDown()
+
     def test_bm29_bsa_without_arguments_creates_out_file(self):
         """
         Test whether bift app on BSA data from BM29 creates an out file.
         """
-        expected_outfile_name = pathlib.Path(
-            self.cwd, self.bsa_filename.name
-        ).with_suffix(".out")
-        try:
-            expected_outfile_name.unlink()
-        except FileNotFoundError:
-            pass
+
         run_app = run(
             [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
@@ -57,31 +68,23 @@ class TestBIFT(unittest.TestCase):
             run_app.returncode, 0, msg="bift on BM29 BSA completed well"
         )
         self.assertTrue(
-            expected_outfile_name.exists(),
-            f"bift on BM29 BSA created out file with correct name: {str(expected_outfile_name)}",
+            self.expected_outfile_name_bsa.exists(),
+            f"bift on BM29 BSA created out file with correct name: {str(self.expected_outfile_name_bsa)}",
         )
 
     def test_bm29_bsa_out_file_has_the_expected_format(self):
         """
         Test whether bift app on BSA data from BM29 creates an out file.
         """
-        expected_outfile_name = pathlib.Path(
-            self.cwd, self.bsa_filename.name
-        ).with_suffix(".out")
-        try:
-            expected_outfile_name.unlink()
-        except FileNotFoundError:
-            pass
-        run_app = run(
+
+        _ = run(
             [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
         )
-        self.assertEqual(
-            run_app.returncode, 0, msg="bift on BM29 BSA completed well"
-        )
-        with open(expected_outfile_name, "r") as out_file:
+
+        with open(self.expected_outfile_name_bsa, "r") as out_file:
             out_file_content = out_file.readlines()
 
         self.assertEqual(out_file_content[0].strip(), f"# {self.bsa_filename}")
@@ -127,7 +130,10 @@ class TestBIFT(unittest.TestCase):
         )
         self.assertEqual(
             loadtxt(
-                expected_outfile_name, dtype=float, delimiter="\t", skiprows=9
+                self.expected_outfile_name_bsa,
+                dtype=float,
+                delimiter="\t",
+                skiprows=9,
             ).shape[1],
             3,
         )
@@ -137,23 +143,15 @@ class TestBIFT(unittest.TestCase):
         Test whether the results of the bift app on BM29 BSA give roughly the
         expected Dmax, I₀ anr Rg and that the first is and the last point is close to 0.
         """
-        expected_outfile_name = pathlib.Path(
-            self.cwd, self.bsa_filename.name
-        ).with_suffix(".out")
-        try:
-            expected_outfile_name.unlink()
-        except FileNotFoundError:
-            pass
-        run_app = run(
+
+        _ = run(
             [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
         )
-        self.assertEqual(
-            run_app.returncode, 0, msg="bift on BM29 BSA completed well"
-        )
-        with open(expected_outfile_name, "r") as out_file:
+
+        with open(self.expected_outfile_name_bsa, "r") as out_file:
             out_file_content = out_file.readlines()
 
         self.assertAlmostEqual(
@@ -203,22 +201,14 @@ class TestBIFT(unittest.TestCase):
         """
         Test whether free_bift app on BM29 BSA puts a one line summary in stdout.
         """
-        expected_outfile_name = pathlib.Path(
-            self.cwd, self.bsa_filename.name
-        ).with_suffix(".out")
-        try:
-            expected_outfile_name.unlink()
-        except FileNotFoundError:
-            pass
+
         run_app = run(
             [free_bift, normpath(str(self.bsa_filename))],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
         )
-        self.assertEqual(
-            run_app.returncode, 0, msg="bift on BM29 BSA completed well"
-        )
+
         if system() == "Windows":
             run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
         else:
@@ -248,6 +238,47 @@ class TestBIFT(unittest.TestCase):
             msg="Could not parse free_bift std output",
         )
 
+    def test_free_bift_values_of_one_line_summary_match_expectations(self):
+        """
+        Test whether the one line summary of free_bift app on BM29 BSA gives the expected values.
+        """
+
+        run_app = run(
+            [free_bift, normpath(str(self.bsa_filename))],
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
+        )
+
+        if system() == "Windows":
+            run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+        else:
+            run_app_output = str(run_app.stdout, "utf-8")[:-1]
+        run_app_output_parsed = parse.parse(
+            "bsa_005_sub.out: Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
+            run_app_output,
+        )
+        self.assertAlmostEqual(
+            float(run_app_output_parsed["Dmax"]),
+            9.75,
+            places=1,
+            msg=f"expected Dmax to be close to 0.75 got {run_app_output_parsed['Dmax']}",
+        )
+
+        self.assertAlmostEqual(
+            float(run_app_output_parsed["Rg"]),
+            3.0,
+            places=1,
+            msg=f"expected Rg to be close to 3.0 got {run_app_output_parsed['Rg']}",
+        )
+
+        self.assertAlmostEqual(
+            0.1 * float(run_app_output_parsed["I0"]),
+            6.1,
+            places=1,
+            msg=f"expected I0 to be close to 60 got {run_app_output_parsed['I0']}",
+        )
+
 
 def suite():
     """Build test suite for free_bift"""
@@ -263,6 +294,11 @@ def suite():
         TestBIFT("test_bm29_bsa_result_numerically_matches_expectations")
     )
     test_suite.addTest(TestBIFT("test_free_bift_outputs_one_line_summary"))
+    test_suite.addTest(
+        TestBIFT(
+            "test_free_bift_values_of_one_line_summary_match_expectations"
+        )
+    )
     return test_suite
 
 
