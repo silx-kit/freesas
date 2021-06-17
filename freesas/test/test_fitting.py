@@ -920,7 +920,6 @@ class TestFitting(unittest.TestCase):
 
 
 def suite():
-
     """Build a test suite from the TestFitting class."""
 
     test_suite = unittest.TestSuite()
