@@ -26,9 +26,9 @@ environment:
         - PYTHON_DIR: "C:\\Python39-x64"
 
 matrix:
-  exclude:
-    - os: Visual Studio 2017
-      PYTHON_DIR: "C:\\Python39-x64"
+    exclude:
+        - os: Visual Studio 2017
+          PYTHON_DIR: "C:\\Python39-x64"
 
 install:
     - "SET PATH=%PYTHON_DIR%;%PYTHON_DIR%\\Scripts;%PATH%"
@@ -50,13 +50,10 @@ install:
     - "pip install --pre --no-index --find-links dist/ freesas"
     - "pip freeze"
 
-
 # Not a .NET project, build is done in the install step instead
 build: false
 
-
 test_script:
-
     #Unit tests
     - "python setup.py build test"
     - "python run_tests.py"
@@ -64,6 +61,7 @@ test_script:
     #end to end tests
     - "mkdir empty"
     - "cd empty"
+    - pip install -r ../e2etest/requirements_e2e.txt
     - "python ../e2etest/e2etest.py"
 
 artifacts:
