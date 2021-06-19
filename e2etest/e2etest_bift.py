@@ -60,9 +60,9 @@ class TestBIFT(unittest.TestCase):
 
         run_app = run(
             [free_bift, normpath(str(self.bsa_filename))],
-            stdout=PIPE,
-            stderr=STDOUT,
-            check=True,
+            # stdout=PIPE,
+            # stderr=STDOUT,
+            # check=True,
         )
         self.assertEqual(
             run_app.returncode, 0, msg="bift on BM29 BSA completed well"
