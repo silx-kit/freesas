@@ -253,6 +253,7 @@ class TestBIFT(unittest.TestCase):
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
+            encoding="utf-8",
         )
 
         if system() == "Windows":

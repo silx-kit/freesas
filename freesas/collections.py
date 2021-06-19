@@ -88,16 +88,16 @@ def save_bift(stats, filename, source=None):
         "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
     ]
     with open(filename, "wt", encoding="utf-8") as out:
-        out.write("# %s %s" % (source or filename, linesep))
+        out.write("# %s %s" % (source or filename, "\n"))
         for txt in res:
-            out.write("# %s %s" % (txt, linesep))
-        out.write("%s# r\tp(r)\tsigma_p(r)%s" % (linesep, linesep))
+            out.write("# %s %s" % (txt, "\n"))
+        out.write("%s# r\tp(r)\tsigma_p(r)%s" % ("\n", "\n"))
         for r, p, s in zip(
             stats.radius.astype(numpy.float32),
             stats.density_avg.astype(numpy.float32),
             stats.density_std.astype(numpy.float32),
         ):
-            out.write("%s\t%s\t%s%s" % (r, p, s, linesep))
+            out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
     return filename + ": " + "; ".join(res)
 
 
