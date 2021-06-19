@@ -87,7 +87,7 @@ def save_bift(stats, filename, source=None):
         "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
         "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
     ]
-    with open(filename, "wt") as out:
+    with open(filename, "wt", encoding="utf-8") as out:
         out.write("# %s %s" % (source or filename, linesep))
         for txt in res:
             out.write("# %s %s" % (txt, linesep))
