@@ -62,6 +62,7 @@ test_script:
     - "mkdir empty"
     - "cd empty"
     - "pip install -r ../e2etest/requirements_e2e.txt"
+    - "free_bift.exe ./e2etest/e2etest_data/bsa_005_sub.dat"
     - "python ../e2etest/e2etest.py"
 
 artifacts:
