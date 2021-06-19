@@ -89,9 +89,11 @@ class TestBIFT(unittest.TestCase):
             self.expected_outfile_name_bsa, "r", encoding="utf-8"
         ) as out_file:
             out_file_content = out_file.readlines()
-        with codecs.open(myfile, encoding="utf-8") as filecp:
+        with codecs.open(
+            self.expected_outfile_name_bsa, encoding="utf-8"
+        ) as filecp:
             data = loadtxt(
-                self.expected_outfile_name_bsa,
+                filecp,
                 dtype=float,
                 delimiter="\t",
                 skiprows=9,
