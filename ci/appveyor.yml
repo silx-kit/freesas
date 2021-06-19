@@ -62,7 +62,6 @@ test_script:
     - "mkdir empty"
     - "cd empty"
     - "pip install -r ../e2etest/requirements_e2e.txt"
-    - "set PYTHONIOENCODING=utf_8"
     - "python ../e2etest/e2etest.py"
 
 artifacts:
