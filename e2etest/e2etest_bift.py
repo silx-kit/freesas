@@ -258,7 +258,7 @@ class TestBIFT(unittest.TestCase):
         if system() == "Windows":
             run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
         else:
-            run_app_output = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output = str(run_app.stdout)[:-1]
         run_app_output_parsed = parse.parse(
             "bsa_005_sub.out: Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
             run_app_output,
