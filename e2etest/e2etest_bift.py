@@ -60,9 +60,9 @@ class TestBIFT(unittest.TestCase):
 
         run_app = run(
             [free_bift, normpath(str(self.bsa_filename))],
-            # stdout=PIPE,
-            # stderr=STDOUT,
-            # check=True,
+            stdout=PIPE,
+            stderr=STDOUT,
+            check=True,
         )
         self.assertEqual(
             run_app.returncode, 0, msg="bift on BM29 BSA completed well"
@@ -84,7 +84,9 @@ class TestBIFT(unittest.TestCase):
             check=True,
         )
 
-        with open(self.expected_outfile_name_bsa, "r") as out_file:
+        with open(
+            self.expected_outfile_name_bsa, "r", encoding="utf-8"
+        ) as out_file:
             out_file_content = out_file.readlines()
 
         self.assertEqual(out_file_content[0].strip(), f"# {self.bsa_filename}")
@@ -151,7 +153,9 @@ class TestBIFT(unittest.TestCase):
             check=True,
         )
 
-        with open(self.expected_outfile_name_bsa, "r") as out_file:
+        with open(
+            self.expected_outfile_name_bsa, "r", encoding="utf-8"
+        ) as out_file:
             out_file_content = out_file.readlines()
 
         self.assertAlmostEqual(
@@ -207,6 +211,7 @@ class TestBIFT(unittest.TestCase):
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
+            encoding="utf-8",
         )
 
         if system() == "Windows":
