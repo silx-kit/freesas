@@ -116,7 +116,7 @@ def parse():
 
 def main():
 
-    sys.stdout = open(1, "w", encoding="utf-8", closefd=False)
+    sys.stdout = open(1, "w", encoding="utf-16", closefd=False)
     list_files, args = parse()
     for afile in list_files:
         try:

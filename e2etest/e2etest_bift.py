@@ -11,6 +11,7 @@ from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
+import codecs
 import parse
 from numpy import loadtxt
 
@@ -88,6 +89,13 @@ class TestBIFT(unittest.TestCase):
             self.expected_outfile_name_bsa, "r", encoding="utf-8"
         ) as out_file:
             out_file_content = out_file.readlines()
+        with codecs.open(myfile, encoding="utf-8") as filecp:
+            data = loadtxt(
+                self.expected_outfile_name_bsa,
+                dtype=float,
+                delimiter="\t",
+                skiprows=9,
+            )
 
         self.assertEqual(out_file_content[0].strip(), f"# {self.bsa_filename}")
         self.assertTrue(
@@ -131,12 +139,7 @@ class TestBIFT(unittest.TestCase):
             "# r\tp(r)\tsigma_p(r)",
         )
         self.assertEqual(
-            loadtxt(
-                self.expected_outfile_name_bsa,
-                dtype=float,
-                delimiter="\t",
-                skiprows=9,
-            ).shape[1],
+            data.shape[1],
             3,
         )
 
