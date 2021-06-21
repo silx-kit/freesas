@@ -22,7 +22,7 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
-"""This package contains the application provided by the launcher."""
+"""Command line applications provided by the freesas launcher."""
 
 __authors__ = ["Jérôme Kieffer", "Martha Brennich"]
 __license__ = "MIT"

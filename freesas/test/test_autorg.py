@@ -170,9 +170,11 @@ class TestAutoRg(unittest.TestCase):
         )
 
     def test_auto_gpa_with_outlier(self):
+
         """
         Test that auto_gpa gives reasonalbe results
-        even if one data point is excessively large (e.g. hot pixel)"""
+        even if one data point is excessively large (e.g. hot pixel)
+        """
         outlier_position = self.extra_arg["outlier_position"]
         R0 = 4
         I0 = 100
@@ -262,8 +264,11 @@ class TestFit(unittest.TestCase):
         )
 
     def test_random(self):
-        """Tests that our linear regression implementation
-        gives the same results as scipy.stats for random data"""
+
+        """
+        Tests that our linear regression implementation
+        gives the same results as scipy.stats for random data
+        """
         size = 100
         x = numpy.random.random(size)
         y = 1.6 * x + 5 + numpy.random.random(size)

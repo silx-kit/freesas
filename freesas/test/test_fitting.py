@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # coding: utf-8
 
-"""Test the functionality of fitting module"""
+"""Test the functionality of fitting module."""
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 def reload_os_and_fitting():
-    """Some tests patch os and need to reload the modules"""
+    """Some tests patch os and need to reload the modules."""
     os = importlib.import_module("os")
     os = importlib.reload(os)
     fit = importlib.import_module("..fitting", "freesas.subpkg")
@@ -64,6 +64,26 @@ def get_dummy_guinier_parser(**parse_output):
     return parser
 
 
+def patch_linesep(test_function):
+    """Patch fitting.linesep to "linesep"."""
+
+    linesep_patch = patch(
+        "freesas.fitting.get_linesep",
+        MagicMock(return_value="linesep"),
+    )
+    return linesep_patch(test_function)
+
+
+def patch_collect_files(test_function):
+    """Patch fitting.collect_files to return Paths "test" and "test2"."""
+
+    collect_files_patch = patch(
+        "freesas.fitting.collect_files",
+        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
+    )
+    return collect_files_patch(test_function)
+
+
 def counted(function: Callable) -> Callable:
     """Wrapper for functions to keep track on how often it has been called."""
 
@@ -76,6 +96,7 @@ def counted(function: Callable) -> Callable:
 
 
 def build_mock_for_load_scattering_with_Errors(erronous_file: dict):
+
     """Create mock for loading of data from a file.
     The resulting function will raise an error,
     for files for which an error is provided in errenous_file,
@@ -96,9 +117,11 @@ class TestFitting(unittest.TestCase):
     def test_set_logging_level_does_not_change_logging_level_if_input_lower_1(
         self,
     ):
+
         """
         Test that the logging level only gets changed if the requested level is > 0.
         """
+
         initial_logging_level = logging.root.level
         set_logging_level(0)
         self.assertEqual(
@@ -118,6 +141,7 @@ class TestFitting(unittest.TestCase):
     def test_set_logging_level_sets_logging_to_INFO_if_input_is_1(
         self,
     ):
+
         """
         Test that the logging level gets changed to INFO if verbosity is 1.
         """
@@ -138,6 +162,7 @@ class TestFitting(unittest.TestCase):
     def test_set_logging_level_sets_logging_to_DEBUG_if_input_is_2_or_more(
         self,
     ):
+
         """
         Test that the logging level gets changed to DEBUG if verbosity is 2 or larger.
         """
@@ -164,6 +189,7 @@ class TestFitting(unittest.TestCase):
 
     @patch.dict("sys.modules", {"nt": MagicMock()})
     def test_get_linesep_returns_rn_if_output_is_stdout_on_windows(self):
+
         """
         Test that get_linesep() returns \r\n if output destination is sys.stdout on Windows.
         """
@@ -179,6 +205,7 @@ class TestFitting(unittest.TestCase):
     def test_get_linesep_returns_n_if_output_is_stdout_on_posix(
         self,
     ):
+
         """
         Test that get_linesep() returns \n if output destination is sys.stdout on Posix.
         Only should run on posix.
@@ -187,6 +214,7 @@ class TestFitting(unittest.TestCase):
 
     @patch.dict("sys.modules", {"nt": MagicMock()})
     def test_get_linesep_returns_n_if_output_is_filestream_on_windows(self):
+
         """
         Test that get_linesep() returns \n if output destination is a filestream on Windows.
         """
@@ -202,6 +230,7 @@ class TestFitting(unittest.TestCase):
     def test_get_linesep_returns_n_if_output_is_filestream_on_posix(
         self,
     ):
+
         """
         Test that get_linesep() returns \n if output destination is filestream on Posix.
         Only should run on posix.
@@ -212,8 +241,9 @@ class TestFitting(unittest.TestCase):
     def test_get_output_destination_with_path_input_returns_writable_io(
         self,
     ):
+
         """Test that by calling get_output_destination with a Path as input
-        we obtain write access to the file of Path"""
+        we obtain write access to the file of Path."""
         mocked_open = mock_open()
         with patch("builtins.open", mocked_open):
             with get_output_destination(pathlib.Path("test")) as destination:
@@ -226,8 +256,9 @@ class TestFitting(unittest.TestCase):
     def test_get_output_destination_without_input_returns_stdout(
         self,
     ):
+
         """Test that by calling get_output_destination without input
-        we obtain sys.stdout"""
+        we obtain sys.stdout."""
         with get_output_destination() as destination:
             self.assertEqual(
                 destination,
@@ -238,7 +269,9 @@ class TestFitting(unittest.TestCase):
     def test_closing_get_output_destination_does_not_close_stdout(
         self,
     ):
-        """Test that get_output_destination() can be safely used without closing sys.stdout"""
+
+        """Test that get_output_destination() can be safely used without closing sys.stdout."""
+
         with get_output_destination() as _:
             pass
         output_catcher = StringIO()
@@ -253,7 +286,9 @@ class TestFitting(unittest.TestCase):
     def test_get_header_for_csv(
         self,
     ):
-        """Test that by calling get_header with input csv we get the correct line"""
+
+        """Test that by calling get_header with input csv we get the correct line."""
+
         header = get_header("linesep", "csv")
         self.assertEqual(
             header,
@@ -264,7 +299,9 @@ class TestFitting(unittest.TestCase):
     def test_get_header_for_ssv(
         self,
     ):
-        """Test that by calling get_header with input ssv we get an empty string"""
+
+        """Test that by calling get_header with input ssv we get an empty string."""
+
         header = get_header("linesep", "ssv")
         self.assertEqual(
             header,
@@ -275,7 +312,9 @@ class TestFitting(unittest.TestCase):
     def test_get_header_for_native(
         self,
     ):
-        """Test that by calling get_header with input native we get an empty string"""
+
+        """Test that by calling get_header with input native we get an empty string."""
+
         header = get_header("linesep", "native")
         self.assertEqual(
             header,
@@ -286,7 +325,9 @@ class TestFitting(unittest.TestCase):
     def test_get_header_without_input_format(
         self,
     ):
-        """Test that by calling get_header without input format we get an empty string"""
+
+        """Test that by calling get_header without input format we get an empty string."""
+
         header = get_header("linesep", None)
         self.assertEqual(
             header,
@@ -295,7 +336,8 @@ class TestFitting(unittest.TestCase):
         )
 
     def test_collect_files_only_returns_existing_files(self):
-        """Test that collect_files discards strings that do not match an existing file"""
+
+        """Test that collect_files discards strings that do not match an existing file."""
 
         def os_stat_mock(path):
             if "good" in pathlib.Path(path).name:
@@ -322,7 +364,8 @@ class TestFitting(unittest.TestCase):
 
     @patch("platform.system", MagicMock(return_value="Windows"))
     def test_collect_files_globs_on_windows(self):
-        """Test that collect_files globs on Windows if no existent files provided"""
+
+        """Test that collect_files globs on Windows if no existent files provided."""
 
         def os_stat_mock(path):
             if sys.version_info.minor > 7:
@@ -351,7 +394,9 @@ class TestFitting(unittest.TestCase):
         reload_os_and_fitting()
 
     def test_rg_result_line_csv(self):
-        """Test the formatting of a csv result line for  a Guinier fit"""
+
+        """Test the formatting of a csv result line for  a Guinier fit."""
+
         test_result = RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
         expected_line = "test.file,3.1000,0.1000,103.0000,2.5000, 13,207,50.1000,0.0500lineend"
         obtained_line = rg_result_to_output_line(
@@ -365,7 +410,9 @@ class TestFitting(unittest.TestCase):
         )
 
     def test_rg_result_line_ssv(self):
-        """Test the formatting of a ssv result line for  a Guinier fit"""
+
+        """Test the formatting of a ssv result line for  a Guinier fit."""
+
         test_result = RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
         expected_line = "3.1000 0.1000 103.0000 2.5000  13 207 50.1000 0.0500 test.filelineend"
         obtained_line = rg_result_to_output_line(
@@ -379,7 +426,7 @@ class TestFitting(unittest.TestCase):
         )
 
     def test_rg_result_line_native(self):
-        """Test the formatting of a native result line for  a Guinier fit"""
+        """Test the formatting of a native result line for  a Guinier fit."""
         test_result = RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
         expected_line = "test.file Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% lineend"
         obtained_line = rg_result_to_output_line(
@@ -395,7 +442,9 @@ class TestFitting(unittest.TestCase):
         )
 
     def test_rg_result_line_no_format(self):
-        """Test the formatting of a native result line for  a Guinier fit"""
+
+        """Test the formatting of a native result line for  a Guinier fit."""
+
         test_result = RG_RESULT(3.1, 0.1, 103, 2.5, 13, 207, 50.1, 0.05)
         expected_line = "test.file Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% lineend"
         obtained_line = rg_result_to_output_line(
@@ -476,6 +525,7 @@ class TestFitting(unittest.TestCase):
         MagicMock(return_value="linesep"),
     )
     def test_run_guinier_fit_iterates_over_files(self):
+
         """Test that run_guinier_fit calls the provided fit function for each provided file."""
 
         @counted
@@ -571,10 +621,6 @@ class TestFitting(unittest.TestCase):
         )
 
     @patch(
-        "freesas.fitting.collect_files",
-        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
-    )
-    @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
             side_effect=build_mock_for_load_scattering_with_Errors(
@@ -582,11 +628,10 @@ class TestFitting(unittest.TestCase):
             )
         ),
     )
-    @patch(
-        "freesas.fitting.get_linesep",
-        MagicMock(return_value="linesep"),
-    )
+    @patch_collect_files
+    @patch_linesep
     def test_run_guinier_outputs_error_if_file_not_parsable(self):
+
         """Test that run_guinier_fit outputs an error if data loading raises ValueError
         and continues to the next file."""
 
@@ -630,10 +675,6 @@ class TestFitting(unittest.TestCase):
         )
 
     @patch(
-        "freesas.fitting.collect_files",
-        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
-    )
-    @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
             side_effect=[
@@ -646,13 +687,12 @@ class TestFitting(unittest.TestCase):
             ]
         ),
     )
-    @patch(
-        "freesas.fitting.get_linesep",
-        MagicMock(return_value="linesep"),
-    )
+    @patch_collect_files
+    @patch_linesep
     def test_run_guinier_outputs_error_if_fitting_raises_insufficient_data_error(
         self,
     ):
+
         """Test that run_guinier_fit outputs an error if fitting raises InsufficientDataError
         and continues to the next file."""
 
@@ -696,10 +736,6 @@ class TestFitting(unittest.TestCase):
         )
 
     @patch(
-        "freesas.fitting.collect_files",
-        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
-    )
-    @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
             side_effect=[
@@ -712,13 +748,12 @@ class TestFitting(unittest.TestCase):
             ]
         ),
     )
-    @patch(
-        "freesas.fitting.get_linesep",
-        MagicMock(return_value="linesep"),
-    )
+    @patch_collect_files
+    @patch_linesep
     def test_run_guinier_outputs_error_if_fitting_raises_no_guinier_region_error(
         self,
     ):
+
         """Test that run_guinier_fit outputs an error if fitting raises NoGuinierRegionError
         and continues to the next file."""
 
@@ -762,10 +797,6 @@ class TestFitting(unittest.TestCase):
         )
 
     @patch(
-        "freesas.fitting.collect_files",
-        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
-    )
-    @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
             side_effect=[
@@ -778,13 +809,12 @@ class TestFitting(unittest.TestCase):
             ]
         ),
     )
-    @patch(
-        "freesas.fitting.get_linesep",
-        MagicMock(return_value="linesep"),
-    )
+    @patch_collect_files
+    @patch_linesep
     def test_run_guinier_outputs_error_if_fitting_raises_value_error(
         self,
     ):
+
         """Test that run_guinier_fit outputs an error if fitting raises ValueError
         and continues to the next file."""
 
@@ -828,10 +858,6 @@ class TestFitting(unittest.TestCase):
         )
 
     @patch(
-        "freesas.fitting.collect_files",
-        MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
-    )
-    @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
             side_effect=[
@@ -844,13 +870,12 @@ class TestFitting(unittest.TestCase):
             ]
         ),
     )
-    @patch(
-        "freesas.fitting.get_linesep",
-        MagicMock(return_value="linesep"),
-    )
+    @patch_collect_files
+    @patch_linesep
     def test_run_guinier_outputs_error_if_fitting_raises_index_error(
         self,
     ):
+
         """Test that run_guinier_fit outputs an error if fitting raises IndexError
         and continues to the next file."""
 
@@ -895,7 +920,8 @@ class TestFitting(unittest.TestCase):
 
 
 def suite():
-    """Build a test suite from the TestFitting class"""
+    """Build a test suite from the TestFitting class."""
+
     test_suite = unittest.TestSuite()
     for class_element in dir(TestFitting):
         if platform.system() == "Windows":
