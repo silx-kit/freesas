@@ -1,3 +1,4 @@
 sphinx
 sphinxcontrib-programoutput
 nbsphinx
+sphinx_rtd_theme
