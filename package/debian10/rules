@@ -24,9 +24,7 @@ override_dh_clean:
 
 override_dh_auto_build:
 	dh_auto_build
-	# build man pages
 	python3 setup.py build build_man build_doc
-	
 override_dh_install:
 	dh_numpy3
 
