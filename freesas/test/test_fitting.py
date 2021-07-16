@@ -563,7 +563,7 @@ class TestFitting(unittest.TestCase):
             msg="Provided fit function was called twice",
         )
 
-    @unittest.skipIf(platform.system() == "Windows", "Only POSIX")
+    @unittest.skip("Unreliable")
     @patch(
         "freesas.fitting.collect_files",
         MagicMock(return_value=[pathlib.Path("test"), pathlib.Path("test2")]),
@@ -623,7 +623,7 @@ class TestFitting(unittest.TestCase):
             msg="Provided fit function was called once",
         )
 
-    @unittest.skipIf(platform.system() == "Windows", "Only POSIX")
+    @unittest.skip("Unreliable")
     @patch(
         "freesas.fitting.load_scattering_data",
         MagicMock(
