@@ -202,7 +202,7 @@ class TestFitting(unittest.TestCase):
         # Cleanup
         reload_os_and_fitting()
 
-    @unittest.skipIf(platform.system() == "Windows")
+    @unittest.skipIf(platform.system() == "Windows", "Only POSIX")
     def test_get_linesep_returns_n_if_output_is_stdout_on_posix(
         self,
     ):
@@ -228,7 +228,7 @@ class TestFitting(unittest.TestCase):
         # Cleanup
         _ = reload_os_and_fitting()
 
-    @unittest.skipIf(platform.system() == "Windows")
+    @unittest.skipIf(platform.system() == "Windows", "Only POSIX")
     def test_get_linesep_returns_n_if_output_is_filestream_on_posix(
         self,
     ):
