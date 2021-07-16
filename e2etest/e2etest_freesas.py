@@ -25,7 +25,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "27/12/2020"
+__date__ = "16/07/2021"
 
 import unittest
 import pathlib
@@ -34,7 +34,7 @@ import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
 import PyPDF2
-
+from freesas.test.utilstests import get_datafile
 logger = logging.getLogger(__name__)
 
 expectedTexts = {
@@ -74,8 +74,8 @@ class TestFreeSAS(unittest.TestCase):
     TEST_PDF_NAME = pathlib.Path(cwd, "freesas.pdf")
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
-    bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
-    sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
+    bsa_filename = pathlib.Path(get_datafile("bsa_005_sub.dat"))
+    sas_curve2_filename = pathlib.Path(get_datafile("SASDF52.dat"))
     image_text = None
 
     @classmethod
