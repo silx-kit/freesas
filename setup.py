@@ -882,6 +882,7 @@ class TestData(Command):
         with tarfile.open(name=arch, mode='w:gz') as tarball:
             for afile in datafiles:
                 tarball.add(downloader.getfile(afile), afile)
+        print(f"export FREESAS_TESTDATA={downloader.data_home}")
         
 # ##### #
 # setup #
