@@ -208,7 +208,7 @@ build_deb() {
         mkdir testimages
       fi
       cd testimages
-      tar -xzf  ../${deb_name}_${debianversion}.orig-testimages.tar.gz
+      tar -xzf  ../../${deb_name}_${debianversion}.orig-testimages.tar.gz
       cd ..
     else
       # Disable to skip tests during build
