@@ -165,7 +165,7 @@ build_deb() {
     tarname=${project}_${debianversion}.orig.tar.gz
     clean_up
     python3 setup.py debian_src
-    python3 setup.py testdata
+    export FREESAS_TESTDATA=$(python3 setup.py testdata|tail -n1| cut -d= -f2)
     cp -f dist/${tarname} ${build_directory}
     if [ -f dist/${project}-testimages.tar.gz ]
     then
