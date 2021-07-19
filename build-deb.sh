@@ -165,6 +165,7 @@ build_deb() {
     tarname=${project}_${debianversion}.orig.tar.gz
     clean_up
     python3 setup.py debian_src
+    python3 setup.py testdata
     cp -f dist/${tarname} ${build_directory}
     if [ -f dist/${project}-testimages.tar.gz ]
     then
