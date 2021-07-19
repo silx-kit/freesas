@@ -3,7 +3,7 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__date__ = "25/01/2021"
+__date__ = "19/07/2021"
 __copyright__ = "2015-2021, ESRF"
 
 import logging
@@ -19,6 +19,12 @@ def get_datafile(name):
     :param name: name of the file to get
     :return: full path of the datafile
     """
+    print("Debug get_datafile, env is:")
+    import os
+    for k,v in os.environ.items():
+        print(f"    {k}: {v}")
+    
+    
     logger.info(f"Download file {name}")
     fullpath = downloader.getfile(name)
     return fullpath
