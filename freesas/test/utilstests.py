@@ -19,8 +19,9 @@ def get_datafile(name):
     :param name: name of the file to get
     :return: full path of the datafile
     """
-    print("Debug get_datafile, env is:")
     import os
+    print(f"Debug get_datafile, {os.getcwd()} env is:")
+    print(" ".join(os.listdir("testimages")))
     for k,v in os.environ.items():
         print(f"    {k}: {v}")
     
