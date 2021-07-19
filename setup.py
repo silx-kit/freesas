@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "16/07/2021"
+__date__ = "19/07/2021"
 __license__ = "MIT"
 
 import sys
@@ -856,14 +856,13 @@ class TestData(Command):
         Download all test images and
         """
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        test_dir = os.path.join(root_dir, PROJECT, "resources")
-        testimages = os.path.join(test_dir, "all_testdata.json")
-        if os.path.exists(testimages):
-            import json
-            with open(testimages) as f:
-                all_files = set(json.load(f))
-        else:
-            raise(RuntimeError("Please run 'python setup.py build test' to download all images"))
+        print(os.getcwd())
+        print(os.listdir(root_dir))
+        testimages = os.path.join(root_dir, PROJECT, "resources", "all_testdata.json")
+        print(testimages)
+        import json
+        with open(testimages) as f:
+            all_files = set(json.load(f))
         return list(all_files)
 
     def run(self):
