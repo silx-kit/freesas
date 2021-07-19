@@ -19,13 +19,6 @@ def get_datafile(name):
     :param name: name of the file to get
     :return: full path of the datafile
     """
-    import os
-    print(f"Debug get_datafile, {os.getcwd()} env is:")
-    print(" ".join(os.listdir("testimages")))
-    for k,v in os.environ.items():
-        print(f"    {k}: {v}")
-    
-    
     logger.info(f"Download file {name}")
     fullpath = downloader.getfile(name)
     return fullpath
