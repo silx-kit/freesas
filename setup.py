@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "25/01/2021"
+__date__ = "19/07/2021"
 __license__ = "MIT"
 
 import sys
@@ -835,11 +835,57 @@ class sdist_debian(sdist):
         self.archive_files = [debian_arch]
         print("Building debian .orig.tar.gz in %s" % self.archive_files[0])
 
+#===============================================================================
+# Create a tarball with all test data
+#===============================================================================
 
+class TestData(Command):
+    """
+    Tailor made tarball with test data
+    """
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def download_images(self):
+        """
+        Download all test images and
+        """
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        print(os.getcwd())
+        print(os.listdir(root_dir))
+        testimages = os.path.join(root_dir, PROJECT, "resources", "all_testdata.json")
+        print(testimages)
+        import json
+        with open(testimages) as f:
+            all_files = set(json.load(f))
+        return list(all_files)
+
+    def run(self):
+        datafiles = self.download_images()
+        dist = "dist"
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        arch = os.path.join(root_dir, dist, PROJECT + "-testimages.tar.gz")
+        print("Building testdata tarball in %s" % arch)
+        if not os.path.isdir(dist):
+            os.mkdir(dist)
+        if os.path.exists(arch):
+            os.unlink(arch)
+        import tarfile
+        from silx.resources import ExternalResources
+        downloader = ExternalResources("freesas", "http://www.silx.org/pub/freesas/testdata", "FREESAS_TESTDATA")
+        with tarfile.open(name=arch, mode='w:gz') as tarball:
+            for afile in datafiles:
+                tarball.add(downloader.getfile(afile), afile)
+        print(f"export FREESAS_TESTDATA={downloader.data_home}")
+        
 # ##### #
 # setup #
 # ##### #
-
 
 def get_project_configuration(dry_run):
     """Returns project arguments for setup"""
@@ -921,6 +967,7 @@ def get_project_configuration(dry_run):
         build_man=BuildMan,
         clean=CleanCommand,
         debian_src=sdist_debian,
+        testdata=TestData
     )
 
     if dry_run:

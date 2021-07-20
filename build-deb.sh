@@ -165,6 +165,7 @@ build_deb() {
     tarname=${project}_${debianversion}.orig.tar.gz
     clean_up
     python3 setup.py debian_src
+    python3 setup.py testdata
     cp -f dist/${tarname} ${build_directory}
     if [ -f dist/${project}-testimages.tar.gz ]
     then
@@ -207,7 +208,7 @@ build_deb() {
         mkdir testimages
       fi
       cd testimages
-      tar -xzf  ../${deb_name}_${debianversion}.orig-testimages.tar.gz
+      tar -xzf  ../../${deb_name}_${debianversion}.orig-testimages.tar.gz
       cd ..
     else
       # Disable to skip tests during build

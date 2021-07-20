@@ -1,6 +1,12 @@
 Change-log
 ##########
 
+FreeSAS v0.9.0 16/07/2021
+=========================
+- Command line tools upgrade
+- end-to-end tests
+- automatic packaging
+
 FreeSAS v0.8.5 25/01/2021
 =========================
 - BIFT for invert Fourier Transform

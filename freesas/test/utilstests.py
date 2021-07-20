@@ -3,7 +3,7 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__date__ = "25/01/2021"
+__date__ = "19/07/2021"
 __copyright__ = "2015-2021, ESRF"
 
 import logging

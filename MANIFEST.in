@@ -16,4 +16,5 @@ recursive-include doc/source *.py *.rst *.png *.ico *.ipynb
 global-exclude .ipynb_checkpoints/*
 recursive-include examples *
 recursive-include package *
+recursive-include freesas/resources *
 

@@ -2,7 +2,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "27/12/2020"
+__date__ = "16/07/2021"
 
 import unittest
 import pathlib
@@ -11,7 +11,7 @@ from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
 from platform import system
-
+from freesas.test.utilstests import get_datafile
 logger = logging.getLogger(__name__)
 
 
@@ -19,9 +19,9 @@ class TestFreeSAS(unittest.TestCase):
     cwd = pathlib.Path.cwd()
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
-    bsa_filename = pathlib.Path(test_data_location, "bsa_005_sub.dat")
-    sas_curve2_filename = pathlib.Path(test_data_location, "SASDF52.dat")
-    SASDFX7 = pathlib.Path(test_data_location, "SASDFX7.dat")
+    bsa_filename = pathlib.Path(get_datafile("bsa_005_sub.dat"))
+    sas_curve2_filename = pathlib.Path(get_datafile( "SASDF52.dat"))
+    SASDFX7 = pathlib.Path(get_datafile("SASDFX7.dat"))
 
     def __init__(self, testName, **extra_kwargs):
         super().__init__(testName)

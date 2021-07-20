@@ -24,9 +24,7 @@ override_dh_clean:
 
 override_dh_auto_build:
 	dh_auto_build
-	# build man pages
 	python3 setup.py build build_man build_doc
-	
 override_dh_install:
 	dh_numpy3
 
@@ -36,7 +34,7 @@ override_dh_install:
 	dh_install
 
 override_dh_auto_test:
-	dh_auto_test -- -s custom --test-args="env PYTHONPATH={build_dir} WITH_QT_TEST=False {interpreter} run_tests.py -v"
+	dh_auto_test -- -s custom --test-args="env PYTHONPATH={build_dir} FREESAS_TESTDATA=testimages WITH_QT_TEST=False {interpreter} run_tests.py -v"
 
 override_dh_installman:
 	dh_installman -p freesas build/man/*.1
