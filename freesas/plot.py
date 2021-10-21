@@ -6,7 +6,7 @@ Functions to generating graphs related to SAS.
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "14/05/2020"
+__date__ = "21/10/2021"
 
 import logging
 

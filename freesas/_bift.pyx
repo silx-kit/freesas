@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "10/06/2020"
+__date__ = "21/10/2021"
 
 import time
 import cython
@@ -300,12 +300,15 @@ cdef class BIFT:
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
-        self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
+        self.delta_q = (q[self.size-1]-q[0]) / (self.size-1)
         self.wisdom = None
         #We define a region of high signal where the noise is expected to be minimal:
         self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit
         self.high_start = numpy.argmax(I) # Might be replaced by the guinier region
-        self.high_stop = self.high_start + numpy.where(I[self.high_start:]<self.I0_guess/2.)[0][0]
+        if numpy.min(I)<self.I0_guess/2.:
+            self.high_stop = self.high_start + numpy.where(I[self.high_start:]<self.I0_guess/2.)[0][0]
+        else:
+            self.high_stop = self.high_start + numpy.argmin(I[self.high_start:])
         self.Dmax_guess = 0.0
         self.alpha_max = 0.0
         self.prior_cache = {}
@@ -904,6 +907,35 @@ cdef class BIFT:
 #             print(j, i[0], i[1], )
         return EvidenceKey(grid[best, 0], grid[best, 1], npt)
 
+    def _monte_carlo_sampling(self,
+                             int samples,
+                             double nsigma,
+                             int npt,
+                             double Dmax,
+                             double Dmax_std,
+                             double alpha,
+                             double alpha_std,
+                             bint prior=0):
+        """Perform the actual Monte-Carlo sampling
+        """
+        cdef: 
+            int idx
+            double log_alpha, dlog_alpha, log_Dmax, dlog_Dmax
+            double[::1] Dmax_samples, alpha_samples, results
+        log_alpha = log(alpha)
+        dlog_alpha = alpha_std/alpha
+        log_Dmax = log(Dmax)
+        dlog_Dmax = Dmax_std/Dmax
+        Dmax_samples = numpy.exp(log_Dmax + nsigma*(2.0*numpy.random.random(samples)-1.0)*dlog_Dmax)
+        alpha_samples = numpy.exp(log_alpha + nsigma*(2.0*numpy.random.random(samples)-1.0)*dlog_alpha)
+        results = numpy.zeros(samples, dtype=numpy.float64)
+        t0 = time.perf_counter()
+        with nogil:
+            for idx in prange(samples):
+                results[idx] = self.calc_evidence(Dmax_samples[idx], alpha_samples[idx], npt, prior=prior)
+        logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
+        return results
+
     def monte_carlo_sampling(self,
                              int samples,
                              double nsigma,
@@ -923,30 +955,14 @@ cdef class BIFT:
         :param nsigma: sample alpha and Dmax at avg ± nx sigma
         :return: Statistics calculated over all explored space
         """
-        cdef:
-            double[::1] Dmax_samples, alpha_samples
-            double[::1] results
-            int idx
-            double Dmax, alpha, t0, eps
         stats = self.calc_stats()
         if samples == 0:
             return stats
         self.update_wisdom()
-        if stats.Dmax_std>0 and stats.Dmax_avg/stats.Dmax_std < nsigma:
-            nsigma = stats.Dmax_avg/stats.Dmax_std
-            logger.info("Clipping to nsigma=%.2f due to large noise on Dmax: avg=%.2f, std=%.2f", nsigma, stats.Dmax_avg, stats.Dmax_std)
-        log_alpha = log(stats.alpha_avg)
-        dlog_alpha = stats.alpha_std/stats.alpha_avg
-        Dmax_samples = stats.Dmax_avg + nsigma*(2.0*numpy.random.random(samples)-1.0)*stats.Dmax_std
-        alpha_samples = numpy.exp(log_alpha + nsigma*(2.0*numpy.random.random(samples)-1.0)*dlog_alpha)
-        results = numpy.zeros(samples, dtype=numpy.float64)
-        t0 = time.perf_counter()
-        with nogil:
-            for idx in prange(samples):
-                Dmax = Dmax_samples[idx]
-                alpha = alpha_samples[idx]
-                results[idx] = self.calc_evidence(Dmax, alpha, npt, prior=1)
-        logger.debug("Monte-carlo: %i samples at %.2fms/sample", samples, (time.perf_counter()-t0)*1000.0/samples)
+        self._monte_carlo_sampling(samples, nsigma,npt,
+                                   stats.Dmax_avg, stats.Dmax_std,
+                                   stats.alpha_avg, stats.alpha_std,
+                                   prior=1)
         return self.calc_stats()
 
     def calc_stats(self):
@@ -963,8 +979,7 @@ cdef class BIFT:
 
         best_key, best, nvalid = self.get_best()
         if nvalid < 2:
-            raise RuntimeError("Unable to calculate statistics without evidences having been optimized.")
-
+            raise RuntimeError("Unable to calculate statistics with so little evidences.")
         radius = best.radius
         npt = radius.size
         densities = numpy.zeros((nvalid, npt), dtype=numpy.float64)

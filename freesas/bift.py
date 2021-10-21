@@ -14,12 +14,12 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "10/06/2020"
+__date__ = "21/10/2021"
 
 import logging
 logger = logging.getLogger(__name__)
 # from collections import namedtuple
-from math import log, ceil
+from math import log, ceil, sqrt
 import numpy
 from scipy.optimize import minimize
 from ._bift import BIFT
@@ -55,7 +55,8 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
         except:
             logger.error("Guinier analysis failed !")
             raise
-#         print(Guinier)
+        else:
+            logger.info(Guinier)
         if Guinier.Rg <= 0:
             raise NoGuinierRegionError
         Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
@@ -77,4 +78,10 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     logger.info("Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom)
     res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
     logger.info("Result of optimisation:\n  %s", res)
+    best_key, best, nvalid = bo.get_best()
+    if not use_wisdom or nvalid<2:
+        logger.info("Sampling some more data via Monte-carlo... best is %s", best_key)
+        bo._monte_carlo_sampling(100, nsigma=2, npt=npt,
+                                 Dmax=best_key.Dmax, Dmax_std=sqrt(best_key.Dmax),
+                                 alpha=best_key.alpha, alpha_std=sqrt(best_key.alpha))
     return bo
