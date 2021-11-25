@@ -24,12 +24,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__author__ = "Jérôme Kieffer"
-__license__ = "MIT"
-__copyright__ = "2017-2020, ESRF"
-__date__ = "05/06/2020"
-
-
 __author__ = ["Jérôme Kieffer", "Martha Brennich"]
 __license__ = "MIT"
 __copyright__ = "2021, ESRF"
