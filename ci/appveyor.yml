@@ -40,7 +40,7 @@ install:
 
     # Install the build and runtime dependencies of the project
     - "pip install wheel"
-    - echo $env:APPVEYOR_BUILD_WORKER_IMAGE
+    - ps: echo $env:APPVEYOR_BUILD_WORKER_IMAGE
     - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2017.txt" }
     - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2019") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2019.txt" }
 
