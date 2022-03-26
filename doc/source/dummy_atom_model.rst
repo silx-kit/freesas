@@ -24,9 +24,9 @@ containing data of a DAM :
     model1 = SASModel()                #create SASModel class object
     model1.read("dammif-01.pdb")       #read the pdb file
     #these 2 lines can be replaced by model1 = SASModel("dammif-01.pdb")
-    print model1.header                #print pdb file content
-    print model1.atoms                 #print dummy atoms coordinates
-    print model1.rfactor               #print R-factor of the DAM
+    print(model1.header)               #print pdb file content
+    print(model1.atoms)                #print dummy atoms coordinates
+    print(model1.rfactor)              #print R-factor of the DAM
 
 Some informations are extracted of the model atoms coordinates:
 
@@ -42,15 +42,15 @@ Some informations are extracted of the model atoms coordinates:
 
 .. code-block:: python
 
-    print model1.fineness          #print the DAM fineness
-    print model1.Rg                #print the DAM radius of gyration
-    print model1.Dmax              #print the DAM diameter
+    print(model1.fineness)         #print the DAM fineness
+    print(model1.Rg)               #print the DAM radius of gyration
+    print(model1.Dmax)             #print the DAM diameter
     model1.centroid()              #calculate the DAM center of mass
-    print model1.com
+    print(model1.com)
     model1.inertiatensor()         #calculate the DAM inertiatensor
-    print model1.inertensor
+    print(model1.inertensor)
     model1.canonical_parameters()  #calculate the DAM canonical_parameters
-    print model1.can_param
+    print(model1.can_param)
 
 Other methods of the class for transformations and NSD calculation:
 
@@ -90,7 +90,7 @@ following :
     inputfiles = ["dammif-01.pdb", "dammif-02.pdb", "dammif-03.pdb", ...]
     align = AlignModels(inputfiles)        #create the class
     align.assign_models()                  #create the SASModels
-    print align.models                     #SASModels ready to be aligned
+    print(align.models)                    #SASModels ready to be aligned
 
 Next, the different NSD between each computed models can be calculated
 and save as a 2d-array. But first it is necessary to give which models are

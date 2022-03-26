@@ -83,7 +83,9 @@ def get_linesep(output_destination: IO[str]) -> str:
         return "\n"
 
 
-def get_header(linesep: str, output_format: Optional[str] = None) -> str:
+def get_guinier_header(
+    linesep: str, output_format: Optional[str] = None
+) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -181,7 +183,7 @@ def run_guinier_fit(
         linesep = get_linesep(output_destination)
 
         output_destination.write(
-            get_header(
+            get_guinier_header(
                 linesep,
                 args.format,
             )

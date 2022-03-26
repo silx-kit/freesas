@@ -24,7 +24,7 @@ import numpy
 from ..fitting import (
     set_logging_level,
     get_output_destination,
-    get_header,
+    get_guinier_header,
     rg_result_to_output_line,
     get_linesep,
     run_guinier_fit,
@@ -285,52 +285,52 @@ class TestFitting(unittest.TestCase):
             msg="Can write to sys.stdout after closing desitnation context",
         )
 
-    def test_get_header_for_csv(
+    def test_get_guinier_header_for_csv(
         self,
     ):
 
-        """Test that by calling get_header with input csv we get the correct line."""
+        """Test that by calling get_guinier_header with input csv we get the correct line."""
 
-        header = get_header("linesep", "csv")
+        header = get_guinier_header("linesep", "csv")
         self.assertEqual(
             header,
             "File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregatedlinesep",
             msg="csv header is correct",
         )
 
-    def test_get_header_for_ssv(
+    def test_get_guinier_header_for_ssv(
         self,
     ):
 
-        """Test that by calling get_header with input ssv we get an empty string."""
+        """Test that by calling get_guinier_header with input ssv we get an empty string."""
 
-        header = get_header("linesep", "ssv")
+        header = get_guinier_header("linesep", "ssv")
         self.assertEqual(
             header,
             "",
             msg="ssv header is correct",
         )
 
-    def test_get_header_for_native(
+    def test_get_guinier_header_for_native(
         self,
     ):
 
-        """Test that by calling get_header with input native we get an empty string."""
+        """Test that by calling get_guinier_header with input native we get an empty string."""
 
-        header = get_header("linesep", "native")
+        header = get_guinier_header("linesep", "native")
         self.assertEqual(
             header,
             "",
             msg="native header is correct",
         )
 
-    def test_get_header_without_input_format(
+    def test_get_guinier_header_without_input_format(
         self,
     ):
 
-        """Test that by calling get_header without input format we get an empty string."""
+        """Test that by calling get_guinier_header without input format we get an empty string."""
 
-        header = get_header("linesep", None)
+        header = get_guinier_header("linesep", None)
         self.assertEqual(
             header,
             "",
