@@ -40,8 +40,8 @@ install:
 
     # Install the build and runtime dependencies of the project
     - "pip install wheel"
-    - if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2017.txt" }
-    - if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2019") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2019.txt" }
+    - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2017.txt" }
+    - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2019") { "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2019.txt" }
 
     # Print Python info
     - "python ci\\info_platform.py"
