@@ -40,8 +40,7 @@ install:
 
     # Install the build and runtime dependencies of the project
     - "pip install wheel"
-    - "echo %CD%"
-    - "pip install --trusted-host www.edna-site.org --upgrade -r ./ci/requirement_appveyor.txt"
+    - "pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor.txt"
 
     # Print Python info
     - "python ci\\info_platform.py"
