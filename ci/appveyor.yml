@@ -25,17 +25,24 @@ environment:
         # Python 3.9
         - PYTHON_DIR: "C:\\Python39-x64"
 
+        # Python 3.10
+        - PYTHON_DIR: "C:\\Python310-x64"
+
 matrix:
     exclude:
         - os: Visual Studio 2017
           PYTHON_DIR: "C:\\Python39-x64"
+        - os: Visual Studio 2017
+          PYTHON_DIR: "C:\\Python310-x64"
 
 install:
     - "SET PATH=%PYTHON_DIR%;%PYTHON_DIR%\\Scripts;%PATH%"
 
     # Install the build and runtime dependencies of the project
+    - "python -m pip install --upgrade pip"
     - "pip install wheel"
-    - "pip install --trusted-host www.edna-site.org --upgrade -r ci/requirement_appveyor.txt"
+    - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017") { pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2017.txt }
+    - ps: if ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2019") { pip install --trusted-host www.edna-site.org --upgrade -r .\\ci\\requirement_appveyor_2019.txt }
 
     # Print Python info
     - "python ci\\info_platform.py"

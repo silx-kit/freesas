@@ -341,7 +341,7 @@ class TestFitting(unittest.TestCase):
 
         """Test that collect_files discards strings that do not match an existing file."""
 
-        def os_stat_mock(path):
+        def os_stat_mock(path, **_):
             if "good" in pathlib.Path(path).name:
                 pass
             else:
