@@ -35,6 +35,7 @@ from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
 import PyPDF2
 from freesas.test.utilstests import get_datafile
+
 logger = logging.getLogger(__name__)
 
 expectedTexts = {
@@ -191,6 +192,10 @@ class TestFreeSAS(unittest.TestCase):
             )
             page_1_text = output_pdf.getPage(0).extractText()
             page_2_text = output_pdf.getPage(1).extractText()
+
+        print(page_1_text)
+        print(page_2_text)
+        print(self.bsa_filename)
         self.assertTrue(
             (str(self.bsa_filename) in page_1_text)
             ^ (str(self.bsa_filename) in page_2_text),
