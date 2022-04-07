@@ -11,9 +11,6 @@ from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
-import codecs
-import parse
-from numpy import loadtxt
 from freesas.test.utilstests import get_datafile
 
 logger = logging.getLogger(__name__)
@@ -43,24 +40,28 @@ class TestCormap(unittest.TestCase):
         )
 
         if system() == "Windows":
-            run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+            run_app_output_raw = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+            run_app_output = [
+                line.replace("\\n", "").replace("\\r", "")
+                for line in run_app_output_raw.split("\\n")[:-1]
+            ]
         else:
-            run_app_output = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output_raw = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output = run_app_output_raw.split(linesep)[:-1]
 
         self.assertEqual(
             run_app.returncode, 0, msg="cormapy on BM29 BSA completed well"
         )
-
-        output_lines = run_app_output.split("\n")
+        print(run_app_output)
 
         corr_table_head_pos = [
             line_number
-            for line_number, line in enumerate(output_lines)
+            for line_number, line in enumerate(run_app_output)
             if "Pr(>C)" in line
         ][0]
 
         self.assertEqual(
-            output_lines[corr_table_head_pos + 1],
+            run_app_output[corr_table_head_pos + 1],
             "",
             msg="Correlation table is empty",
         )
@@ -82,9 +83,14 @@ class TestCormap(unittest.TestCase):
         )
 
         if system() == "Windows":
-            run_app_output = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+            run_app_output_raw = str(run_app.stdout)[:-1].replace("\\\\", "\\")
+            run_app_output = [
+                line.replace("\\n", "").replace("\\r", "")
+                for line in run_app_output_raw.split("\\n")[:-1]
+            ]
         else:
-            run_app_output = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output_raw = str(run_app.stdout, "utf-8")[:-1]
+            run_app_output = run_app_output_raw.split(linesep)[:-1]
 
         self.assertEqual(
             run_app.returncode,
@@ -92,16 +98,14 @@ class TestCormap(unittest.TestCase):
             msg="auto-correlation cormapy on BM29 BSA completed well",
         )
 
-        output_lines = run_app_output.split("\n")
-
         corr_table_head_pos = [
             line_number
-            for line_number, line in enumerate(output_lines)
+            for line_number, line in enumerate(run_app_output)
             if "Pr(>C)" in line
         ][0]
 
         self.assertEqual(
-            output_lines[corr_table_head_pos + 1].split(),
+            run_app_output[corr_table_head_pos + 1].split(),
             [
                 "1",
                 "vs.",
