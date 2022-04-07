@@ -33,7 +33,7 @@ import re
 import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
-import PyPDF2
+import fitz
 from freesas.test.utilstests import get_datafile
 
 logger = logging.getLogger(__name__)
@@ -185,13 +185,15 @@ class TestFreeSAS(unittest.TestCase):
             run_freesas.returncode, 0, msg="freesas completed well"
         )
         self.assertTrue(self.TEST_PDF_NAME.exists(), msg="Found output file")
-        with open(self.TEST_PDF_NAME, "rb") as file:
-            output_pdf = PyPDF2.PdfFileReader(file)
-            self.assertEqual(
-                output_pdf.numPages, 2, msg="correct number of pages in pdf"
-            )
-            page_1_text = output_pdf.getPage(0).extractText()
-            page_2_text = output_pdf.getPage(1).extractText()
+
+        pages = []
+        with fitz.open(self.TEST_PDF_NAME) as file:
+            for page in file:
+                pages.append(page.get_text())
+
+        self.assertEqual(len(pages), 2, msg="correct number of pages in pdf")
+        page_1_text = pages[0]
+        page_2_text = pages[1]
 
         print(page_1_text)
         print(page_2_text)

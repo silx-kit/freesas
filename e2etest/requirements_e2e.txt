@@ -1,2 +1,2 @@
-PyPDF2
+pymupdf
 parse
