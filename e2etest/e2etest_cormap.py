@@ -52,7 +52,6 @@ class TestCormap(unittest.TestCase):
         self.assertEqual(
             run_app.returncode, 0, msg="cormapy on BM29 BSA completed well"
         )
-        print(run_app_output)
 
         corr_table_head_pos = [
             line_number
