@@ -1,2 +1,2 @@
-pymupdf
+pyPDF2=1.26
 parse
