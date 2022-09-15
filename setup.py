@@ -26,7 +26,7 @@
 
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "19/07/2021"
+__date__ = "15/09/2022"
 __license__ = "MIT"
 
 import sys
@@ -44,53 +44,27 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger("freesas.setup")
 
-try:
-    from setuptools._distutils.command.clean import clean as Clean
-    from setuptools._distutils.command.build import build as _build
-except (ImportError) as err:
-    print(f"Unable to use setuptools, {type(err)}: {err}")
-    from distutils.command.clean import clean as Clean
+from setuptools._distutils.command.clean import clean as Clean
+from setuptools import Command, Extension, find_packages
+from setuptools.command.build_py import build_py as _build_py
+from setuptools.command.build_ext import build_ext
+from setuptools.command.sdist import sdist
+from setuptools import setup
+
+try:  # setuptools >=62.4.0
+    from setuptools.command.build import build as _build
+except ImportError:
     from distutils.command.build import build as _build
 
 try:
-    from setuptools import Command
-    from setuptools.command.build_py import build_py as _build_py
-    from setuptools.command.sdist import sdist
-
-    try:
-        from Cython.Build import build_ext
-
-        logger.info("Use setuptools with cython")
-    except ImportError:
-        from setuptools.command.build_ext import build_ext
-
-        logger.info("Use setuptools, cython is missing")
-except ImportError as err:
-    print(f"Unable to use setuptools, {type(err)}: {err}")
-    try:
-        from numpy.distutils.core import Command
-    except ImportError:
-        from distutils.core import Command
-    from distutils.command.build_py import build_py as _build_py
-    from distutils.command.sdist import sdist
-
-    try:
-        from Cython.Build import build_ext
-
-        logger.info("Use distutils with cython")
-    except ImportError:
-        from distutils.command.build_ext import build_ext
-
-        logger.info("Use distutils, cython is missing")
-try:
     import sphinx
     import sphinx.util.console
-
-    sphinx.util.console.color_terminal = lambda: False
     from sphinx.setup_command import BuildDoc
 except ImportError:
     sphinx = None
-
+else:
+    sphinx.util.console.color_terminal = lambda: False
+    
 if (
     "LANG" not in os.environ
     and platform.system() == "Darwin"
@@ -425,34 +399,6 @@ if sphinx is not None:
 
 else:
     TestDocCommand = SphinxExpectedCommand
-
-# ############################# #
-# numpy.distutils Configuration #
-# ############################# #
-
-
-def configuration(parent_package="", top_path=None):
-    """Recursive construction of package info to be used in setup().
-
-    See http://docs.scipy.org/doc/numpy/reference/distutils.html#numpy.distutils.misc_util.Configuration
-    """
-    try:
-        from numpy.distutils.misc_util import Configuration
-    except ImportError:
-        raise ImportError(
-            "To install this package, you must install numpy first\n"
-            "(See https://pypi.python.org/pypi/numpy)"
-        )
-    config = Configuration(None, parent_package, top_path)
-    config.set_options(
-        ignore_setup_xxx_py=True,
-        assume_default_configuration=True,
-        delegate_options_to_subpackages=True,
-        quiet=True,
-    )
-    config.add_subpackage(PROJECT)
-    return config
-
 
 # ############## #
 # Compiler flags #
@@ -904,7 +850,6 @@ def get_project_configuration(dry_run):
         "numpy%s" % numpy_requested_version,
         # for the script launcher
         "setuptools",
-        "six",
         "scipy",
     ]
 
@@ -976,10 +921,38 @@ def get_project_configuration(dry_run):
         # And they are required to succeed without Numpy for example when
         # pip is used to install silx when Numpy is not yet present in
         # the system.
-        setup_kwargs = {}
+        ext_modules = []
     else:
-        config = configuration()
-        setup_kwargs = config.todict()
+        ext_modules = [
+
+        Extension(
+            name='freesas._distance',
+            sources=["freesas/_distance.pyx"],
+            language='c',
+            extra_link_args=['-fopenmp'],
+            extra_compile_args=['-fopenmp']),
+
+        Extension(
+            name='freesas._cormap',
+            sources=["freesas/_cormap.pyx"],
+            language='c'),
+        
+        Extension(
+            name='freesas._autorg',
+            sources=["freesas/_autorg.pyx"],
+            language='c'),
+        
+        Extension(
+            name='freesas._bift',
+            sources=["freesas/_bift.pyx"],
+            language='c')
+        ]
+
+
+    setup_kwargs = dict(
+        ext_modules=ext_modules,
+        packages=find_packages()
+    )
 
     setup_kwargs.update(
         name=PROJECT,
@@ -988,7 +961,7 @@ def get_project_configuration(dry_run):
         author="Guillaume Bonamis, Martha Brennich, Jerome Kieffer",
         author_email="jerome.kieffer@esrf.fr",
         classifiers=classifiers,
-        description="Free tools to analyze Small angle scattering data",
+        description="Free tools to analyze Small-angle scattering data",
         long_description=get_readme(),
         install_requires=install_requires,
         setup_requires=setup_requires,
@@ -998,11 +971,6 @@ def get_project_configuration(dry_run):
         entry_points=entry_points,
         python_requires=">=3.6",
     )
-    #      packages=["freesas", "freesas.test"],
-    #      data_files=glob.glob("testdata/*"),
-    #      scripts=script_files,
-    #      install_requires=['numpy', "six"],
-    #      ext_modules=ext_modules,
 
     return setup_kwargs
 
@@ -1023,24 +991,6 @@ def setup_package():
             in ("--help-commands", "egg_info", "--version", "clean", "--name")
         )
     )
-
-    if dry_run:
-        # DRY_RUN implies actions which do not require dependencies, like NumPy
-        try:
-            from setuptools import setup
-
-            logger.info("Use setuptools.setup")
-        except ImportError:
-            from distutils.core import setup
-
-            logger.info("Use distutils.core.setup")
-    else:
-        try:
-            from setuptools import setup
-        except ImportError:
-            from numpy.distutils.core import setup
-
-            logger.info("Use numpy.distutils.setup")
 
     setup_kwargs = get_project_configuration(dry_run)
     setup(**setup_kwargs)
