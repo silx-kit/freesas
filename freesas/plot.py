@@ -539,7 +539,7 @@ def hplc_plot(hplc,
     
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
-    if fractions:
+    if fractions is not None and len(fractions):
         fractions.sort()
         l = len(data)-1
         idx = list(range(l))
