@@ -533,7 +533,7 @@ def hplc_plot(hplc,
         fig, ax = subplots(figsize=(12, 10))
     data = [sum(i) if hasattr(i, '__iter__') else i for i in hplc]
     ax.plot(data, label = "Chromatogram")
-    ax.set_xlabel("Frame index", fontsize=fontsize)
+    ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
     ax.set_ylabel("Summed intensities", fontsize=fontsize)
     ax.set_title(title)
     
@@ -541,11 +541,11 @@ def hplc_plot(hplc,
     ax.tick_params(axis="y", labelsize=labelsize)
     if fractions is not None and len(fractions):
         fractions.sort()
-        l = len(data)-1
+        l = len(data)
         idx = list(range(l))
         for start,stop in fractions:
-            start = min(l, max(0, start))
-            stop = min(l, max(0, stop))
+            start = int(min(l-1, max(0, start)))
+            stop = int(min(l-1, max(0, stop)))
             ax.plot(idx[start:stop+1],
                     data[start:stop+1],
                     label=f"Fraction {start}-{stop}",
