@@ -1,2 +1,2 @@
-PyPDF2
+pyPDF2==1.26
 parse

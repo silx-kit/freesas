@@ -385,11 +385,11 @@ def density_plot(
     """
     Generate a density plot p(r)
 
-    @param ift: An IFT result comming out of BIFT
-    @param  filename: name of the file where the cuve should be saved
-    @param img_format: image image format
-    @param ax: subplotib where to plot in
-    @return: the matplotlib figure
+    :param ift: An IFT result comming out of BIFT
+    :param  filename: name of the file where the cuve should be saved
+    :param img_format: image image format
+    :param ax: subplotib where to plot in
+    :return: the matplotlib figure
     """
     if ax:
         fig = ax.figure
@@ -508,3 +508,54 @@ def plot_all(
         else:
             fig.savefig(filename)
     return fig
+
+def hplc_plot(hplc,
+              fractions = None,
+              filename=None,    
+              img_format="png",
+              unit="nm",
+              ax=None,
+              labelsize=None,
+              fontsize=None,):
+    """
+    Generate an HPLC plot I=f(t)
+
+    :param hplc: stack of diffraction data
+    :param fractions: list of 2tuple with first and last ndex if each fraction
+    :param filename: name of the file where the cuve should be saved
+    :param img_format: image image format
+    :param ax: subplotib where to plot in
+    :return: the matplotlib figure
+    """
+    if ax:
+        fig = ax.figure
+    else:
+        fig, ax = subplots(figsize=(12, 10))
+    data = [sum(i) for i in hplc]
+    ax.plot(data, label = "HPLC")
+    ax.set_xlabel("frame index", fontsize=fontsize)
+    ax.set_ylabel("Summed intensity" % unit, fontsize=fontsize)
+    ax.set_title("Chromatogram")
+    
+    ax.tick_params(axis="x", labelsize=labelsize)
+    ax.tick_params(axis="y", labelsize=labelsize)
+    if fractions:
+        l = len(data)
+        idx = list(range(l))
+        for start,stop in fractions:
+            start = min(l, max(0, start))
+            stop = min(l, max(0, stop))
+        ax.plot(idx[start:stop],
+                data[start:stop],
+                label=f"fraction {start}-{stop}",
+                linewidth=5,
+                alpha=0.5)
+    ax.legend()
+            
+    if filename:
+        if img_format:
+            fig.savefig(filename, format=img_format)
+        else:
+            fig.savefig(filename)
+    return fig
+

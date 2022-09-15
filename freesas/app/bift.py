@@ -33,24 +33,26 @@ import sys
 import logging
 import platform
 import traceback
-from os import linesep
-from pathlib import Path
-from numpy import float32
 from freesas import bift
 from freesas.sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )
 from freesas.sas_argparser import SASParser
+from freesas.fitting import (
+    set_logging_level,
+    collect_files,
+)
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
 
 
-def parse():
-    """Parse input and return list of files.
-    :return: list of input files
+def build_parser() -> SASParser:
+    """Build parser for input and return list of files.
+    :return: parser
     """
+
     description = (
         "Calculate the density as function of distance p(r)"
         " curve from an I(q) scattering curve"
@@ -100,25 +102,20 @@ def parse():
         type=float,
         help="Sample at average ± threshold*sigma in MC",
     )
-
-    args = parser.parse_args()
-
-    if args.verbose:
-        logging.root.setLevel(logging.DEBUG)
-    files = [Path(i) for i in args.file if Path(i).exists()]
-    if platform.system() == "Windows" and files == []:
-        files = list(Path.cwd().glob(args.file[0]))
-        files.sort()
-    input_len = len(files)
-    logger.debug("%s input files" % input_len)
-    return files, args
+    return parser
 
 
 def main():
+    """Entry point for bift app."""
     if platform.system() == "Windows":
         sys.stdout = open(1, "w", encoding="utf-16", closefd=False)
-    list_files, args = parse()
-    for afile in list_files:
+
+    parser = build_parser()
+    args = parser.parse_args()
+    set_logging_level(args.verbose)
+    files = collect_files(args.file)
+
+    for afile in files:
         try:
             data = load_scattering_data(afile)
         except:
