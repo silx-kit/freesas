@@ -1,3 +1,4 @@
+setuptools<60
 sphinx
 sphinxcontrib-programoutput
 nbsphinx
