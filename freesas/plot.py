@@ -6,7 +6,7 @@ Functions to generating graphs related to SAS.
 __authors__ = ["Jerome Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "14/09/2022"
+__date__ = "15/09/2022"
 
 import logging
 
@@ -511,9 +511,9 @@ def plot_all(
 
 def hplc_plot(hplc,
               fractions = None,
+              title="Chromatogram",
               filename=None,    
               img_format="png",
-              unit="nm",
               ax=None,
               labelsize=None,
               fontsize=None,):
@@ -531,25 +531,26 @@ def hplc_plot(hplc,
         fig = ax.figure
     else:
         fig, ax = subplots(figsize=(12, 10))
-    data = [sum(i) for i in hplc]
-    ax.plot(data, label = "HPLC")
-    ax.set_xlabel("frame index", fontsize=fontsize)
-    ax.set_ylabel("Summed intensity" % unit, fontsize=fontsize)
-    ax.set_title("Chromatogram")
+    data = [sum(i) if hasattr(i, '__iter__') else i for i in hplc]
+    ax.plot(data, label = "Chromatogram")
+    ax.set_xlabel("Frame index", fontsize=fontsize)
+    ax.set_ylabel("Summed intensities", fontsize=fontsize)
+    ax.set_title(title)
     
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
     if fractions:
-        l = len(data)
+        fractions.sort()
+        l = len(data)-1
         idx = list(range(l))
         for start,stop in fractions:
             start = min(l, max(0, start))
             stop = min(l, max(0, stop))
-        ax.plot(idx[start:stop],
-                data[start:stop],
-                label=f"fraction {start}-{stop}",
-                linewidth=5,
-                alpha=0.5)
+            ax.plot(idx[start:stop+1],
+                    data[start:stop+1],
+                    label=f"Fraction {start}-{stop}",
+                    linewidth=10,
+                    alpha=0.5)
     ax.legend()
             
     if filename:
