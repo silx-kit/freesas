@@ -16,15 +16,16 @@ __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "25/07/2020"
+__date__ = "16/09/2022"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
+import io
 from typing import List, Union
 from os import PathLike
 from numpy import loadtxt, array, ndarray
 
-PathType = Union[PathLike, str, bytes]
+PathType = Union[PathLike, str, bytes, io.StringIO, io.BytesIO]
 
 
 def load_scattering_data(filename: PathType) -> ndarray:
@@ -36,15 +37,22 @@ def load_scattering_data(filename: PathType) -> ndarray:
     """
     try:
         data = loadtxt(filename)
-    except OSError:
+    except OSError as err:
+        print("err1: ", type(err), err)
         raise OSError("File could not be read.")
-    except ValueError:
-        try:
-            with open(filename) as data_file:
-                text = data_file.readlines()
-        except OSError:
-            raise OSError("File could not be read.")
+    except ValueError as err:
+        print("err1: ", type(err), err, type(filename))
+        text = None
+        if isinstance(filename, (io.StringIO, io.BytesIO)):
+            text = filename.readlines()
         else:
+            try:
+                with open(filename) as data_file:
+                    text = data_file.readlines()
+            except OSError:
+                raise OSError("File could not be read.")
+        print(text)
+        if text is not None:
             try:
                 data = parse_ascii_data(text, number_of_columns=3)
             except ValueError:
