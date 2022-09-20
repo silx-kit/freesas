@@ -1,7 +1,7 @@
 numpy
 scipy
 cython
-setuptools
+setuptools<60
 matplotlib
 silx
 pyFAI

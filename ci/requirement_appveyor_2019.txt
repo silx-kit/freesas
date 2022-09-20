@@ -2,7 +2,7 @@
 # PIP installs them from pre-compiled wheels, optimized for AppVeyor-CI Python environment with VS 2019.
 --find-links http://www.edna-site.org/pub/wheelhouse
 
-setuptools
+setuptools<60
 numpy
 cython
 matplotlib
