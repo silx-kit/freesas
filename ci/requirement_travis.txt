@@ -2,7 +2,7 @@
 # PIP installs them from pre-compiled wheels, optimized for Travis-CI Python environment.
 --find-links http://www.edna-site.org/pub/wheelhouse
 
-setuptools
+setuptools<60
 wheel
 numpy
 cython
