@@ -3,7 +3,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2017-2022  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,21 +23,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__authors__ = ["Martha Brennich"]
+__authors__ = ["Martha Brennich", "Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "25/07/2020"
+__date__ = "16/09/2022"
 
 import unittest
 import logging
-from sys import version_info
+import io
 from numpy import array, allclose
 from ..sasio import parse_ascii_data, load_scattering_data, \
                     convert_inverse_angstrom_to_nanometer
-if version_info.minor > 6:
-    from unittest.mock import mock_open, patch
-else:
-    from .mock_open_38 import mock_open
-    from unittest.mock import patch
 logger = logging.getLogger(__name__)
 
 class TestSasIO(unittest.TestCase):
@@ -91,10 +86,8 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
-        with patch('builtins.open', mocked_open):
-            with patch('numpy.DataSource.open', mocked_open):
-                data = load_scattering_data("test")
+        mocked_file = io.StringIO(file_data)
+        data = load_scattering_data(mocked_file)
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="Sunny data loaded correctly")
 
@@ -112,10 +105,9 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
-        with patch('builtins.open', mocked_open), \
-             patch('numpy.DataSource.open', mocked_open):
-            data = load_scattering_data("test")
+        mocked_file = io.StringIO(file_data)
+        data = load_scattering_data(mocked_file)
+
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="Sunny data loaded correctly")
 
@@ -133,10 +125,9 @@ class TestSasIO(unittest.TestCase):
                                  [2.0, 2.0, 1.0],
                                  [3.0, 3.0, 3.0]])
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
-        with patch('builtins.open', mocked_open), \
-             patch('numpy.DataSource.open', mocked_open):
-            data = load_scattering_data("test")
+        mocked_file = io.StringIO(file_data)
+        data = load_scattering_data(mocked_file)
+
         self.assertTrue(allclose(data, expected_result, 1e-7),
                         msg="Sunny data loaded correctly")
 
@@ -147,14 +138,11 @@ class TestSasIO(unittest.TestCase):
         """
         file_content = ["a a a", "2 4", "3 4 5 6", "# 3 4 6"]
         file_data = "\n".join(file_content)
-        mocked_open = mock_open(read_data=file_data)
-
-        with patch('builtins.open', mocked_open), \
-             patch('numpy.DataSource.open', mocked_open), \
-             self.assertRaises(ValueError,
+        mocked_file = io.StringIO(file_data)
+        with self.assertRaises(ValueError,
                                msg="File with no float float float "
                                    "data cannot be loaded"):
-            load_scattering_data("test")
+            load_scattering_data(mocked_file)
 
     def test_convert_inverse_angstrom_to_nanometer(self):
         """
