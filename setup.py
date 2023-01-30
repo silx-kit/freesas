@@ -45,7 +45,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("freesas.setup")
 
 try:
-    from setuptools._distutils.command.clean import clean as Clean
+    from distutils.command.clean import clean as Clean
 except:
     Clean = None
 
