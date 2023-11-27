@@ -3,7 +3,7 @@ name = 'freesas'
 dynamic = ['version',]
 license = {file = 'copyright'}
 requires-python = '>=3.7'
-readme = 'README.rd'
+readme = 'README.md'
 description = 'Small angle scattering tools ... but unlike most others, free and written in Python'
 
 authors = [
