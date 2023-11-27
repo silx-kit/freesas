@@ -1,12 +1,11 @@
 #Cython module to calculate distances of set of atoms
 
-__author__ = "Jerome Kieffer"
+__author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2015, ESRF"
+__copyright__ = "2023, ESRF"
 
 import sys
 import cython
-cimport numpy
 import numpy
 from cython cimport floating
 from libc.math cimport sqrt, fabs, exp

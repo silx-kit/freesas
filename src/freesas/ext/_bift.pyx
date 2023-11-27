@@ -18,17 +18,16 @@ cdef:
     list authors
     str __license__, __copyright__, __date__
 
-__authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
+__authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020, ESRF"
-__date__ = "10/06/2020"
+__copyright__ = "2020-2023, ESRF"
+__date__ = "27/11/2023"
 
 import time
 import cython
 from cython.parallel import prange
 from cython.view cimport array as cvarray
 import numpy
-cimport numpy as cnumpy
 from libc.math cimport sqrt, fabs, pi, sin, log, exp, isfinite
 
 from scipy.linalg import lapack
@@ -959,7 +958,8 @@ cdef class BIFT:
             double area, ev_max, evidence_avg, evidence_std,
             double Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std,
             double regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
-            cnumpy.ndarray radius, densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
+            #2d densities,
+            # 1d radius, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
 
         best_key, best, nvalid = self.get_best()
         if nvalid < 2:
