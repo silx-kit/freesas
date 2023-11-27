@@ -55,7 +55,7 @@ def calc_invariants(floating[:, :] atoms):
     return sqrt(s / size), sqrt(sum_d2 / 2.0) / size, sqrt(d2max)
 
 
-cdef inline floating hard_sphere(floating pos, floating radius)nogil:
+cdef inline floating hard_sphere(floating pos, floating radius) noexcept nogil:
     """Density using hard spheres
     @param pos: fabs(d1-d)
     """
@@ -63,7 +63,7 @@ cdef inline floating hard_sphere(floating pos, floating radius)nogil:
         return 0.0 
     return (4 * radius + pos) * (2 * radius - pos) ** 2 / (16.0 * radius ** 3)
 
-cdef inline floating soft_sphere(floating pos, floating radius)nogil:
+cdef inline floating soft_sphere(floating pos, floating radius) noexcept nogil:
     """Density using soft spheres (gaussian density)
     @param pos: fabs(d1-d)
     @param radius: radius of the equivalent hard sphere
