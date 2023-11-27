@@ -1,9 +1,71 @@
-[build-system]
-requires = [
-    "wheel",
-    "setuptools<60.0.0",
-    "numpy>=1.12",
-    "Cython>=0.21.1",
-    "scipy",
+[project]
+name = 'freesas'
+dynamic = ['version',]
+license = {file = 'copyright'}
+requires-python = '>=3.7'
+readme = 'README.rd'
+description = 'Small angle scattering tools ... but unlike most others, free and written in Python'
+
+authors = [
+  { name = 'Guillaume Bonamis'}, 
+  { name = 'Martha Brennich'},
+  { name = 'Jérôme Kieffer', email = 'jerome.kieffer@esrf.fr'},
 ]
-build-backend = "setuptools.build_meta"
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Environment :: Console',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Education',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Natural Language :: English",
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: Unix',
+    'Operating System :: POSIX',
+    'Programming Language :: Cython',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Topic :: Scientific/Engineering :: Physics',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Topic :: Scientific/Engineering :: Bio-Informatics',
+]
+
+dependencies = [
+   'numpy',
+   'scipy',
+]
+[build-system]
+build-backend = 'mesonpy'
+requires = [
+    'meson-python>=0.11',
+    "meson>=0.64; platform_system=='Windows'",
+    "meson; platform_system!='Windows'",
+    'ninja',
+    'wheel',
+    'Cython>=0.29',
+    "numpy<1.26.0; platform_machine == 'ppc64le'",
+    "numpy; platform_machine != 'ppc64le'",
+    'pyproject-metadata>=0.5.0',
+    'tomli>=1.0.0'
+]
+
+[project.urls]
+homepage = 'http://silx.org'
+documentation = 'http://www.silx.org/doc/freesas/latest/'
+source = 'https://github.com/silx-kit/freeas'
+download = 'https://github.com/silx-kit/freesas/releases'
+tracker = 'https://github.com/silx-kit/freesas/issues'
+
+[project.scripts]
+free_gpa = 'freesas.app.auto_gpa:main'
+free_guinier = 'freesas.app.auto_guinier:main'
+free_rg = 'freesas.app.autorg:main'
+cormapy = 'freesas.app.cormap:main'
+supycomb = 'freesas.app.supycomb:main'
+free_bift = 'freesas.app.bift:main",
+extract_ascii = 'freesas.app.extract_ascii:main'
+
+[project.gui-scripts]
+freesas = 'freesas.app.plot_sas:main'
+
