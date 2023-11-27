@@ -18,7 +18,7 @@ classifiers = [
     'Intended Audience :: Education',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: MIT License',
-    'Natural Language :: English",
+    'Natural Language :: English',
     'Operating System :: MacOS :: MacOS X',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: Unix',
@@ -64,7 +64,7 @@ free_guinier = 'freesas.app.auto_guinier:main'
 free_rg = 'freesas.app.autorg:main'
 cormapy = 'freesas.app.cormap:main'
 supycomb = 'freesas.app.supycomb:main'
-free_bift = 'freesas.app.bift:main",
+free_bift = 'freesas.app.bift:main'
 extract_ascii = 'freesas.app.extract_ascii:main'
 
 [project.gui-scripts]
