@@ -58,7 +58,7 @@ cpdef inline double blas_ddot(double[::1] a, double[::1] b) nogil:
     return ddot(&n, a0, &one, b0, &one)
 
 
-cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double alpha=1.0, double beta=0.0) nogil except -1:
+cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double alpha=1.0, double beta=0.0) noexcept nogil:
     "Wrapper for double matrix-matrix multiplication C = AxB "
     cdef:
         char *transa = 'n'
@@ -86,7 +86,7 @@ cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double a
     return 0
 
 
-cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) nogil except -1:
+cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) noexcept nogil:
     cdef:
         char *jobN = 'n'
         int n, lda, lwork, info, one=1
@@ -504,7 +504,7 @@ cdef class BIFT:
                             double[:, ::1] transp_matrix,
                             double[:, ::1] B,
                             double[::1] sum_dia
-                            ) nogil except -1:
+                            ) noexcept nogil:
 
         cdef:
             double tmp, ql, prefactor, delta_r, il, varl
