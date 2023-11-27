@@ -1,6 +1,7 @@
+subdir('app')
 subdir('ext')
-#subdir('test')
-#subdir('utils')
+subdir('test')
+
 
 py.install_sources([
     '_version.py',
