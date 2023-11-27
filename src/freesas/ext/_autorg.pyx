@@ -233,7 +233,7 @@ cdef inline void guinier_space(int start,
                                DTYPE_t[::1] sigma, 
                                DTYPE_t[::1] q2, 
                                DTYPE_t[::1] lnI, 
-                               DTYPE_t[::1] I2_over_sigma2) nogil:
+                               DTYPE_t[::1] I2_over_sigma2) noexcept nogil:
         "Initialize q², ln(I) and I/sigma array"
         cdef:
             int idx
