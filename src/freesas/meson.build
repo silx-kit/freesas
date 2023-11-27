@@ -9,7 +9,7 @@ py.install_sources([
     'autorg.py',
     'average.py',
     'bift.py',
-    'collections.py'
+    'collections.py',
     'cormap.py',
     'decorators.py',
     'fitting.py',

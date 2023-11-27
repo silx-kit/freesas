@@ -1,7 +1,7 @@
 # coding: utf-8
 # /*##########################################################################
 #
-# Copyright (c) 2015-2018 European Synchrotron Radiation Facility
+# Copyright (c) 2015-2023 European Synchrotron Radiation Facility
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,12 @@
 #
 # ###########################################################################*/
 """
-The silx package contains the following main sub-packages:
 
-- silx.gui: Qt widgets for data visualization and data file browsing
-- silx.image: Some processing functions for 2D images
-- silx.io: Reading and writing data files (HDF5/NeXus, SPEC, ...)
-- silx.math: Some processing functions for 1D, 2D, 3D, nD arrays
-- silx.opencl: OpenCL-based data processing
-- silx.sx: High-level silx functions suited for (I)Python console.
-- silx.utils: Miscellaneous convenient functions
-
-See silx documentation: http://www.silx.org/doc/silx/latest/
 """
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "31/08/2018"
+__date__ = "27/11/2023"
 
 import os as _os
 import logging as _logging
