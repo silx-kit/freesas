@@ -10,5 +10,5 @@ py.install_sources([
     'supycomb.py'
 ],
   pure: false,    # Will be installed next to binaries
-  subdir: 'freesas.app'  # Folder relative to site-packages to install to
+  subdir: 'freesas/app'  # Folder relative to site-packages to install to
 )

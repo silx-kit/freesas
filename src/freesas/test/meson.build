@@ -15,5 +15,5 @@ py.install_sources([
 'utilstests.py',
 ],
   pure: false,    # Will be installed next to binaries
-  subdir: 'freesas.test'  # Folder relative to site-packages to install to
+  subdir: 'freesas/test'  # Folder relative to site-packages to install to
 )
