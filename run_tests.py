@@ -2,7 +2,7 @@
 # coding: utf-8
 # /*##########################################################################
 #
-# Copyright (c) 2015-2018 European Synchrotron Radiation Facility
+# Copyright (C) 2015-2023 European Synchrotron Radiation Facility
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,18 +32,17 @@ Test coverage dependencies: coverage, lxml.
 """
 
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "16/04/2020"
+__date__ = "26/04/2023"
 __license__ = "MIT"
 
-import distutils.util
+import sys
 import logging
 import os
-import subprocess
-import sys
+from argparse import ArgumentParser
 import time
 import unittest
 import collections
-from argparse import ArgumentParser
+import tempfile
 
 
 class StreamHandlerUnittestReady(logging.StreamHandler):
@@ -80,14 +79,14 @@ logging.root.addHandler(createBasicHandler())
 # Capture all default warnings
 logging.captureWarnings(True)
 import warnings
-
-warnings.simplefilter("default")
+warnings.simplefilter('default')
 
 logger = logging.getLogger("run_tests")
 logger.setLevel(logging.WARNING)
 
 logger.info("Python %s %s", sys.version, tuple.__itemsize__ * 8)
-
+if sys.version_info.major < 3:
+    logger.error("pyFAI no more support Python2")
 
 try:
     import resource
@@ -95,9 +94,19 @@ except ImportError:
     resource = None
     logger.warning("resource module missing")
 
-import importlib
+try:
+    import importlib
+    importer = importlib.import_module
+except ImportError:
 
-importer = importlib.import_module
+    def importer(name):
+        module = __import__(name)
+        # returns the leaf module, instead of the root module
+        subnames = name.split(".")
+        subnames.pop(0)
+        for subname in subnames:
+            module = getattr(module, subname)
+            return module
 
 try:
     import numpy
@@ -107,29 +116,37 @@ else:
     logger.info("Numpy %s", numpy.version.version)
 
 try:
+    import scipy
+except ImportError:
+    logger.warning("Scipy missing")
+else:
+    logger.info("Scipy %s from %s", scipy.version.version, scipy.__path__)
+
+try:
+    import fabio
+except ImportError:
+    logger.warning("FabIO missing")
+else:
+    logger.info("FabIO %s", fabio.version)
+
+try:
     import h5py
 except Exception as error:
     logger.warning("h5py missing: %s", error)
 else:
     logger.info("h5py %s", h5py.version.version)
 
+try:
+    import Cython
+except ImportError:
+    logger.warning("Cython missing")
+else:
+    logger.info("Cython %s", Cython.__version__)
 
-def get_project_name(root_dir):
-    """Retrieve project name by running python setup.py --name in root_dir.
-
-    :param str root_dir: Directory where to run the command.
-    :return: The name of the project stored in root_dir
-    """
-    logger.debug("Getting project name in %s", root_dir)
-    p = subprocess.Popen(
-        [sys.executable, "setup.py", "--name"],
-        shell=False,
-        cwd=root_dir,
-        stdout=subprocess.PIPE,
-    )
-    name, _stderr_data = p.communicate()
-    logger.debug("subprocess ended with rc= %s", p.returncode)
-    return name.split()[-1].decode("ascii")
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+from bootstrap import get_project_name, build_project
+PROJECT_NAME = get_project_name(PROJECT_DIR)
+logger.info("Project name: %s", PROJECT_NAME)
 
 
 class TextTestResultWithSkipList(unittest.TextTestResult):
@@ -154,14 +171,13 @@ class TextTestResultWithSkipList(unittest.TextTestResult):
         for err, tests in grouped.items():
             self.stream.writeln(self.separator1)
             for test in tests:
-                self.stream.writeln(
-                    "%s: %s" % (flavour, self.getDescription(test))
-                )
+                self.stream.writeln("%s: %s" % (flavour, self.getDescription(test)))
             self.stream.writeln(self.separator2)
             self.stream.writeln("%s" % err)
 
 
 class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
+
     def __init__(self, *arg, **kwarg):
         unittest.TextTestRunner.resultclass.__init__(self, *arg, **kwarg)
         self.logger = logging.getLogger("memProf")
@@ -171,10 +187,9 @@ class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
     def startTest(self, test):
         unittest.TextTestRunner.resultclass.startTest(self, test)
         if resource:
-            self.__mem_start = resource.getrusage(
-                resource.RUSAGE_SELF
-            ).ru_maxrss
-        self.__time_start = time.time()
+            self.__mem_start = \
+                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        self.__time_start = time.perf_counter()
 
     def stopTest(self, test):
         unittest.TextTestRunner.resultclass.stopTest(self, test)
@@ -184,21 +199,68 @@ class ProfileTextTestResult(unittest.TextTestRunner.resultclass):
         else:
             ratio = 1e-3
         if resource:
-            memusage = (
-                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                - self.__mem_start
-            ) * ratio
+            memusage = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss -
+                        self.__mem_start) * ratio
         else:
             memusage = 0
-        self.logger.info(
-            "Time: %.3fs \t RAM: %.3f Mb\t%s",
-            time.time() - self.__time_start,
-            memusage,
-            test.id(),
-        )
+        self.logger.info("Time: %.3fs \t RAM: %.3f Mb\t%s",
+                         time.perf_counter() - self.__time_start,
+                         memusage, test.id())
 
 
-def report_rst(cov, package, version="0.0.0", base=""):
+def report_uncovered_files(cov, build_dir, inject_xml=None):
+    """
+    Generate a report of all modules uncovered by the tests
+
+    :param cov: test coverage instance
+    :param str build_dir: Build directory
+    :return: Text report
+    """
+    if build_dir.endswith("pyFAI"):
+        build_dir = os.path.dirname(build_dir)
+    import fnmatch
+
+    existing_files = []
+    for root, _dirnames, filenames in os.walk(PROJECT_NAME):
+        for filename in fnmatch.filter(filenames, '*.py'):
+            existing_files.append(os.path.join(root, filename))
+    existing_files = filter(lambda x: not x.endswith("/setup.py"), existing_files)
+    existing_files = filter(lambda x: "/test/" not in x, existing_files)
+    existing_files = filter(lambda x: "/third_party/" not in x, existing_files)
+
+    if inject_xml is None:
+        fd, fn = tempfile.mkstemp(suffix=".xml")
+        os.close(fd)
+        cov.xml_report(outfile=fn)
+    else:
+        fn = inject_xml
+    from lxml import etree
+    xml = etree.parse(fn)
+    classes = xml.xpath("//class")
+
+    build_dir = os.path.abspath(build_dir)
+
+    covered_files = []
+
+    for cl in classes:
+        filename = cl.get("filename")
+        filename = os.path.abspath(filename)
+        if filename.startswith(build_dir):
+            filename = filename[len(build_dir) + 1:]
+            covered_files.append(filename)
+
+    uncovered_files = set(existing_files) - set(covered_files)
+    uncovered_files = sorted(list(uncovered_files))
+    text = ""
+    text += "Uncovered files (%d)\n" % len(uncovered_files)
+    text += "-" * (len(text) - 1) + "\n"
+    for filename in uncovered_files:
+        text += "* %s\n" % filename
+
+    return text
+
+
+def report_rst(cov, package, version="0.0.0", base="", inject_xml=None):
     """
     Generate a report of test coverage in RST (for Sphinx inclusion)
 
@@ -207,12 +269,12 @@ def report_rst(cov, package, version="0.0.0", base=""):
     :param str base: base directory of modules to include in the report
     :return: RST string
     """
-    import tempfile
-
-    fd, fn = tempfile.mkstemp(suffix=".xml")
-    os.close(fd)
-    cov.xml_report(outfile=fn)
-
+    if inject_xml is None:
+        fd, fn = tempfile.mkstemp(suffix=".xml")
+        os.close(fd)
+        cov.xml_report(outfile=fn)
+    else:
+        fn = inject_xml
     from lxml import etree
 
     xml = etree.parse(fn)
@@ -220,59 +282,50 @@ def report_rst(cov, package, version="0.0.0", base=""):
 
     line0 = "Test coverage report for %s" % package
     res = [line0, "=" * len(line0), ""]
-    res.append(
-        "Measured on *%s* version %s, %s"
-        % (package, version, time.strftime("%d/%m/%Y"))
-    )
-    res += [
-        "",
-        ".. csv-table:: Test suite coverage",
-        '   :header: "Name", "Stmts", "Exec", "Cover"',
-        "   :widths: 35, 8, 8, 8",
-        "",
-    ]
+    res.append("Measured on *%s* version %s, %s" %
+               (package, version, time.strftime("%d/%m/%Y")))
+    res += ["",
+            ".. csv-table:: Test suite coverage",
+            '   :header: "Name", "Stmts", "Exec", "Cover"',
+            '   :widths: 35, 8, 8, 8',
+            '']
     tot_sum_lines = 0
     tot_sum_hits = 0
 
     for cl in classes:
         name = cl.get("name")
         fname = cl.get("filename")
-        if not os.path.abspath(fname).startswith(base):
-            continue
-        lines = cl.find("lines").getchildren()
-        hits = [int(i.get("hits")) for i in lines]
+        if os.path.abspath(fname).startswith(base):
+            lines = cl.find("lines").getchildren()
+            hits = [int(i.get("hits")) for i in lines]
 
-        sum_hits = sum(hits)
-        sum_lines = len(lines)
+            sum_hits = sum(hits)
+            sum_lines = len(lines)
 
-        cover = 100.0 * sum_hits / sum_lines if sum_lines else 0
+            cover = 100.0 * sum_hits / sum_lines if sum_lines else 0
 
-        if base:
-            name = os.path.relpath(fname, base)
+            if base:
+                name = os.path.relpath(fname, base)
 
-        res.append(
-            '   "%s", "%s", "%s", "%.1f %%"'
-            % (name, sum_lines, sum_hits, cover)
-        )
-        tot_sum_lines += sum_lines
-        tot_sum_hits += sum_hits
+            res.append('   "%s", "%s", "%s", "%.1f %%"' %
+                       (name, sum_lines, sum_hits, cover))
+            tot_sum_lines += sum_lines
+            tot_sum_hits += sum_hits
     res.append("")
-    res.append(
-        '   "%s total", "%s", "%s", "%.1f %%"'
-        % (
-            package,
-            tot_sum_lines,
-            tot_sum_hits,
-            100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0,
-        )
-    )
+    res.append('   "%s total", "%s", "%s", "%.1f %%"' %
+               (package, tot_sum_lines, tot_sum_hits,
+                100.0 * tot_sum_hits / tot_sum_lines if tot_sum_lines else 0))
     res.append("")
     return os.linesep.join(res)
 
 
 def is_debug_python():
     """Returns true if the Python interpreter is in debug mode."""
-    import sysconfig
+    try:
+        import sysconfig
+    except ImportError:  # pragma nocover
+        # Python < 2.7
+        import distutils.sysconfig as sysconfig
 
     if sysconfig.get_config_var("Py_DEBUG"):
         return True
@@ -280,240 +333,186 @@ def is_debug_python():
     return hasattr(sys, "gettotalrefcount")
 
 
-def build_project(name, root_dir):
-    """Run python setup.py build for the project.
-
-    Build directory can be modified by environment variables.
-
-    :param str name: Name of the project.
-    :param str root_dir: Root directory of the project
-    :return: The path to the directory were build was performed
-    """
-    platform = distutils.util.get_platform()
-    architecture = "lib.%s-%i.%i" % (
-        platform,
-        sys.version_info[0],
-        sys.version_info[1],
-    )
-    if is_debug_python():
-        architecture += "-pydebug"
-
-    if os.environ.get("PYBUILD_NAME") == name:
-        # we are in the debian packaging way
-        home = os.environ.get("PYTHONPATH", "").split(os.pathsep)[-1]
-    elif os.environ.get("BUILDPYTHONPATH"):
-        home = os.path.abspath(os.environ.get("BUILDPYTHONPATH", ""))
-    else:
-        home = os.path.join(root_dir, "build", architecture)
-
-    logger.warning("Building %s to %s", name, home)
-    p = subprocess.Popen(
-        [sys.executable, "setup.py", "build"], shell=False, cwd=root_dir
-    )
-    logger.debug("subprocess ended with rc= %s", p.wait())
-
-    if os.path.isdir(home):
-        return home
-    alt_home = os.path.join(os.path.dirname(home), "lib")
-    if os.path.isdir(alt_home):
-        return alt_home
-
-
-def import_project_module(project_name, project_dir):
-    """Import project module, from the system of from the project directory"""
-    # Prevent importing from source directory
-    if os.path.dirname(os.path.abspath(__file__)) == os.path.abspath(
-        sys.path[0]
-    ):
-        removed_from_sys_path = sys.path.pop(0)
-        logger.info("Patched sys.path, removed: '%s'", removed_from_sys_path)
-
-    if "--installed" in sys.argv:
-        try:
-            module = importer(project_name)
-        except ImportError:
-            raise ImportError(
-                "%s not installed: Cannot run tests on installed version"
-                % PROJECT_NAME
-            )
-    else:  # Use built source
-        build_dir = build_project(project_name, project_dir)
-        if build_dir is None:
-            logging.error("Built project is not available !!! investigate")
-        sys.path.insert(0, build_dir)
-        logger.warning("Patched sys.path, added: '%s'", build_dir)
-        module = importer(project_name)
-    return module
+# Prevent importing from source directory
+if os.path.dirname(os.path.abspath(__file__)) == os.path.abspath(sys.path[0]):
+    removed_from_sys_path = sys.path.pop(0)
+    logger.info("Patched sys.path, removed: '%s'", removed_from_sys_path)
 
 
 def get_test_options(project_module):
     """Returns the test options if available, else None"""
-    module_name = project_module.__name__ + ".test.utils"
-    logger.info("Import %s", module_name)
+    module_name = project_module.__name__ + '.test.utilstest'
+    logger.info('Import %s', module_name)
     try:
         test_utils = importer(module_name)
     except ImportError:
-        logger.warning(
-            "No module named '%s'. No test options available.", module_name
-        )
+        logger.warning("No module named '%s'. No test options available.", module_name)
         return None
 
     test_options = getattr(test_utils, "test_options", None)
     return test_options
 
 
-if __name__ == "__main__":  # Needed for multiprocessing support on Windows
-    PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-    PROJECT_NAME = get_project_name(PROJECT_DIR)
-    logger.info("Project name: %s", PROJECT_NAME)
-
-    project_module = import_project_module(PROJECT_NAME, PROJECT_DIR)
-    PROJECT_VERSION = getattr(project_module, "version", "")
-    PROJECT_PATH = project_module.__path__[0]
-
-    test_options = get_test_options(project_module)
-    """Contains extra configuration for the tests."""
-
-    epilog = """Environment variables:
-    SILX_OPENCL=False to disable OpenCL tests
-    SILX_TEST_LOW_MEM=True to disable tests taking large amount of memory
-    GPU=False to disable the use of a GPU with OpenCL test
-    WITH_GL_TEST=False to disable tests using OpenGL
-    """
-    parser = ArgumentParser(description="Run the tests.", epilog=epilog)
-
-    parser.add_argument(
-        "--installed",
-        action="store_true",
-        dest="installed",
-        default=False,
-        help=(
-            "Test the installed version instead of"
-            + "building from the source"
-        ),
-    )
-    parser.add_argument(
-        "-c",
-        "--coverage",
-        dest="coverage",
-        action="store_true",
-        default=False,
-        help=(
-            "Report code coverage" + "(requires 'coverage' and 'lxml' module)"
-        ),
-    )
-    parser.add_argument(
-        "-m",
-        "--memprofile",
-        dest="memprofile",
-        action="store_true",
-        default=False,
-        help="Report memory profiling",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        default=0,
-        action="count",
-        dest="verbose",
-        help="Increase verbosity. Option -v prints additional "
-        + "INFO messages. Use -vv for full verbosity, "
-        + "including debug messages and test help strings.",
-    )
-    if test_options is not None:
-        test_options.add_parser_argument(parser)
-
-    default_test_name = "%s.test.suite" % PROJECT_NAME
-    parser.add_argument(
-        "test_name",
-        nargs="*",
-        default=(default_test_name,),
-        help="Test names to run (Default: %s)" % default_test_name,
-    )
-    options = parser.parse_args()
-    sys.argv = [sys.argv[0]]
-
-    test_verbosity = 1
-    use_buffer = True
-    if options.verbose == 1:
-        logging.root.setLevel(logging.INFO)
-        logger.info("Set log level: INFO")
-        test_verbosity = 2
-        use_buffer = False
-    elif options.verbose > 1:
-        logging.root.setLevel(logging.DEBUG)
-        logger.info("Set log level: DEBUG")
-        test_verbosity = 2
-        use_buffer = False
-
-    if options.coverage:
-        logger.info("Running test-coverage")
-        import coverage
-
-        omits = [
-            "*test*",
-            "*third_party*",
-            "*/setup.py",
-            # temporary test modules (silx.math.fit.test.test_fitmanager)
-            "*customfun.py",
-        ]
-        try:
-            cov = coverage.Coverage(omit=omits)
-        except AttributeError:
-            cov = coverage.coverage(omit=omits)
-        cov.start()
-
-    # Run the tests
-    runnerArgs = {}
-    runnerArgs["verbosity"] = test_verbosity
-    runnerArgs["buffer"] = use_buffer
-    if options.memprofile:
-        runnerArgs["resultclass"] = ProfileTextTestResult
+if "-i" in sys.argv or "--installed" in sys.argv:
+    for bad_path in (".", os.getcwd(), PROJECT_DIR):
+        if bad_path in sys.path:
+            sys.path.remove(bad_path)
+    try:
+        module = importer(PROJECT_NAME)
+    except Exception:
+        logger.error("Cannot run tests on installed version: %s not installed or raising error.",
+                     PROJECT_NAME)
+        raise
     else:
-        runnerArgs["resultclass"] = TextTestResultWithSkipList
-    runner = unittest.TextTestRunner(**runnerArgs)
+        print("Running tests on system-wide installed project")
+else:
+    build_dir = build_project(PROJECT_NAME, PROJECT_DIR)
+    sys.path.insert(0, build_dir)
+    logger.warning("Patched sys.path, added: '%s'", build_dir)
+    module = importer(PROJECT_NAME)
 
-    logger.warning(
-        "Test %s %s from %s", PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH
-    )
+epilog = """Environment variables:
+WITH_QT_TEST=False to disable graphical tests
+PYFAI_OPENCL=False to disable OpenCL tests.
+PYFAI_LOW_MEM: set to True to skip all tests >100Mb
+WITH_GL_TEST=False to disable tests using OpenGL
+"""
+parser = ArgumentParser(description='Run the tests.',
+                        epilog=epilog)
 
-    test_module_name = PROJECT_NAME + ".test"
-    logger.info("Import %s", test_module_name)
-    test_module = importer(test_module_name)
-    test_suite = unittest.TestSuite()
+test_options = get_test_options(module)
+"""Contains extra configuration for the tests."""
+test_options.add_parser_argument(parser)
 
-    if test_options is not None:
-        # Configure the test options according to the command lines and the the environment
-        test_options.configure(options)
+default_test_name = f"{PROJECT_NAME}.test.suite"
+parser.add_argument("test_name", nargs='*',
+                    default=(default_test_name,),
+                    help="Test names to run (Default: %s)" % default_test_name)
+
+parser.add_argument("--installed",
+                    action="store_true", dest="installed", default=False,
+                    help=("Test the installed version instead of" +
+                          "building from the source"))
+parser.add_argument("-c", "--coverage", dest="coverage",
+                    action="store_true", default=False,
+                    help=("Report code coverage" +
+                          "(requires 'coverage' and 'lxml' module)"))
+parser.add_argument("-m", "--memprofile", dest="memprofile",
+                    action="store_true", default=False,
+                    help="Report memory profiling")
+parser.add_argument("-v", "--verbose", default=0,
+                    action="count", dest="verbose",
+                    help="Increase verbosity. Option -v prints additional " +
+                         "INFO messages. Use -vv for full verbosity, " +
+                         "including debug messages and test help strings.")
+parser.add_argument("--qt-binding", dest="qt_binding", default=None,
+                    help="Force using a Qt binding, from 'PyQt4', 'PyQt5', or 'PySide'")
+
+options = parser.parse_args()
+sys.argv = [sys.argv[0]]
+
+test_verbosity = 1
+use_buffer = True
+if options.verbose == 1:
+    logging.root.setLevel(logging.INFO)
+    logger.info("Set log level: INFO")
+    test_verbosity = 2
+    use_buffer = False
+elif options.verbose > 1:
+    logging.root.setLevel(logging.DEBUG)
+    logger.info("Set log level: DEBUG")
+    test_verbosity = 2
+    use_buffer = False
+
+if options.coverage:
+    logger.info("Running test-coverage")
+    import coverage
+    omits = ["*test*", "*third_party*", "*/setup.py",
+             # temporary test modules (silx.math.fit.test.test_fitmanager)
+             "*customfun.py", ]
+    try:
+        coverage_class = coverage.Coverage
+    except AttributeError:
+        coverage_class = coverage.coverage
+    print(f"|{PROJECT_NAME}|")
+    cov = coverage_class(include=[f"*/{PROJECT_NAME}/*"],
+                         omit=omits)
+    cov.start()
+
+if options.qt_binding:
+    binding = options.qt_binding.lower()
+    if binding == "pyqt4":
+        logger.info("Force using PyQt4")
+        import PyQt4.QtCore  # noqa
+    elif binding == "pyqt5":
+        logger.info("Force using PyQt5")
+        import PyQt5.QtCore  # noqa
+    elif binding == "pyside":
+        logger.info("Force using PySide")
+        import PySide.QtCore  # noqa
+    elif binding == "pyside2":
+        logger.info("Force using PySide2")
+        import PySide2.QtCore  # noqa
     else:
-        logger.warning("No test options available.")
+        raise ValueError("Qt binding '%s' is unknown" % options.qt_binding)
 
-    if not options.test_name:
-        # Do not use test loader to avoid cryptic exception
-        # when an error occur during import
-        project_test_suite = getattr(test_module, "suite")
-        test_suite.addTest(project_test_suite())
-    else:
-        test_suite.addTest(
-            unittest.defaultTestLoader.loadTestsFromNames(options.test_name)
-        )
+PROJECT_VERSION = getattr(module, 'version', '')
+PROJECT_PATH = module.__path__[0]
 
-    # Display the result when using CTRL-C
-    unittest.installHandler()
+# Run the tests
+runnerArgs = {}
+runnerArgs["verbosity"] = test_verbosity
+runnerArgs["buffer"] = use_buffer
+if options.memprofile:
+    runnerArgs["resultclass"] = ProfileTextTestResult
+else:
+    runnerArgs["resultclass"] = TextTestResultWithSkipList
+runner = unittest.TextTestRunner(**runnerArgs)
 
-    result = runner.run(test_suite)
+logger.warning("Test %s %s from %s",
+               PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH)
 
-    if result.wasSuccessful():
-        exit_status = 0
-    else:
-        exit_status = 1
+test_module_name = PROJECT_NAME + '.test'
+logger.info('Import %s', test_module_name)
+test_module = importer(test_module_name)
 
-    if options.coverage:
-        cov.stop()
-        cov.save()
-        with open("coverage.rst", "w") as fn:
-            fn.write(
-                report_rst(cov, PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH)
-            )
+test_suite = unittest.TestSuite()
 
-    sys.exit(exit_status)
+if test_options is not None:
+    # Configure the test options according to the command lines and the the environment
+    test_options.configure(options)
+    print(test_options)
+else:
+    logger.warning("No test options available.")
+
+if not options.test_name:
+    # Do not use test loader to avoid cryptic exception
+    # when an error occur during import
+    project_test_suite = getattr(test_module, 'suite')
+    test_suite.addTest(project_test_suite())
+else:
+    test_suite.addTest(
+        unittest.defaultTestLoader.loadTestsFromNames(options.test_name))
+
+# Display the result when using CTRL-C
+unittest.installHandler()
+
+result = runner.run(test_suite)
+
+if result.wasSuccessful():
+    exit_status = 0
+    import pyFAI.test.utilstest
+    pyFAI.test.utilstest.UtilsTest.clean_up()
+else:
+    exit_status = 1
+
+if options.coverage:
+    cov.stop()
+    cov.save()
+    with open("coverage.rst", "w") as fn:
+        fn.write(report_rst(cov, PROJECT_NAME, PROJECT_VERSION, PROJECT_PATH))
+    print(cov.report())
+    print("")
+    print(report_uncovered_files(cov, PROJECT_PATH))
+
+sys.exit(exit_status)
