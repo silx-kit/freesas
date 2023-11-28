@@ -12,7 +12,7 @@ py.install_sources([
 'test_model.py',
 'test_sas_argparser.py',
 'test_sasio.py',
-'utilstests.py',
+'utilstest.py',
 ],
   pure: false,    # Will be installed next to binaries
   subdir: 'freesas/test'  # Folder relative to site-packages to install to

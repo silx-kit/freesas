@@ -32,11 +32,12 @@ Test coverage dependencies: coverage, lxml.
 """
 
 __authors__ = ["Jérôme Kieffer", "Thomas Vincent"]
-__date__ = "26/04/2023"
+__date__ = "28/11/2023"
 __license__ = "MIT"
 
 import sys
 import logging
+logging.basicConfig(level=logging.INFO)
 import os
 from argparse import ArgumentParser
 import time
@@ -86,7 +87,7 @@ logger.setLevel(logging.WARNING)
 
 logger.info("Python %s %s", sys.version, tuple.__itemsize__ * 8)
 if sys.version_info.major < 3:
-    logger.error("pyFAI no more support Python2")
+    logger.error("freesas no more support Python2")
 
 try:
     import resource
@@ -216,7 +217,7 @@ def report_uncovered_files(cov, build_dir, inject_xml=None):
     :param str build_dir: Build directory
     :return: Text report
     """
-    if build_dir.endswith("pyFAI"):
+    if build_dir.endswith("freesas"):
         build_dir = os.path.dirname(build_dir)
     import fnmatch
 
@@ -349,6 +350,7 @@ def get_test_options(project_module):
         logger.warning("No module named '%s'. No test options available.", module_name)
         return None
 
+    print(test_utils, dir(test_utils))
     test_options = getattr(test_utils, "test_options", None)
     return test_options
 
@@ -499,12 +501,7 @@ unittest.installHandler()
 
 result = runner.run(test_suite)
 
-if result.wasSuccessful():
-    exit_status = 0
-    import pyFAI.test.utilstest
-    pyFAI.test.utilstest.UtilsTest.clean_up()
-else:
-    exit_status = 1
+exit_status = 0 if result.wasSuccessful() else 1 
 
 if options.coverage:
     cov.stop()
