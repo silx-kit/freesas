@@ -25,11 +25,11 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "10/06/2020"
+__date__ = "29/11/2023"
 
 import numpy
 import unittest
-from .utilstests import get_datafile
+from .utilstest import get_datafile
 from ..bift import auto_bift
 from .._bift import BIFT, distribution_parabola, distribution_sphere, \
                     ensure_edges_zero, smooth_density
