@@ -2,7 +2,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "02/04/2022"
+__date__ = "29/11/2023"
 
 import unittest
 import pathlib
@@ -11,7 +11,7 @@ from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
 from os.path import normpath
-from freesas.test.utilstests import get_datafile
+from freesas.test.utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
 

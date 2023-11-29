@@ -25,7 +25,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "16/07/2021"
+__date__ = "29/11/2023"
 
 import unittest
 import pathlib
@@ -34,7 +34,7 @@ import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
 import PyPDF2
-from freesas.test.utilstests import get_datafile
+from freesas.test.utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
 
