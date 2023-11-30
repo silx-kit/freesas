@@ -2,10 +2,10 @@ project('FreeSAS',
   'c', 'cython',
   license: 'MIT',
   meson_version: '>= 0.60',
-  version: run_command('src/freesas/_version.py',
+  version: run_command('${MESON_SOURCE_ROOT}/src/freesas/_version.py',
   			           check:true).stdout().strip(),
 )
-
+message(project)
 
 # Seek the backend
 if meson.backend() != 'ninja'

@@ -183,7 +183,7 @@ build_deb() {
        python3 setup.py debian_src
        directory=${project}-${strictversion}
     else
-       python3 -m build -s
+       python3 -m build -s -n
        ln -s ${source_project}-${strictversion}.tar.gz dist/${tarname}
        directory=${source_project}-${strictversion}
     fi

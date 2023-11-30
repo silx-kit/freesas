@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 
+export DH_VERBOSE=1
 export PYBUILD_NAME=freesas
+export PYBUILD_SYSTEM=pyproject
 
 # Make does not offer a recursive wildcard function, so here's one:
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -22,9 +24,6 @@ override_dh_clean:
 	rm -rf build/man
 	rm -rf *.egg-info
 
-override_dh_auto_build:
-	dh_auto_build
-	python3 setup.py build build_man build_doc
 override_dh_install:
 	dh_numpy3
 
@@ -36,11 +35,10 @@ override_dh_install:
 override_dh_auto_test:
 	dh_auto_test -- -s custom --test-args="env PYTHONPATH={build_dir} FREESAS_TESTDATA=testimages WITH_QT_TEST=False {interpreter} run_tests.py -v"
 
-override_dh_installman:
-	dh_installman -p freesas build/man/*.1
+#override_dh_installman:
+#	dh_installman -p freesas build/man/*.1
 
-override_dh_sphinxdoc:
-	python3 setup.py build build_man build_doc
-	dh_installdocs "build/sphinx/html" -p python-freesas-doc --doc-main-package=python3-freesas
-	dh_sphinxdoc -O--buildsystem=pybuild
-
+override_dh_installdocs:
+	python3 build-doc.py
+	dh_installdocs "build/sphinx" -p pyfai-doc
+	dh_installdocs
