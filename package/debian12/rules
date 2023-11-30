@@ -8,7 +8,7 @@ export PYBUILD_SYSTEM=pyproject
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
 # How to recursively find all files with the same name in a given folder
-ALL_PYX := $(call rwildcard,freesas/,*.pyx)
+ALL_PYX := $(call rwildcard,src/freesas/ext,*.pyx)
 #NOTA: No space before *
 
 %:
