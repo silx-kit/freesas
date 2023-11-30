@@ -225,19 +225,15 @@ build_deb() {
     #handle test images
     if [ -f ../${deb_name}_${debianversion}.orig-testimages.tar.gz ]
     then
-      if [ ! -d testimages ]
-      then
-        mkdir testimages
-      fi
-      cd testimages
-      tar -xzf  ../${deb_name}_${debianversion}.orig-testimages.tar.gz
-      cd ..
+        cd ..
+        tar -xzf  ${deb_name}_${debianversion}.orig-testimages.tar.gz
+        cd -
     else
       # Disable to skip tests during build
       echo No test data
-      #export PYBUILD_DISABLE_python2=test
-      #export PYBUILD_DISABLE_python3=test
-      #export DEB_BUILD_OPTIONS=nocheck
+      export PYBUILD_DISABLE_python2=test
+      export PYBUILD_DISABLE_python3=test
+      export DEB_BUILD_OPTIONS=nocheck ${DEB_BUILD_OPTIONS} 
     fi
 
     case $debian_version in

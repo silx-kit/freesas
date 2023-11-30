@@ -16,7 +16,6 @@ ALL_PYX := $(call rwildcard,src,*.pyx)
 
 override_dh_clean:
 	dh_clean
-	echo cython files ${ALL_PYX}
 	# remove the cython generated file to force rebuild
 	rm -f $(patsubst %.pyx,%.cpp,${ALL_PYX})
 	rm -f $(patsubst %.pyx,%.c,${ALL_PYX})
@@ -34,7 +33,7 @@ override_dh_install:
 	dh_install
 
 override_dh_auto_test:
-	dh_auto_test -- -s custom --test-args="env PYTHONPATH={build_dir} FREESAS_TESTDATA=testimages WITH_QT_TEST=False {interpreter} run_tests.py -v"
+	dh_auto_test -- -s custom --test-args="env PYTHONPATH={build_dir} FREESAS_TESTDATA=../testdata {interpreter} run_tests.py -v"
 
 override_dh_installdocs:
 	python3 build-doc.py
