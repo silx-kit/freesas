@@ -16,7 +16,7 @@ ALL_PYX := $(call rwildcard,src/freesas/ext,*.pyx)
 
 override_dh_clean:
 	dh_clean
-	echo ${ALL_PYX}
+	echo cython files ${ALL_PYX}
 	# remove the cython generated file to force rebuild
 	rm -f $(patsubst %.pyx,%.cpp,${ALL_PYX})
 	rm -f $(patsubst %.pyx,%.c,${ALL_PYX})
