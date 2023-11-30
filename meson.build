@@ -2,9 +2,8 @@ project('FreeSAS',
   'c', 'cython',
   license: 'MIT',
   meson_version: '>= 0.60',
-  version: run_command(['/usr/bin/python3', 'src/freesas/_version.py', '--wheel'],
+  version: run_command(['version.py', '--wheel'],
    			           check:true).stdout().strip(),
-  #default_options: ['buildtype=plain', ],
 )
 
 
