@@ -183,7 +183,8 @@ build_deb() {
        python3 setup.py debian_src
        directory=${project}-${strictversion}
     else
-       python3 -m build -s -n
+       python3 -m build -s
+       echo ${source_project}-${strictversion}.tar.gz dist/${tarname}
        ln -s ${source_project}-${strictversion}.tar.gz dist/${tarname}
        directory=${source_project}-${strictversion}
     fi
@@ -199,14 +200,14 @@ build_deb() {
 
     newname=${deb_name}_${debianversion}.orig.tar.gz
 
-    #echo tarname $tarname newname $newname
+    echo tarname $tarname newname $newname
     if [ $tarname != $newname ]
     then
       if [ -h $newname ]
       then
         rm ${newname}
       fi
-        ln -s ${tarname} ${newname}
+      ln -s ${tarname} ${newname}
     fi
 
     if [ -f ${project}-testimages.tar.gz ]
