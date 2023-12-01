@@ -52,7 +52,7 @@ Thus 2.1.0a3 is hexversion 0x020100a3.
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "27/11/2023"
+__date__ = "01/12/2023"
 __status__ = "production"
 __docformat__ = 'restructuredtext'
 __all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion",
@@ -77,7 +77,6 @@ SERIAL = 1  # <16
 date = __date__
 
 from collections import namedtuple
-from argparse import ArgumentParser
 
 _version_info = namedtuple("version_info", ["major", "minor", "micro", "releaselevel", "serial"])
 
@@ -138,6 +137,8 @@ hexversion = calc_hexversion(*version_info)
 citation = "doi:10.1107/S1600577522007238"
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+
     parser = ArgumentParser(usage="print the version of the software")
     parser.add_argument("--wheel", action="store_true", dest="wheel", default=None,
                         help="print version formated for wheel")
