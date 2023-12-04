@@ -132,7 +132,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-from freesas._version import strictversion, version, __date__ as _date
+from freesas import strictversion, version, date as _date
 year = _date.split("/")[-1]
 copyright = u'2015-%s, Data analysis unit, European Synchrotron Radiation Facility, Grenoble' % year
 
