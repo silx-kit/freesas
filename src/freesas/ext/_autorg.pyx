@@ -65,7 +65,7 @@ from .isnan cimport isfinite
 from cython cimport floating
 import logging
 logger = logging.getLogger(__name__)
-from .collections import RG_RESULT, FIT_RESULT
+from .containers import RG_RESULT, FIT_RESULT
 
 DTYPE = numpy.float64
 ctypedef float64_t DTYPE_t

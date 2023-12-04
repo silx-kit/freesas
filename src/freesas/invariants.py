@@ -32,12 +32,12 @@ Some formula taken from Putnam et al, 2007, Table 1 in the review
 """
 __authors__ = ["Martha E. Brennich", "J. Kieffer"]
 __license__ = "MIT"
-__date__ = "10/06/2020"
+__date__ = "04/12/2023"
 
 import logging
 logger = logging.getLogger(__name__)
 import numpy
-from .collections import RT_RESULT
+from .containers import RT_RESULT
 
 
 def extrapolate(data, guinier):

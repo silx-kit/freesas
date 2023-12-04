@@ -4,13 +4,12 @@ subdir('test')
 
 
 py.install_sources([
-    '_version.py',
     '__init__.py',
     'align.py',
     'autorg.py',
     'average.py',
     'bift.py',
-    'collections.py',
+    'containers.py',
     'cormap.py',
     'decorators.py',
     'fitting.py',

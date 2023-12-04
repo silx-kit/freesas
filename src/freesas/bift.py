@@ -14,11 +14,10 @@ Many thanks to Pierre Paleo for the auto-alpha guess
 __authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "10/06/2020"
+__date__ = "04/12/2023"
 
 import logging
 logger = logging.getLogger(__name__)
-# from collections import namedtuple
 from math import log, ceil
 import numpy
 from scipy.optimize import minimize

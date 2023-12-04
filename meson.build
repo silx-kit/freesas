@@ -1,7 +1,7 @@
 project('FreeSAS',
   'c', 'cython',
   license: 'MIT',
-  version: run_command(['src/freesas/_version.py', '--wheel'],
+  version: run_command(['version.py', '--wheel'],
    			           check:true).stdout().strip(),
 )
 
@@ -20,5 +20,12 @@ endif
 py_mod = import('python')
 py = py_mod.find_installation()
 py_dep = py.dependency()
+
+py.install_sources([
+    'version.py',
+],
+  pure: false,    # Will be installed next to binaries
+  subdir: 'freesas'  # Folder relative to site-packages to install to
+)
 
 subdir('src/freesas')
