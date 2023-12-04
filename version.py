@@ -76,19 +76,7 @@ SERIAL = 1  # <16
 
 date = __date__
 
-try:
-    from collections import namedtuple
-except ImportError as err:
-    import sys
-    print(type(err), err)
-    sys.stderr.write(f"{type(err)}: {err}")
-    raise err
-#    """Work around against issue https://github.com/pypa/build/issues/705"""
-#    wheel_version = f"{MAJOR}.{MINOR}.{MICRO}" if RELEV == "final" else f"{MAJOR}.{MINOR}.{MICRO}{PRERELEASE_NORMALIZED_NAME[RELEV]}{SERIAL}"
-#    print(wheel_version)
-#    import sys
-#    sys.exit(1)
-
+from collections import namedtuple
 
 _version_info = namedtuple("version_info", ["major", "minor", "micro", "releaselevel", "serial"])
 
