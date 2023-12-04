@@ -1,7 +1,7 @@
 project('FreeSAS',
   'c', 'cython',
   license: 'MIT',
-  version: run_command(['src/freesas/_version.py', '--wheel'],
+  version: run_command(['version.py', '--wheel'],
    			           check:true).stdout().strip(),
 )
 
