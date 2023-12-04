@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020-2023, ESRF"
-__date__ = "27/11/2023"
+__date__ = "04/12/2023"
 
 import time
 import cython
@@ -37,7 +37,7 @@ import logging
 import itertools
 logger = logging.getLogger(__name__)
 
-from .collections import RadiusKey, PriorKey, TransfoValue, EvidenceKey, EvidenceResult, StatsResult
+from .containers import RadiusKey, PriorKey, TransfoValue, EvidenceKey, EvidenceResult, StatsResult
 
 ################################################################################
 # BLAS / LAPACK wrappers

@@ -4,7 +4,7 @@ __copyright__ = "2017, ESRF"
 
 import numpy
 from math import log
-from .collections import GOF
+from .containers import GOF
 
 from ._cormap import measure_longest
 

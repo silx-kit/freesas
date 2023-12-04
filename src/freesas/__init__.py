@@ -28,7 +28,7 @@
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "27/11/2023"
+__date__ = "04/12/2023"
 
 import os as _os
 import logging as _logging
@@ -39,8 +39,8 @@ _logging.getLogger(__name__).addHandler(_logging.NullHandler())
 project = _os.path.basename(_os.path.dirname(_os.path.abspath(__file__)))
 
 try:
-    from ._version import __date__ as date  # noqa
-    from ._version import (
+    from .version import __date__ as date  # noqa
+    from .version import (
         version,
         version_info,
         hexversion,

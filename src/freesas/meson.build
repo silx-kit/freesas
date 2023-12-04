@@ -4,7 +4,6 @@ subdir('test')
 
 
 py.install_sources([
-    '_version.py',
     '__init__.py',
     'align.py',
     'autorg.py',
