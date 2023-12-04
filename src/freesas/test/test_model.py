@@ -10,7 +10,7 @@ import numpy
 import unittest
 import os
 import tempfile
-from .utilstests import get_datafile
+from .utilstest import get_datafile
 from ..model import SASModel
 from ..transformations import translation_from_matrix, euler_from_matrix
 import logging
@@ -50,8 +50,8 @@ class TesttParser(unittest.TestCase):
         m = SASModel()
         m.read(self.testfile)
         m.save(self.outfile)
-        infile = open(self.testfile).read()
-        outfile = open(self.outfile).read()
+        with open(self.testfile) as f: infile=f.read()
+        with open(self.outfile) as f: outfile=f.read()
         self.assertEqual(infile, outfile, msg="file content is the same")
 
     def test_rfactor(self):

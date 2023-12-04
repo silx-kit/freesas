@@ -5,14 +5,14 @@ __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "21/03/2021"
+__date__ = "29/11/2023"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
 import sys
 import logging
 import platform
-from os import linesep as os_linesep
+import os
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Callable, List, Optional, IO, Generator
@@ -46,7 +46,7 @@ def collect_files(file_list: List[str]) -> List[Path]:
     :param file_list: file list as returned by the argparser
     :return: A list of Path objects which includes only existing files
     """
-    files = [Path(i) for i in file_list if Path(i).exists()]
+    files = [Path(i) for i in file_list if os.path.exists(i)]
     if platform.system() == "Windows" and files == []:
         files = list(Path.cwd().glob(file_list[0]))
         files.sort()
@@ -78,7 +78,7 @@ def get_linesep(output_destination: IO[str]) -> str:
     """
     # pylint: disable=R1705
     if output_destination == sys.stdout:
-        return os_linesep
+        return os.linesep
     else:
         return "\n"
 
@@ -209,7 +209,7 @@ def run_guinier_fit(
                     IndexError,
                 ) as err:
                     sys.stderr.write(
-                        f"{afile}, {err.__class__.__name__}: {err} {os_linesep}"
+                        f"{afile}, {err.__class__.__name__}: {err} {os.linesep}"
                     )
                 else:
                     res = rg_result_to_output_line(

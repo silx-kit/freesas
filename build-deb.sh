@@ -3,7 +3,7 @@
 #    Project: FreeSaS
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2015-2020 European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2015-2023 European Synchrotron Radiation Facility, Grenoble, France
 #
 #    Principal author:       Jérôme Kieffer (Jerome.Kieffer@ESRF.eu)
 #
@@ -56,11 +56,14 @@ then
             stretch)
                 debian_version=9
                 ;;
-            buster)  
+            buster)
                 debian_version=10
                 ;;
             bullseye)
                 debian_version=11
+                ;;
+            bookworm)
+                debian_version=12
                 ;;
         esac
     fi
@@ -78,21 +81,25 @@ build_directory=${project_directory}/build/${target_system}
 if [ -d /usr/lib/ccache ];
 then
    export PATH=/usr/lib/ccache:$PATH
+   export CCACHE_DIR=${HOME}/.ccache
 fi
 
 usage="usage: $(basename "$0") [options]
+
 Build the Debian ${debian_version} package of the ${project} library.
+
 If the build succeed the directory dist/debian${debian_version} will
 contains the packages.
+
 optional arguments:
     --help          Show this help text
     --install       Install the packages generated at the end of
                     the process using 'sudo dpkg'
     --stdeb-py3     Build using stdeb for python3
-    --stdeb-py2.py3 Build using stdeb for python2 and python3
     --debian9       Simulate a debian 9 Stretch system
     --debian10      Simulate a debian 10 Buster system
     --debian11      Simulate a debian 11 Bullseye system
+    --debian12      Simulate a debian 12 Bookworm system
 "
 
 install=0
@@ -141,6 +148,13 @@ do
           build_directory=${project_directory}/build/${target_system}
           shift
           ;;
+      --debian12)
+          debian_version=12
+          target_system=debian${debian_version}
+          dist_directory=${project_directory}/dist/${target_system}
+          build_directory=${project_directory}/build/${target_system}
+          shift
+          ;;
       -*)
           echo "Error: Unknown option: $1" >&2
           echo "$usage"
@@ -164,30 +178,38 @@ clean_up()
 build_deb() {
     tarname=${project}_${debianversion}.orig.tar.gz
     clean_up
-    python3 setup.py debian_src
-    python3 setup.py testdata
+    if [ $debian_version -le 11 ]
+    then
+       python3 setup.py debian_src
+       directory=${project}-${strictversion}
+    else
+       python3 -m build -s
+       echo ${source_project}-${strictversion}.tar.gz dist/${tarname}
+       ln -s ${source_project}-${strictversion}.tar.gz dist/${tarname}
+       directory=${source_project}-${strictversion}
+    fi
     cp -f dist/${tarname} ${build_directory}
     if [ -f dist/${project}-testimages.tar.gz ]
     then
       cp -f dist/${project}-testimages.tar.gz ${build_directory}
     fi
-    
+
     cd ${build_directory}
     tar -xzf ${tarname}
-    
-    directory=${project}-${strictversion}
+
+
     newname=${deb_name}_${debianversion}.orig.tar.gz
-    
-    #echo tarname $tarname newname $newname
+
+    echo tarname $tarname newname $newname
     if [ $tarname != $newname ]
     then
       if [ -h $newname ]
       then
         rm ${newname}
       fi
-        ln -s ${tarname} ${newname}
+      ln -s ${tarname} ${newname}
     fi
-    
+
     if [ -f ${project}-testimages.tar.gz ]
     then
       if [ ! -h  ${deb_name}_${debianversion}.orig-testimages.tar.gz ]
@@ -195,27 +217,23 @@ build_deb() {
         ln -s ${project}-testimages.tar.gz ${deb_name}_${debianversion}.orig-testimages.tar.gz
       fi
     fi
-    
+
     cd ${directory}
     cp -r ${project_directory}/package/${target_system} debian
     cp ${project_directory}/copyright debian
-    
+
     #handle test images
     if [ -f ../${deb_name}_${debianversion}.orig-testimages.tar.gz ]
     then
-      if [ ! -d testimages ]
-      then
-        mkdir testimages
-      fi
-      cd testimages
-      tar -xzf  ../../${deb_name}_${debianversion}.orig-testimages.tar.gz
-      cd ..
+        cd ..
+        tar -xzf  ${deb_name}_${debianversion}.orig-testimages.tar.gz
+        cd -
     else
       # Disable to skip tests during build
       echo No test data
-      #export PYBUILD_DISABLE_python2=test
-      #export PYBUILD_DISABLE_python3=test
-      #export DEB_BUILD_OPTIONS=nocheck
+      export PYBUILD_DISABLE_python2=test
+      export PYBUILD_DISABLE_python3=test
+      export DEB_BUILD_OPTIONS=nocheck ${DEB_BUILD_OPTIONS} 
     fi
 
     case $debian_version in
@@ -228,14 +246,17 @@ build_deb() {
         11)
             debian_name=bullseye
             ;;
+        12)
+            debian_name=bookworm
+            ;;
     esac
 
-    dch --force-distribution  -v ${debianversion}-1 "upstream development build of ${project} ${version}"
+    dch --force-distribution -v ${debianversion}-1 "upstream development build of ${project} ${version}"
     dch --force-distribution -D ${debian_name}-backports -l~bpo${debian_version}+ "${project} snapshot ${version} built for ${target_system}"
     #dch --bpo "${project} snapshot ${version} built for ${target_system}"
     dpkg-buildpackage -r
     rc=$?
-    
+
     if [ $rc -eq 0 ]; then
       # move packages to dist directory
       echo Build succeeded...
@@ -264,7 +285,8 @@ build_stdeb () {
     tar -xzf ${tarname}
     cd ${project}-${strictversion}
 
-    if [ $stdeb_all_python -eq 1 ]; then
+    if [ $stdeb_all_python -eq 1  ]
+    then
       echo Using Python 2+3
       python3 setup.py --command-packages=stdeb.command sdist_dsc --with-python2=True --with-python3=True --no-python3-scripts=True build --no-cython bdist_deb
       rc=$?
@@ -293,7 +315,7 @@ fi
 
 
 if [ $install -eq 1 ]; then
-  sudo -- su -c  "dpkg -i ${dist_directory}/*.deb"
+  sudo su -c  "dpkg -i ${dist_directory}/*.deb"
 fi
 
 exit "$rc"

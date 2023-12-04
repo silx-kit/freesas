@@ -8,7 +8,7 @@ __copyright__ = "2015, ESRF"
 
 import numpy
 import unittest
-from .utilstests import get_datafile
+from .utilstest import get_datafile
 from ..model import SASModel
 from ..average import Grid, AverModels
 

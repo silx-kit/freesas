@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "10/06/2020"
+__date__ = "29/11/2023"
 
 import logging
 import unittest
@@ -34,7 +34,7 @@ from math import sqrt, pi
 import numpy
 from scipy.stats import linregress
 
-from .utilstests import get_datafile
+from .utilstest import get_datafile
 from ..autorg import (
     autoRg,
     RG_RESULT,

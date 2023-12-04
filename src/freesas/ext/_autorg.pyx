@@ -23,7 +23,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from builtins import None, NotImplementedError
 
 """
 Loosely based on the autoRg implementation in BioXTAS RAW by J. Hopkins
@@ -57,7 +56,9 @@ class NoGuinierRegionError(Error):
 
 
 import cython
-cimport numpy as cnumpy
+from .shared_types cimport int8_t, uint8_t, int16_t, uint16_t, \
+                           int32_t, uint32_t, int64_t, uint64_t,\
+                           float32_t, float64_t, floating, any_int_t, any_t
 import numpy as numpy 
 from libc.math cimport sqrt, log, fabs, exp, atanh, ceil, NAN
 from .isnan cimport isfinite 
@@ -67,7 +68,7 @@ logger = logging.getLogger(__name__)
 from .collections import RG_RESULT, FIT_RESULT
 
 DTYPE = numpy.float64
-ctypedef double DTYPE_t
+ctypedef float64_t DTYPE_t
 
 # Definition of a few constants
 cdef: 
@@ -232,7 +233,7 @@ cdef inline void guinier_space(int start,
                                DTYPE_t[::1] sigma, 
                                DTYPE_t[::1] q2, 
                                DTYPE_t[::1] lnI, 
-                               DTYPE_t[::1] I2_over_sigma2) nogil:
+                               DTYPE_t[::1] I2_over_sigma2) noexcept nogil:
         "Initialize q², ln(I) and I/sigma array"
         cdef:
             int idx
@@ -636,7 +637,7 @@ cdef class AutoGuinier:
         """
         cdef:
             int start, stop, end, size, lower, upper, i
-            cnumpy.int32_t[::1] unweigted_start, unweigted_stop
+            int32_t[::1] unweigted_start, unweigted_stop
             DTYPE_t[::1] weigted_start,weigted_stop
             DTYPE_t max_weight, weight, qmin_Rg, qmax_Rg, RMSD 
         end = <int> numpy.max(fits[:,5])
@@ -1011,7 +1012,6 @@ def autoRg(sasm):
     cdef:
         DTYPE_t quality, intercept, slope, sigma_slope, lower, upper, r_sqr
         bint aggregated = 0
-        cnumpy.ndarray qualities
         DTYPE_t[::1] q_ary, i_ary, sigma_ary, lgi_ary, q2_ary, wg_ary, 
         DTYPE_t[::1] fit_data
         int[::1] offsets, data_range
@@ -1020,7 +1020,7 @@ def autoRg(sasm):
         int start, end, nb_fit, array_size, block_size=39 #page of 4k
         int idx_min, idx_max, idx, err
         DTYPE_t[:, ::1] fit_mv, tmp_mv
-        cnumpy.ndarray[DTYPE_t, ndim=2] fit_array
+        # DTYPE_t[:, :] fit_array
         
     raw_size = len(sasm)
     q_ary = numpy.empty(raw_size, dtype=DTYPE)

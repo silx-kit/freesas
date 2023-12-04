@@ -102,6 +102,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.doctest',
     # 'sphinxext-archive',
+    'sphinxcontrib.programoutput',
     'nbsphinx'
 
 ]

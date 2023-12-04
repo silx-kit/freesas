@@ -5,11 +5,11 @@ from __future__ import print_function
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "16/12/2015"
+__date__ = "29/11/2023"
 
 import numpy
 import unittest
-from .utilstests import get_datafile
+from .utilstest import get_datafile
 from ..model import SASModel
 import logging
 logging.basicConfig(level=logging.INFO)

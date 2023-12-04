@@ -1,7 +1,8 @@
 numpy
 scipy
 cython
-setuptools<60
+tomli; python_version < '3.12'  
 matplotlib
 silx
 pyFAI
+meson-python

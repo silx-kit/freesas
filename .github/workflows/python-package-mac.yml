@@ -12,8 +12,8 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
-        xcode-version: [latest-stable, 11]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        xcode-version: [latest-stable, 14]
 
     steps:
       - uses: actions/checkout@v2
@@ -30,6 +30,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -41,7 +42,7 @@ jobs:
           pip install .
       - name: Test of run_tests.py
         run: |
-          python setup.py build test
+          python run_tests.py
       - name: Run end to end tests with e2etest.py
         run: |
           mkdir empty

@@ -18,17 +18,16 @@ cdef:
     list authors
     str __license__, __copyright__, __date__
 
-__authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
+__authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020, ESRF"
-__date__ = "10/06/2020"
+__copyright__ = "2020-2023, ESRF"
+__date__ = "27/11/2023"
 
 import time
 import cython
 from cython.parallel import prange
 from cython.view cimport array as cvarray
 import numpy
-cimport numpy as cnumpy
 from libc.math cimport sqrt, fabs, pi, sin, log, exp, isfinite
 
 from scipy.linalg import lapack
@@ -59,7 +58,7 @@ cpdef inline double blas_ddot(double[::1] a, double[::1] b) nogil:
     return ddot(&n, a0, &one, b0, &one)
 
 
-cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double alpha=1.0, double beta=0.0) nogil except -1:
+cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double alpha=1.0, double beta=0.0) noexcept nogil:
     "Wrapper for double matrix-matrix multiplication C = AxB "
     cdef:
         char *transa = 'n'
@@ -87,7 +86,7 @@ cpdef int blas_dgemm(double[:,::1] a, double[:,::1] b, double[:,::1] c, double a
     return 0
 
 
-cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) nogil except -1:
+cpdef int lapack_svd(double[:, ::1] A, double[::1] eigen, double[::1] work) noexcept nogil:
     cdef:
         char *jobN = 'n'
         int n, lda, lwork, info, one=1
@@ -505,7 +504,7 @@ cdef class BIFT:
                             double[:, ::1] transp_matrix,
                             double[:, ::1] B,
                             double[::1] sum_dia
-                            ) nogil except -1:
+                            ) noexcept nogil:
 
         cdef:
             double tmp, ql, prefactor, delta_r, il, varl
@@ -959,7 +958,8 @@ cdef class BIFT:
             double area, ev_max, evidence_avg, evidence_std,
             double Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std,
             double regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
-            cnumpy.ndarray radius, densities, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
+            #2d densities,
+            # 1d radius, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
 
         best_key, best, nvalid = self.get_best()
         if nvalid < 2:
