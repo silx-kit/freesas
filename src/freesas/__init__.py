@@ -46,6 +46,7 @@ try:
         hexversion,
         strictversion,
         dated_version,
+        citation
     )  # noqa
 except ImportError:
     raise RuntimeError(
