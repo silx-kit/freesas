@@ -1,5 +1,5 @@
 Inverse Fourier Transform
-========================
+=========================
 
 Inverse Fourier transform is the (electron-) density as function of the pair-wise distance and
 could theoretically be obtained from the Fourier inversion of the SAS curve.
