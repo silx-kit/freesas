@@ -33,9 +33,9 @@ freesas.bift
     :undoc-members:
     :show-inheritance:
     
-freesas.collections
+freesas.containers
 -------------------
-.. automodule:: freesas.collections
+.. automodule:: freesas.containers
     :members:
     :undoc-members:
     :show-inheritance:
