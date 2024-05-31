@@ -3,7 +3,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2017  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2017-2024  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 
 __authors__ = ["J. Kieffer"]
 __license__ = "MIT"
-__date__ = "29/11/2023"
+__date__ = "31/05/2024"
 
 import numpy
 import unittest
@@ -36,6 +36,11 @@ from .._bift import BIFT, distribution_parabola, distribution_sphere, \
 import logging
 logger = logging.getLogger(__name__)
 import time
+
+try:
+    from numpy import trapezoid  # numpy 2
+except ImportError:
+    from numpy import trapz as trapezoid  # numpy1
 
 
 class TestBIFT(unittest.TestCase):
@@ -58,7 +63,7 @@ class TestBIFT(unittest.TestCase):
         cls.q = q[1:]
         cls.I = I[1:]
         cls.err = err[1:]
-        cls.Rg = numpy.sqrt(0.5 * numpy.trapz(cls.p * cls.r ** 2, cls.r) / numpy.trapz(cls.p, cls.r))
+        cls.Rg = numpy.sqrt(0.5 * trapezoid(cls.p * cls.r ** 2, cls.r) / trapezoid(cls.p, cls.r))
         print(cls.Rg)
 
     @classmethod
@@ -92,8 +97,8 @@ class TestBIFT(unittest.TestCase):
     def test_disributions(self):
         pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))
         ps = numpy.asarray(distribution_sphere(self.I0, self.DMAX, self.NPT))
-        self.assertAlmostEqual(numpy.trapz(ps, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a sphere looks OK")
-        self.assertAlmostEqual(numpy.trapz(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
+        self.assertAlmostEqual(trapezoid(ps, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a sphere looks OK")
+        self.assertAlmostEqual(trapezoid(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
         self.assertTrue(numpy.allclose(pp, self.p, 1e-4), "distribution matches")
 
     def test_fixEdges(self):
