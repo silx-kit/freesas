@@ -3,7 +3,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2020  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2020-2024  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,12 +32,17 @@ Some formula taken from Putnam et al, 2007, Table 1 in the review
 """
 __authors__ = ["Martha E. Brennich", "J. Kieffer"]
 __license__ = "MIT"
-__date__ = "04/12/2023"
+__date__ = "31/05/2024"
 
 import logging
 logger = logging.getLogger(__name__)
 import numpy
 from .containers import RT_RESULT
+
+try:
+    from numpy import trapezoid  # numpy 2
+except ImportError:
+    from numpy import trapz as trapezoid  # numpy1
 
 
 def extrapolate(data, guinier):
@@ -78,7 +83,7 @@ def calc_Porod(data, guinier):
     """ 
     q, I, dI = extrapolate(data, guinier).T
     
-    denom = numpy.trapz(I*q**2, q)
+    denom = trapezoid(I*q**2, q)
     volume = 2*numpy.pi**2*guinier.I0 / denom
     return volume
 
@@ -95,10 +100,10 @@ def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     qmin = data[imin, 0]
     qlow = numpy.arange(0, qmin, dq)
 
-    lowqint = numpy.trapz((qlow * I0 * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0)), qlow)
-    dlowqint = numpy.trapz(qlow * numpy.sqrt((numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dI0) ** 2 + ((I0 * 2.0 * (qlow * qlow) * Rg / 3.0) * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dRg) ** 2), qlow)
-    vabs = numpy.trapz(data[imin:, 0] * data[imin:, 1], data[imin:, 0])
-    dvabs = numpy.trapz(data[imin:, 0] * data[imin:, 2], data[imin:, 0])
+    lowqint = trapezoid((qlow * I0 * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0)), qlow)
+    dlowqint = trapezoid(qlow * numpy.sqrt((numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dI0) ** 2 + ((I0 * 2.0 * (qlow * qlow) * Rg / 3.0) * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dRg) ** 2), qlow)
+    vabs = trapezoid(data[imin:, 0] * data[imin:, 1], data[imin:, 0])
+    dvabs = trapezoid(data[imin:, 0] * data[imin:, 2], data[imin:, 0])
     vc = I0 / (lowqint + vabs)
     dvc = (dI0 / I0 + (dlowqint + dvabs) / (lowqint + vabs)) * vc
     return (vc, dvc)

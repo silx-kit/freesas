@@ -32,7 +32,7 @@ classifiers = [
 ]
 
 dependencies = [
-   'numpy<2',
+   'numpy',
    'scipy',
    'matplotlib'
 ]

@@ -20,8 +20,8 @@ cdef:
 
 __authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020-2023, ESRF"
-__date__ = "04/12/2023"
+__copyright__ = "2020-2024, ESRF"
+__date__ = "31/05/2024"
 
 import time
 import cython
@@ -36,6 +36,11 @@ from scipy.linalg.cython_blas cimport dgemm, ddot
 import logging
 import itertools
 logger = logging.getLogger(__name__)
+
+try:
+    from numpy import trapezoid  # numpy 2
+except ImportError:
+    from numpy import trapz as trapezoid  # numpy1
 
 from .containers import RadiusKey, PriorKey, TransfoValue, EvidenceKey, EvidenceResult, StatsResult
 
@@ -240,17 +245,20 @@ cpdef inline double calc_rlogdet(double[::1] f_r,
             rlogdet += log(fabs(eigen[j]))
         return rlogdet
 
-cpdef inline void ensure_edges_zero(double[::1] distribution) nogil:
-  """This function sets the first and last point of the density plot to 0
-  :param distribution: raw density
-  The operation is performed in place
-  """
-  npt = distribution.shape[0] - 1
-  distribution[0] = 0.0
-  distribution[npt] = 0.0
+
+cpdef inline void ensure_edges_zero(double[::1] distribution) noexcept nogil:
+    """This function sets the first and last point of the density plot to 0
+    
+    :param distribution: raw density
+    The operation is performed in place
+    """
+    npt = distribution.shape[0] - 1
+    distribution[0] = 0.0
+    distribution[npt] = 0.0
+
 
 cpdef inline void smooth_density(double[::1] raw,
-                                 double[::1] smooth) nogil:
+                                 double[::1] smooth) noexcept nogil:
         """This function applies the smoothing of the density plot
 
         :param raw: raw density, called *f* in eq.19
@@ -270,6 +278,7 @@ cpdef inline void smooth_density(double[::1] raw,
         #Interpolate the second and second to last point
         smooth[1] = (smooth[0] + smooth[2]) * 0.5
         smooth[npt-1] = (smooth[npt-2] + smooth[npt]) * 0.5
+
 
 ################################################################################
 # Main class
@@ -431,7 +440,7 @@ cdef class BIFT:
             logger.warning("No converged solution was found. It is not advices to ")
             density = distribution_sphere(1, 1, npt)
         else:
-            density = best_value.density / (4.0*pi*numpy.trapz(best_value.density, numpy.linspace(0, 1, npt+1)))
+            density = best_value.density / (4.0*pi*trapezoid(best_value.density, numpy.linspace(0, 1, npt+1)))
         key = PriorKey("wisdom", npt)
         self.prior_cache[key] = density
 
@@ -665,7 +674,7 @@ cdef class BIFT:
                            double[:, ::1] transfo,
                            double[::1] density,
                            int npt
-                           )nogil:
+                           )noexcept nogil:
         """Calculate chi²
 
         This is defined in eq.6
@@ -695,6 +704,7 @@ cdef class BIFT:
             chi2 += ((Im - self.intensity[idx_q])**2/self.variance[idx_q])
         return chi2
 
+
     cdef double scale_density(self,
                              double[:, ::1] transfo,
                              double[::1] p_r,
@@ -702,7 +712,7 @@ cdef class BIFT:
                              int start,
                              int stop,
                              int npt,
-                             float factor) nogil:
+                             float factor) noexcept nogil:
         """
         Do some kind of rescaling of the prior density
 
@@ -725,17 +735,8 @@ cdef class BIFT:
         for j in range(start, stop):
             v = self.variance[j]
             num += self.intensity[j] / v
-            # Use a dot product
             tmp = blas_ddot(transfo[j, 1:npt], p_r[1:npt])
-#             tmp = 0.0
-#             for k in range(1, npt):
-#                 tmp += transfo[j, k]*p_r[k]
-
             denom += tmp/v
-#         with gil:
-#             c1 = numpy.sum(numpy.sum(numpy.dot(transfo[1:4,1:-1],p_r[1:-1])/self.variance[1:4]))
-#             c2 = numpy.sum(numpy.asarray(self.intensity[1:4])/numpy.asarray(self.variance[1:4]))
-#             print(c2/c1, num/denom)
         scale_p = num/denom
         scale_f = factor * scale_p
 
@@ -744,7 +745,8 @@ cdef class BIFT:
             v = p_r[j]
             p_r[j] = v * scale_p
             f_r[j] = v * scale_f
-        return num/denom
+        return scale_p
+    
 
     cdef inline double _bift_inner_loop(self,
                                         double[::1] f_r,
@@ -754,7 +756,7 @@ cdef class BIFT:
                                         double alpha,
                                         int npt,
                                         double[::1] sum_dia,
-                                        double xprec) nogil:
+                                        double xprec) noexcept nogil:
         """
         Loop and seek for self consistence and smooth f
 
@@ -821,9 +823,6 @@ cdef class BIFT:
                 B_kk = B[k, k]
 
                 # fsumi = numpy.dot(B[k, 1:N], f[1:N]) - B_kk*f_k
-#                 tmp_sum = 0.0
-#                 for j in range(1, npt):
-#                     tmp_sum += B[k, j] * f_r[j]
                 tmp_sum = blas_ddot(B[k, 1:npt], f_r[1:npt])
                 tmp_sum -= B[k, k]*f_r[k]
 
@@ -833,20 +832,11 @@ cdef class BIFT:
                 f_r[k] = f_k = (1.0-omega)*f_k + omega*fx
             #Synchro point
 
-#             if not is_valid:
-#                 with gil:
-#                     for i in range(npt+1):
-#                         print(i, f_r[i], p_r[i], sigma2[i])
-#                 return 0.0
-
             # Calculate convergence
             sum_c2 = sum_sc = sum_s2 = 0.0
             for k in range(1, npt):
                 s_k = 2.0 * (p_r[k] - f_r[k]) / sigma2[k] #Check homogeneity
 
-#                 tmp_sum = 0.0
-#                 for j in range(1, npt):
-#                     tmp_sum += B[k, j] * f_r[j]
                 tmp_sum = blas_ddot(B[k, 1:npt], f_r[1:npt])
 
                 c_k = 2.0 * (tmp_sum - sum_dia[k])
@@ -858,16 +848,9 @@ cdef class BIFT:
 
             denom = sqrt(sum_s2*sum_c2)
 
-    #         gradsi = 2.0*(p[1:N] - f[1:N])/sigma2[1:N]
-    #         gradci = 2.0*(numpy.dot(B[1:N,1:N],f[1:N]) - sum_dia[1:N])
-
-    #         wgrads2 = numpy.dot(gradsi,gradsi)
-    #         wgradc2 = numpy.dot(gradci, gradci)
-    #         denom = sqrt(wgrads2*wgradc2)
             if denom == 0.0:
                 dotsp = 1.0
             else:
-    #             dotsp = numpy.dot(gradsi,gradci) / denom
                 dotsp = sum_sc / denom
         return dotsp
 
@@ -1012,8 +995,8 @@ cdef class BIFT:
         regularization_avg = numpy.dot(regularizations, proba)
         regularization_std = numpy.sqrt(numpy.dot((regularizations - regularization_avg)**2, proba))
 
-        areas = numpy.trapz(densities, radius, axis=1)
-        area2s = numpy.trapz(densities*radius**2, radius, axis=1)
+        areas = trapezoid(densities, radius, axis=1)
+        area2s = trapezoid(densities*radius**2, radius, axis=1)
 
         Rgs = numpy.sqrt(area2s/(2.*areas))
         Rg_avg = numpy.sum(Rgs*proba)

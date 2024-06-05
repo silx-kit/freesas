@@ -353,7 +353,7 @@ cdef class AutoGuinier:
         Nota: May work with more then 3 col and discard subsequent columns in data
         """
         cdef:
-            int idx, size, start, end
+            int idx, size, start, end=0
             DTYPE_t one_q, one_i, one_sigma, i_max, i_min
 
         size = data.shape[0]
