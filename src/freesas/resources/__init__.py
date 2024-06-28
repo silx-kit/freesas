@@ -100,7 +100,7 @@ if getattr(sys, 'frozen', False):
     # Running in a frozen application:
     # We expect resources to be located either in a pyFAI/resources/ dir
     # relative to the executable or within this package.
-    _dir = os.path.join(os.path.dirname(sys.executable), 'pyFAI', 'resources')
+    _dir = os.path.join(os.path.dirname(sys.executable), 'freesas', 'resources')
     if os.path.isdir(_dir):
         _RESOURCES_DIR = _dir
 
@@ -138,12 +138,12 @@ _integrated = False
 
 
 def silx_integration():
-    """Provide pyFAI resources accessible throug silx using a prefix."""
+    """Provide freesas resources accessible throug silx using a prefix."""
     global _integrated
     if _integrated:
         return
     import silx.resources
-    silx.resources.register_resource_directory("pyfai",
+    silx.resources.register_resource_directory("freesas",
                                                __name__,
                                                _RESOURCES_DIR)
     _integrated = True
