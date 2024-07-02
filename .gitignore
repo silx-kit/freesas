@@ -59,7 +59,7 @@ target/
 
 #IDEs
 workspace.code-workspace
-
+.ipynb_checkpoints/
 
 # OS files
 .DS_Store
