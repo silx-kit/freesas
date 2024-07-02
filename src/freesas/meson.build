@@ -1,5 +1,6 @@
 subdir('app')
 subdir('ext')
+subdir('resources')
 subdir('test')
 
 

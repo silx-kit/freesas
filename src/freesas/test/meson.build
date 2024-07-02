@@ -12,6 +12,7 @@ py.install_sources([
 'test_model.py',
 'test_sas_argparser.py',
 'test_sasio.py',
+'test_resources.py',
 'utilstest.py',
 ],
   pure: false,    # Will be installed next to binaries
