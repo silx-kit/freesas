@@ -7,6 +7,7 @@ py.install_sources([
 'test_average.py',
 'test_bift.py',
 'test_cormap.py',
+'test_dnn.py',
 'test_distance.py',
 'test_fitting.py',
 'test_model.py',
