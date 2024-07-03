@@ -5,7 +5,7 @@ from __future__ import print_function
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "25/04/2020"
+__date__ = "03/07/2024"
 
 import unittest
 from . import test_model
@@ -18,6 +18,7 @@ from . import test_sasio
 from . import test_sas_argparser
 from . import test_fitting
 from . import test_resources
+from . import test_dnn
 
 
 def suite():
@@ -32,6 +33,7 @@ def suite():
     testSuite.addTest(test_sas_argparser.suite())
     testSuite.addTest(test_fitting.suite())
     testSuite.addTest(test_resources.suite())
+    testSuite.addTest(test_dnn.suite())
     return testSuite
 
 
