@@ -33,7 +33,7 @@ import os
 from .utilstest import get_datafile
 from ..resources import resource_filename
 from ..sasio import load_scattering_data
-# from ..dnn import preprocess
+from ..dnn import preprocess
 logger = logging.getLogger(__name__)
 
 class TestDNN(unittest.TestCase):
@@ -45,9 +45,9 @@ class TestDNN(unittest.TestCase):
         datfile = get_datafile("bsa_005_sub.dat")
         data = load_scattering_data(datfile)
         q, I, sigma = data.T
-        # Iprep = preprocess(q, I)
-        # self.assertEqual(Iprep.max(), 1, msg="range 0-1")
-        # self.assertEqual(Iprep.shape, 1024, msg="size 1024")
+        Iprep = preprocess(q, I)
+        self.assertEqual(Iprep.max(), 1, msg="range 0-1")
+        self.assertEqual(Iprep.shape, (1024,), msg="size 1024")
 
 
 def suite():

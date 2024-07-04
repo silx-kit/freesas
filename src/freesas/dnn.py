@@ -1,7 +1,9 @@
 import numpy as np
-import pandas as pd
 import json
 import h5py
+import zipfile
+from .resources import resource_filename
+
 
 # Activation functions
 def tanh(x): 
@@ -114,24 +116,51 @@ class DNN:
         return tmp
     __call__ = infer
 
-def preprocess_and_infer(dnn, q, I):
+def preprocess(q, I):
     """
     Preprocess the input data and infer Rg and Dmax using the DNN.
     
     :param dnn: An instance of the DNN class
     :param q: 1D array of q values
     :param I: 1D array of intensity values
+    :param dI: 1D array of the intensity error values
+    :param q_interp: 1D array of the interpolated q values
     :return: Rg and Dmax
     """
-    # preprocessing: concatenate q and I into a single input array
-    input_data = np.concatenate((q, I)).reshape(1, -1)
     
-    # Perform inference using the DNN
-    output = dnn.infer(input_data)
-    
-    # Extract Rg and Dmax from the output
-    Rg = output[0, 0]  # Assuming Rg is the first element
-    Dmax = output[0, 1]  # Assuming Dmax is the second element
-    
-    return Rg, Dmax
+    # Define q_interp as a regularly spaced array in the range 0-4 nm^-1 with 1024 points
+    q_interp = np.linspace(0, 4, 1024)
 
+    # Normalize I by Imax
+    Imax = I.max()
+    I_normalized = I / Imax
+
+    # Interpolate I over q_interp
+    I_interp = np.interp(q_interp, q, I_normalized, left=1, right=0)
+    return I_interp
+
+
+def parse_keras_file(keras_file):
+    with zipfile.ZipFile(keras_file, 'r') as z:
+        with z.open('config.json') as config_file:
+            config = parse_config(config_file)
+        with z.open('model.weights.h5') as weights_file:
+            weights = load_weights(weights_file, config[0])
+    return config, weights
+
+
+class KerasDNN:
+    def __init__(self, keras_file):
+        config, weights = parse_keras_file(keras_file)
+        self.dnn =  DNN(*[DenseLayer(weights[2*i], weights[2*i+1], a) for i,a in enumerate(config[1])])
+                
+    def infer(self, q, I):
+        Iprep = preprocess(q,I)
+        output = self.dnn.infer(Iprep)
+        # Extract Rg and Dmax from the output
+        Rg = output[0]  # Assuming Rg is the first element
+        Dmax = output[1]  # Assuming Dmax is the second element
+    
+        return Rg, Dmax
+    __call__ = infer
+    
