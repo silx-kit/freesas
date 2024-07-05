@@ -20,6 +20,7 @@ py.install_sources([
     'sas_argparser.py',
     'sasio.py',
     'transformations.py',
+    'dnn.py',
 ],
   pure: false,    # Will be installed next to binaries
   subdir: 'freesas'  # Folder relative to site-packages to install to
