@@ -4,6 +4,7 @@ import h5py
 import zipfile
 from .resources import resource_filename
 import io
+import os
 
 
 # Activation functions
