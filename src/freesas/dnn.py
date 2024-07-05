@@ -3,6 +3,7 @@ import json
 import h5py
 import zipfile
 from .resources import resource_filename
+import io
 
 
 # Activation functions
@@ -28,8 +29,11 @@ activation_functions = {
 
 # Parse config.json
 def parse_config(config_path):
-    with open(config_path, 'r') as f:
-        config = json.load(f)
+    if isinstance(config_path, io.IOBase):
+        config = json.load(config_path)
+    elif os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
     
     layer_dims = []
     activations = []
@@ -143,9 +147,11 @@ def preprocess(q, I):
 def parse_keras_file(keras_file):
     with zipfile.ZipFile(keras_file, 'r') as z:
         with z.open('config.json') as config_file:
+            #config = parse_config(io.TextIOWrapper(config_file, 'tf-8'))
             config = parse_config(config_file)
         with z.open('model.weights.h5') as weights_file:
-            weights = load_weights(weights_file, config[0])
+            weights = load_weights(io.BytesIO(weights_file.read()), config[0])
+            #weights = load_weights(weights_file, config[0])
     return config, weights
 
 
@@ -155,6 +161,11 @@ class KerasDNN:
         self.dnn =  DNN(*[DenseLayer(weights[2*i], weights[2*i+1], a) for i,a in enumerate(config[1])])
                 
     def infer(self, q, I):
+        """Infer the neural network with q/I
+        :param q: 1D array, in inverse nm
+        :param I: 1D array, same size as q
+        :return: result of the neural network.
+        """
         Iprep = preprocess(q,I)
         output = self.dnn.infer(Iprep)
         # Extract Rg and Dmax from the output
@@ -163,4 +174,5 @@ class KerasDNN:
     
         return Rg, Dmax
     __call__ = infer
-    
+
+Rg_Dmax = KerasDNN(resource_filename("keras_models/Rg+Dmax.keras"))
