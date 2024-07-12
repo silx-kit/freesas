@@ -85,7 +85,7 @@ def scatter_plot(
             ax.errorbar(
                 q,
                 I,
-                err,
+                numpy.maximum(0,err),
                 label=label_exp,
                 capsize=0,
                 color=exp_color,
@@ -100,7 +100,7 @@ def scatter_plot(
             ax.errorbar(
                 q,
                 I,
-                err,
+                numpy.maximum(0,err),
                 label=label_exp,
                 capsize=0,
                 color=exp_color,
@@ -210,7 +210,7 @@ def kratky_plot(
     xdata = q * Rg
     ydata = xdata * xdata * I / I0
     if err is not None:
-        dy = xdata * xdata * err / I0
+        dy = xdata * xdata * numpy.maximum(0,err) / abs(I0)
         dplot = ax.errorbar(
             xdata,
             ydata,
@@ -302,7 +302,7 @@ def guinier_plot(
     else:
         fig, ax = subplots(figsize=(12, 10))
     if err is not None:
-        dlogI = err[mask] / logI
+        dlogI = err[mask] / I[mask]
         ax.errorbar(
             q2,
             logI,
