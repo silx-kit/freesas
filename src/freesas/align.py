@@ -429,6 +429,7 @@ class AlignModels:
 
         :return dist: NSD after alignment
         """
+        dist = None
         models = self.models
         reference = models[0]
         molecule = models[1]

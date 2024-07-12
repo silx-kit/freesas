@@ -30,16 +30,18 @@ activation_functions = {
 
 # Parse config.json
 def parse_config(config_path):
+    config = {}
     if isinstance(config_path, io.IOBase):
         config = json.load(config_path)
     elif os.path.exists(config_path):
         with open(config_path, 'r') as f:
             config = json.load(f)
-    
+    else:
+        raise RuntimeError(f"config_path type {type(config_path)} not handled, got {config_path}")
     layer_dims = []
     activations = []
     
-    for layer in config['config']['layers']:
+    for layer in config.get('config',{}).get('layers', {}):
         if layer['class_name'] == 'InputLayer':
             layer_dims.append(layer['config']['batch_shape'][1])
         elif layer['class_name'] == 'Dense':

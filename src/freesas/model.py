@@ -49,7 +49,7 @@ class SASModel:
             self.header = ""  # header of the PDB file
             self.rfactor = None
         self.radius = 1.0  # unused at the moment
-        self.com = []
+        self.com = numpy.array([])
         self._fineness = None
         self._Rg = None
         self._Dmax = None

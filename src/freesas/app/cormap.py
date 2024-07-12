@@ -4,18 +4,18 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "20/04/2020"
+__date__ = "12/07/2024"
 
 import os
 import logging
-import freesas
-from freesas.cormap import gof
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("cormap")
-import numpy
+import glob
 from itertools import combinations
 from collections import namedtuple
+import numpy
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("cormap")
+import freesas
+from freesas.cormap import gof
 from freesas.sasio import load_scattering_data
 from freesas.sas_argparser import SASParser
 
@@ -24,8 +24,7 @@ datum = namedtuple("datum", ["index", "filename", "data"])
 import platform
 
 operatingSystem = platform.system()
-if operatingSystem == "Windows":
-    import glob
+
 
 
 def parse():

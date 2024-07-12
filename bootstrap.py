@@ -10,7 +10,7 @@ example: ./bootstrap.py ipython
 __authors__ = ["Frédéric-Emmanuel Picca", "Jérôme Kieffer"]
 __contact__ = "jerome.kieffer@esrf.eu"
 __license__ = "MIT"
-__date__ = "03/03/2023"
+__date__ = "12/07/2024"
 
 import sys
 import os
@@ -23,6 +23,7 @@ else:
 logging.basicConfig()
 logger = logging.getLogger("bootstrap")
 
+LIBPATH = ""
 
 def get_project_name(root_dir):
     """Retrieve project name by running python setup.py --name in root_dir.
@@ -116,14 +117,14 @@ def run_file(filename, argv):
         # Providing globals() as locals will force to feed the file into
         # globals() (for examples imports).
         # Without this any function call from the executed file loses imports
+        old_argv = sys.argv
+        sys.argv = full_args
+        logger.info("Patch the sys.argv: %s", sys.argv)
+        logger.info("Executing %s.main()", filename)
+        print("########### EXECFILE ###########")
+        module_globals = globals().copy()
+        module_globals['__file__'] = filename
         try:
-            old_argv = sys.argv
-            sys.argv = full_args
-            logger.info("Patch the sys.argv: %s", sys.argv)
-            logger.info("Executing %s.main()", filename)
-            print("########### EXECFILE ###########")
-            module_globals = globals().copy()
-            module_globals['__file__'] = filename
             execfile(filename, module_globals, module_globals)
         finally:
             sys.argv = old_argv
@@ -154,10 +155,10 @@ def run_entry_point(target_name, entry_point, argv):
     logger.info("Execute target %s (function %s from module %s) using importlib", target_name, function_name, module_name)
     full_args = [target_name]
     full_args.extend(argv)
+    old_argv = sys.argv
+    sys.argv = full_args
+    print("########### IMPORTLIB ###########")
     try:
-        old_argv = sys.argv
-        sys.argv = full_args
-        print("########### IMPORTLIB ###########")
         module = importlib.import_module(module_name)
         if hasattr(module, function_name):
             func = getattr(module, function_name)
