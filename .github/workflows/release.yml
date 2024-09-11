@@ -44,7 +44,7 @@ jobs:
           name: cibw-sdist
           path: dist
       - name: Install from sdist
-        run: pip install "$(ls dist/pyfai-*.tar.gz)"
+        run: pip install "$(ls dist/freesas-*.tar.gz)"
       - name: Run tests
         env:
           WITH_QT_TEST: "False"  # skip GUI tests
@@ -74,7 +74,7 @@ jobs:
         run: |
           export FREESAS_VERSION="$(python -c 'import freesas; print(freesas.strictversion)')"
           sphinx-build doc/source/ "freesas-${FREESAS_VERSION}_documentation/"
-          zip -r "freesas-${FREESAS_VERSION}_documentation.zip" "freesas-${PYFAI_VERSION}_documentation/"
+          zip -r "freesas-${FREESAS_VERSION}_documentation.zip" "freesas-${FREESAS_VERSION}_documentation/"
       - uses: actions/upload-artifact@v4
         with:
           name: documentation
