@@ -5,7 +5,7 @@ FreeSAS v2024.9.0 11/09/2021
 ============================
 - Rg+Dmax inferance from a Dense Neural Network (free_dnn)
 - automatic packaging using github-actions
-- Supports Python 3.8-3.12, including numpy2
+- Supports Python 3.9-3.12, including numpy2
 
 FreeSAS v0.9.0 16/07/2021
 =========================
