@@ -13,20 +13,14 @@ environment:
         WIN_SDK_ROOT: "C:\\Program Files\\Microsoft SDKs\\Windows"
 
     matrix:
-        # Python 3.6
-        - PYTHON_DIR: "C:\\Python36-x64"
-
         # Python 3.7
         - PYTHON_DIR: "C:\\Python37-x64"
-
-        # Python 3.8
-        - PYTHON_DIR: "C:\\Python38-x64"
 
         # Python 3.9
         - PYTHON_DIR: "C:\\Python39-x64"
 
-        # Python 3.10
-        - PYTHON_DIR: "C:\\Python310-x64"
+        # Python 3.11
+        - PYTHON_DIR: "C:\\Python311-x64"
 
 matrix:
     exclude:
