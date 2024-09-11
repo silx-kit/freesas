@@ -5,7 +5,7 @@ __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "29/11/2023"
+__date__ = "11/09/2024"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
@@ -26,7 +26,7 @@ from .sasio import (
     load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
 )
-from .sas_argparser import GuinierParser
+from .sas_argparser import GuinierParser, SASParser
 
 
 def set_logging_level(verbose_flag: int) -> None:
@@ -110,6 +110,28 @@ def get_guinier_header(
     else:
         return ""
 
+def get_dnn_header(
+    linesep: str, output_format: Optional[str] = None
+) -> str:
+    """Return appropriate header line for selected output format
+    :param output_format: output format from string parser
+    :param linesep: correct linesep for chosen destination
+    :return: a one-line string"""
+    # pylint: disable=R1705
+    if output_format == "csv":
+        return (
+            ",".join(
+                (
+                    "File",
+                    "Rg",
+                    "Dmax",
+                )
+            )
+            + linesep
+        )
+    else:
+        return ""
+
 
 def rg_result_to_output_line(
     rg_result: RG_RESULT,
@@ -160,6 +182,44 @@ def rg_result_to_output_line(
         )
     else:
         return f"{afile} {rg_result}{linesep}"
+
+def dnn_result_to_output_line(
+    dnn_result: tuple,
+    afile: Path,
+    linesep: str,
+    output_format: Optional[str] = None,
+) -> str:
+    """Return result line formatted according to selected output format
+    :param dnn_result: Result of an dnn inference, 2 tuple
+    :param afile: The name of the file that was processed
+    :param output_format: The chosen output format
+    :param linesep: correct linesep for chosen destination
+    :return: a one-line string including linesep"""
+    # pylint: disable=R1705
+    if output_format == "csv":
+        return (
+            ",".join(
+                [
+                    f"{afile}",
+                    f"{dnn_result[0]:6.4f}",
+                    f"{dnn_result[1]:6.4f}",
+                ]
+            )
+            + linesep
+        )
+    elif output_format == "ssv":
+        return (
+            " ".join(
+                [
+                    f"{dnn_result[0]:6.4f}",
+                    f"{dnn_result[1]:6.4f}",
+                    f"{afile}",
+                ]
+            )
+            + linesep
+        )
+    else:
+        return f"{afile} {dnn_result[0]} {dnn_result[1]}{linesep}"
 
 
 def run_guinier_fit(
@@ -214,6 +274,64 @@ def run_guinier_fit(
                 else:
                     res = rg_result_to_output_line(
                         rg_result,
+                        afile,
+                        linesep,
+                        args.format,
+                    )
+                    output_destination.write(res)
+                    output_destination.flush()
+def run_dnn(
+    parser: SASParser,
+    logger: logging.Logger,
+) -> None:
+    """
+    reads in the data, infer the DNN and creates the result
+    :param parser: a function that returns the output of argparse.parse()
+    :param logger: a Logger
+    """
+    from .dnn import Rg_Dmax # heavy import
+
+    args = parser.parse_args()
+    set_logging_level(args.verbose)
+    files = collect_files(args.file)
+    logger.debug("%s input files", len(files))
+
+    with get_output_destination(args.output) as output_destination:
+        linesep = get_linesep(output_destination)
+
+        output_destination.write(
+            get_dnn_header(
+                linesep,
+                args.format,
+            )
+        )
+
+        for afile in files:
+            logger.info("Processing %s", afile)
+            try:
+                data = load_scattering_data(afile)
+            except OSError:
+                logger.error("Unable to read file %s", afile)
+            except ValueError:
+                logger.error("Unable to parse file %s", afile)
+            else:
+                if args.unit == "Å":
+                    data = convert_inverse_angstrom_to_nanometer(data)
+                q, I = data.T[:2]
+                try:
+                    dnn_result = Rg_Dmax(q, I)
+                except (
+                    InsufficientDataError,
+                    NoGuinierRegionError,
+                    ValueError,
+                    IndexError,
+                ) as err:
+                    sys.stderr.write(
+                        f"{afile}, {err.__class__.__name__}: {err} {os.linesep}"
+                    )
+                else:
+                    res = dnn_result_to_output_line(
+                        dnn_result,
                         afile,
                         linesep,
                         args.format,
