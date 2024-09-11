@@ -22,9 +22,8 @@ jobs:
           pip install build twine pillow
       - name: Install Ubuntu dependencies
         run: |
-          # NOTE: not the same OpenBLAS version as in upstream CI (I'm being lazy here)
           sudo apt-get update
-          sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev ccache
+          sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
       - name: Build sdist
         run: python -m build --sdist
       - name: Check the package
