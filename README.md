@@ -5,7 +5,7 @@
 FreeSAS
 =======
 
-Small angle scattering tools ... but unlike most others, free and written in Python (3.7+)
+Small angle scattering tools ... but unlike most others, free and written in Python (3.9+)
 The FreeSAS tool suite is licensed under the MIT license.
 
 Most features are described in [J. Synchrotron Rad. (2022). 29, 1318-1328](https://scripts.iucr.org/cgi-bin/paper?ju5045)
