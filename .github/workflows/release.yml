@@ -20,10 +20,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build twine pillow
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
+#      - name: Install Ubuntu dependencies
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
       - name: Build sdist
         run: python -m build --sdist
       - name: Check the package
@@ -46,11 +46,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: cibw-sdist
-          path: dist
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
+      #     path: dist
+      # - name: Install Ubuntu dependencies
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
       - name: Install from sdist
         run: pip install "$(ls dist/freesas-*.tar.gz)"
       - name: Run tests
@@ -98,12 +98,12 @@ jobs:
         include:
           - os: ubuntu-20.04
             cibw_archs: "auto64"
-          - os: ubuntu-20.04
-            cibw_archs: "aarch64"
-          - os: ubuntu-20.04
-            cibw_archs: "ppc64le"
-          - os: windows-2022
-            cibw_archs: "auto64"
+          # - os: ubuntu-20.04
+          #   cibw_archs: "aarch64"
+          # - os: ubuntu-20.04
+          #   cibw_archs: "ppc64le"
+          # - os: windows-2022
+          #   cibw_archs: "auto64"
           - os: macos-12
             cibw_archs: "x86_64"
             macos_target: "10.9"
