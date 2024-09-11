@@ -34,7 +34,8 @@ classifiers = [
 dependencies = [
    'numpy',
    'scipy',
-   'matplotlib'
+   'matplotlib',
+   'silx'
 ]
 [build-system]
 build-backend = 'mesonpy'
@@ -49,7 +50,8 @@ requires = [
     "numpy; platform_machine != 'ppc64le'",
     'pyproject-metadata>=0.5.0',
     'tomli>=1.0.0',
-    'scipy'
+    'scipy',
+    'silx'
 ]
 
 [project.urls]
@@ -67,6 +69,7 @@ cormapy = 'freesas.app.cormap:main'
 supycomb = 'freesas.app.supycomb:main'
 free_bift = 'freesas.app.bift:main'
 extract_ascii = 'freesas.app.extract_ascii:main'
+free_dnn = 'freesas.app.dnn:main'
 
 [project.gui-scripts]
 freesas = 'freesas.app.plot_sas:main'
