@@ -46,7 +46,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: cibw-sdist
-      #     path: dist
+          path: dist
       # - name: Install Ubuntu dependencies
       #   run: |
       #     sudo apt-get update
