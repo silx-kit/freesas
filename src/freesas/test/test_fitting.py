@@ -5,7 +5,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "16/07/2021"
+__date__ = "12/09/2024"
 
 
 import unittest
@@ -337,6 +337,7 @@ class TestFitting(unittest.TestCase):
             msg="header for undefined format is correct",
         )
 
+    @unittest.skipIf(platform.system() == "Windows", "Only POSIX")
     def test_collect_files_only_returns_existing_files(self):
 
         """Test that collect_files discards strings that do not match an existing file."""
