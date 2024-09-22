@@ -29,7 +29,7 @@ class TestSasArgParser(unittest.TestCase):
         output_catcher = io.StringIO()
         try:
             with contextlib.redirect_stderr(output_catcher):
-                _ = basic_parser.parse_args()
+                _ = basic_parser.parse_args([])
         except SystemExit:
             pass
 
@@ -172,8 +172,8 @@ class TestSasArgParser(unittest.TestCase):
         """
         Test that the parser sets the verbosity to 0 if no args are provided
         """
-        basic_parser = SASParser("program", "description", "epilog")
-        parsed_arguments = basic_parser.parse_args()
+        basic_parser = SASParser("program", "description", "epilog", exit_on_error=False)
+        parsed_arguments = basic_parser.parse_args([])
         self.assertEqual(
             parsed_arguments.verbose,
             0,
@@ -268,8 +268,8 @@ class TestSasArgParser(unittest.TestCase):
         parsed_arguments = basic_parser.parse_args(["afile", "-o", "out.file"])
 
         self.assertEqual(
-            parsed_arguments.output,
-            Path("out.file"),
+            str(parsed_arguments.output),
+            str(Path("out.file")),
             msg="Minimal GuinierParser accepts output file argument",
         )
 
@@ -297,8 +297,8 @@ class TestSasArgParser(unittest.TestCase):
         parsed_arguments = basic_parser.parse_args(["-o", "out.file"])
 
         self.assertEqual(
-            parsed_arguments.output,
-            Path("out.file"),
+            str(parsed_arguments.output),
+            str(Path("out.file")),
             msg="SASParser accepts output file argument"
             "after running add_output_filename_argument()",
         )

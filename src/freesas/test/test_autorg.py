@@ -170,6 +170,8 @@ class TestAutoRg(unittest.TestCase):
         )
 
     def test_auto_gpa_with_outlier(self):
+        if "outlier_position" not in self.extra_arg:
+            raise unittest.SkipTest("No outlier position to test")
 
         """
         Test that auto_gpa gives reasonalbe results
@@ -374,6 +376,9 @@ class TestDataCuration(unittest.TestCase):
         )
 
     def test_curate_synthetic_data_with_negative_points(self):
+        if "negative_point_index" not in self.extra_arg:
+            raise unittest.SkipTest("No negative point index to test")
+        
         """Test that if one of the first three points is negative, all date before it gets ignored."""
         negative_point_index = self.extra_arg["negative_point_index"]
 
