@@ -12,8 +12,7 @@ from ._cormap import measure_longest
 class LongestRunOfHeads(object):
     """Implements the "longest run of heads" by Mark F. Schilling
     The College Mathematics Journal, Vol. 21, No. 3, (1990), pp. 196-207
-    
-    See: http://www.maa.org/sites/default/files/pdf/upload_library/22/Polya/07468342.di020742.02p0021g.pdf
+    http://www.silx.org/pub/freesas/CorMap_math.pdf
     """
 
     def __init__(self):
