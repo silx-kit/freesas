@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020, ESRF"
-__date__ = "15/01/2021"
+__date__ = "05/12/2024"
 
 import io
 import os
@@ -89,7 +89,10 @@ def extract_averaged(filename):
     with Nexus(filename, "r") as nxsr:
         entry_grp = nxsr.get_entries()[0]
         results["h5path"] = entry_grp.name
-        nxdata_grp = nxsr.h5[entry_grp.attrs["default"]]
+        default = entry_grp.attrs["default"]
+        if posixpath.split(default)[-1] == "hplc":
+            default = posixpath.join(posixpath.split(default)[0],"result")
+        nxdata_grp = nxsr.h5[default]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"]
         results["I"] = nxdata_grp[signal][()]
@@ -119,9 +122,7 @@ def extract_averaged(filename):
         results["exposure temperature"] = sample_grp["temperature"][()]
         results["concentration"] = sample_grp["concentration"][()]
         if "2_correlation_mapping" in entry_grp:
-            results["to_merge"] = entry_grp[
-                "2_correlation_mapping/results/to_merge"
-            ][()]
+            results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
     return results
 
 
