@@ -9,7 +9,7 @@ from .containers import GOF
 from ._cormap import measure_longest
 
 
-class LongestRunOfHeads(object):
+class LongestRunOfHeads:
     """Implements the "longest run of heads" by Mark F. Schilling
     The College Mathematics Journal, Vol. 21, No. 3, (1990), pp. 196-207
     http://www.silx.org/pub/freesas/CorMap_math.pdf
