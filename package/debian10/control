@@ -47,7 +47,6 @@ Depends: ${misc:Depends},
          python3-numpy,
          python3-matplotlib,
          python3-scipy,
-         python3-six,
          python3-pyfai
 # Recommends:
 # Suggests: python3-rfoo

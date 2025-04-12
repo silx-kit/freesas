@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-from __future__ import print_function
 
 __author__ = "Guillaume"
 __license__ = "MIT"
@@ -9,7 +8,6 @@ __copyright__ = "2015, ESRF"
 import os
 from math import sqrt
 import threading
-import six
 import numpy
 try:
     from . import _distance
@@ -42,7 +40,7 @@ class SASModel:
         """
         :param molecule: if str, name of a pdb file, else if 2d-array, coordinates of atoms of a molecule
         """
-        if isinstance(molecule, (six.text_type, six.binary_type)) and os.path.exists(molecule):
+        if isinstance(molecule, (str, bytes)) and os.path.exists(molecule):
             self.read(molecule)
         else:
             self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix

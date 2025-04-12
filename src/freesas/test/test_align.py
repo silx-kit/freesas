@@ -1,5 +1,4 @@
 #!/usr/bin/python
-from __future__ import print_function
 
 __author__ = "Guillaume"
 __license__ = "MIT"

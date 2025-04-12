@@ -27,7 +27,7 @@ def get_datafile(name):
 def clean():
     pass
 
-class TestOptions(object):
+class TestOptions:
     """
     Class providing useful stuff for preparing tests.
     """
