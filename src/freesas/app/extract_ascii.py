@@ -158,7 +158,10 @@ def extract_all(filename):
         results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
         sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
         results["sample"] = posixpath.split(sample_grp.name)[-1]
-        results["buffer"] = sample_grp["buffer"][()]
+        try:
+            results["buffer"] = sample_grp["buffer"][()]
+        except:
+            results["buffer"] = None
         if "temperature_env" in sample_grp:
             results["storage temperature"] = sample_grp["temperature_env"][()]
         if "temperature" in sample_grp:
