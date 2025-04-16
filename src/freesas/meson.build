@@ -21,6 +21,7 @@ py.install_sources([
     'sasio.py',
     'transformations.py',
     'dnn.py',
+    'nexus_parser.py',
 ],
   pure: false,    # Will be installed next to binaries
   subdir: 'freesas'  # Folder relative to site-packages to install to
