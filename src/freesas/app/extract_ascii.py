@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020-2024, ESRF"
-__date__ = "05/12/2024"
+__date__ = "16/04/2025"
 
 import io
 import os
@@ -38,6 +38,7 @@ import platform
 import posixpath
 from collections import namedtuple, OrderedDict
 import json
+import zipfile
 import copy
 import pyFAI
 from pyFAI.io import Nexus
@@ -78,6 +79,13 @@ def parse():
         help="extract every individual frame",
         default=False,
     )
+    parser.add_argument(
+        "-z",
+        "--zip",
+        action="store_true",
+        help="extract every individual frame into a zip-file",
+        default=False,
+    )
     return parser.parse_args()
 
 
@@ -87,12 +95,18 @@ def extract_averaged(filename):
     results["filename"] = filename
     # Missing: comment normalization
     with Nexus(filename, "r") as nxsr:
-        entry_grp = nxsr.get_entries()[0]
+        default = nxsr.h5.attrs.get("default")
+        if default and default in nxsr.h5:
+            entry_grp = nxsr.h5[default]
+        else:
+            entry_grp = nxsr.get_entries()[0]
         results["h5path"] = entry_grp.name
+        # program = entry_grp.get("program_name")
+        # if program == ""
         default = entry_grp.attrs["default"]
         if posixpath.split(default)[-1] == "hplc":
             default = posixpath.join(posixpath.split(default)[0],"results")
-        print(default)
+        # print(default)
         nxdata_grp = nxsr.h5[default]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"]
@@ -128,45 +142,63 @@ def extract_averaged(filename):
 
 
 def extract_all(filename):
-    "return some infomations extracted from a HDF5 file for  all individual frames"
+    """return some infomations extracted from a HDF5 file for all individual frames. 
+    Supports HPLC and SC and freshly integrated blocks of frames"""
     res = []
     results = OrderedDict()
     results["filename"] = filename
     with Nexus(filename, "r") as nxsr:
-        entry_grp = nxsr.get_entries()[0]
+        default = nxsr.h5.attrs.get("default")
+        if default and default in nxsr.h5:
+            entry_grp = nxsr.h5[default]
+        else:
+            entry_grp = nxsr.get_entries()[0]
+        program = entry_grp.get("program_name")[()].decode() if "program_name" in entry_grp else None
+
+        if program == "bm29.hplc":
+            target = "1_chromatogram"
+        elif program == "bm29.integratemultiframe":
+            target = "1_integration"
+        elif program == "bm29.subtract":
+            target = "3_azimuthal_integration"
+        else:
+            raise RuntimeError(f"Unable to read file written by {program}")
+        target = posixpath.join(entry_grp.name, target, "results")
         results["h5path"] = entry_grp.name
-        nxdata_grp = nxsr.h5[entry_grp.name + "/1_integration/results"]
+        nxdata_grp = nxsr.h5[target]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"][1]
         I = nxdata_grp[signal][()]
         results["q"] = nxdata_grp[axis][()]
         std = nxdata_grp["errors"][()]
-        results["unit"] = pyFAI.units.to_unit(
-            axis + "_" + nxdata_grp[axis].attrs["units"]
-        )
+        try:
+            results["unit"] = pyFAI.units.to_unit(axis + "_" + nxdata_grp[axis].attrs["units"])
+        except KeyError:
+            logger.warning("Unable to parse radial units")
         integration_grp = nxdata_grp.parent
-        results["geometry"] = json.loads(
-            integration_grp["configuration/data"][()]
-        )
-        results["polarization"] = integration_grp[
-            "configuration/polarization_factor"
-        ][()]
-        instrument_grp = nxsr.get_class(entry_grp, class_type="NXinstrument")[
-            0
-        ]
-        detector_grp = nxsr.get_class(instrument_grp, class_type="NXdetector")[
-            0
-        ]
-        results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
-        sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
-        results["sample"] = posixpath.split(sample_grp.name)[-1]
-        results["buffer"] = sample_grp["buffer"][()]
-        if "temperature_env" in sample_grp:
-            results["storage temperature"] = sample_grp["temperature_env"][()]
-        if "temperature" in sample_grp:
-            results["exposure temperature"] = sample_grp["temperature"][()]
-        if "concentration" in sample_grp:
-            results["concentration"] = sample_grp["concentration"][()]
+        if "configuration/data" in integration_grp:
+            results["geometry"] = json.loads(integration_grp["configuration/data"][()])
+        else:
+            logger.warning("Unable to parse AzimuthalIntegrator configuration")
+        if "configuration/polarization_factor" in integration_grp:
+            results["polarization"] = integration_grp["configuration/polarization_factor"][()]
+        instrument_grp = nxsr.get_class(entry_grp, class_type="NXinstrument")
+        if instrument_grp:
+            detector_grp = nxsr.get_class(instrument_grp[0], class_type="NXdetector")
+            if detector_grp:
+                results["mask"] = detector_grp[0]["pixel_mask"].attrs["filename"]
+        sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")
+        if sample_grp:
+            sample_grp = sample_grp[0]
+            results["sample"] = posixpath.split(sample_grp.name)[-1]
+            if "buffer" in sample_grp:
+                results["buffer"] = sample_grp["buffer"][()]
+            if "temperature_env" in sample_grp:
+                results["storage temperature"] = sample_grp["temperature_env"][()]
+            if "temperature" in sample_grp:
+                results["exposure temperature"] = sample_grp["temperature"][()]
+            if "concentration" in sample_grp:
+                results["concentration"] = sample_grp["concentration"][()]
     #         if "2_correlation_mapping" in entry_grp:
     #             results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
     for i, s in zip(I, std):
@@ -328,15 +360,23 @@ def main():
     input_len = len(files)
     logger.debug("%s input files", input_len)
     for src in files:
+        print(f"{src} \t --> ", end="")
         if args.all:
             dest = os.path.splitext(src)[0] + "%04i.dat"
             for idx, frame in enumerate(extract_all(src)):
                 print(src, " --> ", dest % idx)
                 write_ascii(frame, dest % idx)
+            print(dest)
+        elif args.zip:
+            dest = os.path.splitext(src)[0] + ".zip"
+            with zipfile.ZipFile(dest, "w") as z:
+                for idx, frame in enumerate(extract_all(src)):
+                    z.writestr(f'frame_{idx:04d}.dat', write_ascii(frame))
+            print(dest)
         else:
             dest = os.path.splitext(src)[0] + ".dat"
             write_ascii(extract_averaged(src), dest)
-            print(src, " --> ", dest)
+            print(dest)
 
 
 if __name__ == "__main__":
