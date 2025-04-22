@@ -193,8 +193,6 @@ True
 
 """
 
-from __future__ import division, print_function
-
 import math
 
 import numpy
@@ -1503,7 +1501,7 @@ def random_rotation_matrix(rand=None):
     return quaternion_matrix(random_quaternion(rand))
 
 
-class Arcball(object):
+class Arcball:
     """Virtual Trackball Control.
 
     >>> ball = Arcball()
