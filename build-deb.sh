@@ -65,6 +65,9 @@ then
             bookworm)
                 debian_version=12
                 ;;
+	    trixie)
+		debian_version=13
+		;;
         esac
     fi
 
