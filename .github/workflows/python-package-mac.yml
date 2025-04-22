@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        xcode-version: [latest-stable, 14]
+        xcode-version: [latest-stable, 15]
 
     steps:
       - uses: actions/checkout@v3
