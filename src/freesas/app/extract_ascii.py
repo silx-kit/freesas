@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2020-2024, ESRF"
-__date__ = "16/04/2025"
+__date__ = "22/04/2025"
 
 import io
 import os
@@ -362,16 +362,18 @@ def main():
     for src in files:
         print(f"{src} \t --> ", end="")
         if args.all:
-            dest = os.path.splitext(src)[0] + "%04i.dat"
+            dest = os.path.splitext(src)[0] + "_%04i.dat"
             for idx, frame in enumerate(extract_all(src)):
                 print(src, " --> ", dest % idx)
                 write_ascii(frame, dest % idx)
             print(dest)
         elif args.zip:
-            dest = os.path.splitext(src)[0] + ".zip"
+            base = os.path.splitext(src)[0]
+            dest = base + ".zip"
+            destz = base + "_%04i.dat"
             with zipfile.ZipFile(dest, "w") as z:
                 for idx, frame in enumerate(extract_all(src)):
-                    z.writestr(f'frame_{idx:04d}.dat', write_ascii(frame))
+                    z.writestr(destz % idx, write_ascii(frame))
             print(dest)
         else:
             dest = os.path.splitext(src)[0] + ".dat"
