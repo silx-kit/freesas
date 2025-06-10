@@ -159,7 +159,7 @@ def extract_all(filename):
             target = "1_chromatogram"
         elif program == "bm29.integratemultiframe":
             target = "1_integration"
-        elif program == "bm29.subtract":
+        elif program.startswith("bm29.subtract"):
             target = "3_azimuthal_integration"
         else:
             raise RuntimeError(f"Unable to read file written by {program}")
