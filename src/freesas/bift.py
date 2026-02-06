@@ -18,11 +18,10 @@ __date__ = "04/12/2023"
 
 import logging
 logger = logging.getLogger(__name__)
-from math import log, ceil
-import numpy
+from math import log
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import auto_gpa, autoRg, auto_guinier, NoGuinierRegionError
+from .autorg import auto_guinier, NoGuinierRegionError
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,

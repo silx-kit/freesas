@@ -37,9 +37,9 @@ def load_scattering_data(filename: PathType) -> ndarray:
     """
     try:
         data = loadtxt(filename)
-    except OSError as err:
+    except OSError:
         raise OSError("File could not be read.")
-    except ValueError as err:
+    except ValueError:
         text = None
         if isinstance(filename, (io.StringIO, io.BytesIO)):
             filename.seek(0)

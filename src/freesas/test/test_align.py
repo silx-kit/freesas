@@ -7,7 +7,6 @@ __copyright__ = "2015, ESRF"
 import numpy
 import unittest
 from .utilstest import get_datafile
-from ..model import SASModel
 from ..align import AlignModels
 from ..transformations import translation_matrix, euler_matrix
 import logging

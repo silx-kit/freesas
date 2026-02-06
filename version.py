@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 # coding: utf-8
 # /*##########################################################################
 #
@@ -58,6 +58,10 @@ __docformat__ = 'restructuredtext'
 __all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion",
            "calc_hexversion", "citation"]
 
+
+from collections import namedtuple
+
+
 RELEASE_LEVEL_VALUE = {"dev": 0,
                        "alpha": 10,
                        "beta": 11,
@@ -68,15 +72,14 @@ PRERELEASE_NORMALIZED_NAME = {"dev": "a",
                               "alpha": "a",
                               "beta": "b",
                               "candidate": "rc"}
-MAJOR = 2025
-MINOR = 4
+MAJOR = 2026
+MINOR = 2
 MICRO = 0
 RELEV = "dev"  # <16
 SERIAL = 0  # <16
 
 date = __date__
 
-from collections import namedtuple
 
 _version_info = namedtuple("version_info", ["major", "minor", "micro", "releaselevel", "serial"])
 

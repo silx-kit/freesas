@@ -49,8 +49,10 @@ class TesttParser(unittest.TestCase):
         m = SASModel()
         m.read(self.testfile)
         m.save(self.outfile)
-        with open(self.testfile) as f: infile=f.read()
-        with open(self.outfile) as f: outfile=f.read()
+        with open(self.testfile) as f:
+            infile=f.read()
+        with open(self.outfile) as f:
+            outfile=f.read()
         self.assertEqual(infile, outfile, msg="file content is the same")
 
     def test_rfactor(self):

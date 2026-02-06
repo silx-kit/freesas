@@ -25,17 +25,14 @@
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "03/07/2024"
+__date__ = "06/02/2026"
 
 import unittest
 import logging
-import os
-import io
 import numpy as np
 from .utilstest import get_datafile
-from ..resources import resource_filename
 from ..sasio import load_scattering_data
-from ..dnn import *
+from ..dnn import DNN, DenseLayer, forward_propagation, preprocess, tanh, relu, sigmoid, linear
 
 logger = logging.getLogger(__name__)
 
@@ -46,29 +43,29 @@ class TestDNN(unittest.TestCase):
         Test for the activation functions
         """
         x = np.array([-1, 0, 1])
-        
+
         # Test tanh
         expected_tanh = np.tanh(x)
         self.assertTrue(np.allclose(tanh(x), expected_tanh), msg="tanh function failed")
-        
+
         # Test relu
         expected_relu = np.maximum(0, x)
         self.assertTrue(np.allclose(relu(x), expected_relu), msg="relu function failed")
-        
+
         # Test sigmoid
         expected_sigmoid = 1 / (1 + np.exp(-x))
         self.assertTrue(np.allclose(sigmoid(x), expected_sigmoid), msg="sigmoid function failed")
-        
+
         # Test linear
         expected_linear = x
         self.assertTrue(np.allclose(linear(x), expected_linear), msg="linear function failed")
-        
+
         logger.info("test_activation_functions ran successfully")
 
-    
+
     def test_preprocess(self):
         """
-        Test for the preprocessing function 
+        Test for the preprocessing function
         """
         datfile = get_datafile("bsa_005_sub.dat")
         data = load_scattering_data(datfile)
@@ -76,9 +73,9 @@ class TestDNN(unittest.TestCase):
         Iprep = preprocess(q, I)
         self.assertEqual(Iprep.max(), 1, msg="range 0-1")
         self.assertEqual(Iprep.shape, (1024,), msg="size 1024")
- 
 
-    
+
+
     def test_forward_propagation(self):
         """
         Test for the forward_propagation function
@@ -94,7 +91,7 @@ class TestDNN(unittest.TestCase):
             logger.error(f"test_forward_propagation failed: {e}")
             raise
 
-    
+
     def test_DenseLayer(self):
         """
         Test for the DenseLayer class
@@ -112,8 +109,8 @@ class TestDNN(unittest.TestCase):
             logger.error(f"test_DenseLayer failed: {e}")
             raise
 
-    
-    
+
+
     def test_DNN(self):
         """
         Test for the DNN class

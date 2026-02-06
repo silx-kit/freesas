@@ -436,8 +436,6 @@ class TestSasArgParser(unittest.TestCase):
             pass
         output_catcher.seek(0)
         output = output_catcher.read()
-        # print(output)
-        valid = "argument -u/--unit: invalid choice: 'm'" in output
 
         self.assertTrue(
             "argument -u/--unit: invalid choice: 'm'" in output,

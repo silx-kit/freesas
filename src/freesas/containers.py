@@ -32,7 +32,6 @@ __copyright__ = "2020 ESRF"
 __date__ = "13/10/2020"
 
 from collections import namedtuple
-from os import linesep
 import numpy
 
 # Used in AutoRg

@@ -3,13 +3,14 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__date__ = "28/11/2023"
-__copyright__ = "2015-2021, ESRF"
+__date__ = "06/02/2026"
+__copyright__ = "2015-2026, ESRF"
 
 import os
 import logging
-logger = logging.getLogger("utilstest")
 from silx.resources import ExternalResources
+
+logger = logging.getLogger("utilstest")
 downloader = ExternalResources("freesas", "http://www.silx.org/pub/freesas/testdata", "FREESAS_TESTDATA")
 
 

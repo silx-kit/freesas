@@ -3,7 +3,8 @@ __license__ = "MIT"
 __copyright__ = "2017, ESRF"
 __date__ = "20/01/2025"
 
-import sys, os
+import sys
+import os
 import zipfile
 import posixpath
 import logging
