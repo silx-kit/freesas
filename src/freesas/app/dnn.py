@@ -63,7 +63,6 @@ def build_parser() -> SASParser:
     return parser
 
 
-
 def main() -> None:
     """Entry point for free_gpa app"""
     parser = build_parser()

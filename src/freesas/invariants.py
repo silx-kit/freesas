@@ -30,6 +30,7 @@ https://dx.doi.org/10.1038%2Fnature12070
 
 Some formula taken from Putnam et al, 2007, Table 1 in the review
 """
+
 __authors__ = ["Martha E. Brennich", "Jérôme Kieffer"]
 __license__ = "MIT"
 __date__ = "06/02/2026"
@@ -37,6 +38,7 @@ __date__ = "06/02/2026"
 import logging
 import numpy
 from .containers import RT_RESULT
+
 try:
     from numpy import trapezoid  # numpy 2
 except ImportError:
@@ -62,12 +64,12 @@ def extrapolate(data, guinier):
     # Extrapolate I from Guinier approximation:
     I_low = guinier.I0 * numpy.exp(-(q_low**2 * guinier.Rg**2) / 3.0)
     # Extrapolate dI from Guinier region:
-    range_ = slice(guinier.start_point, guinier.end_point+1)
+    range_ = slice(guinier.start_point, guinier.end_point + 1)
     slope, intercept = numpy.polyfit(data[range_, 0], data[range_, 2], deg=1)
-    dI_low = abs(q_low*slope + intercept)
+    dI_low = abs(q_low * slope + intercept)
     # Now wrap-up
     data_low = numpy.vstack((q_low, I_low, dI_low)).T
-    return numpy.concatenate((data_low, data[guinier.start_point:]))
+    return numpy.concatenate((data_low, data[guinier.start_point :]))
 
 
 def calc_Porod(data, guinier):
@@ -84,8 +86,8 @@ def calc_Porod(data, guinier):
     """
     q, intensity, dI = extrapolate(data, guinier).T
 
-    denom = trapezoid(intensity*q**2, q)
-    volume = 2*numpy.pi**2*guinier.I0 / denom
+    denom = trapezoid(intensity * q**2, q)
+    volume = 2 * numpy.pi**2 * guinier.I0 / denom
     return volume
 
 
@@ -102,7 +104,19 @@ def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     qlow = numpy.arange(0, qmin, dq)
 
     lowqint = trapezoid((qlow * I0 * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0)), qlow)
-    dlowqint = trapezoid(qlow * numpy.sqrt((numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dI0) ** 2 + ((I0 * 2.0 * (qlow * qlow) * Rg / 3.0) * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dRg) ** 2), qlow)
+    dlowqint = trapezoid(
+        qlow
+        * numpy.sqrt(
+            (numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0) * dI0) ** 2
+            + (
+                (I0 * 2.0 * (qlow * qlow) * Rg / 3.0)
+                * numpy.exp(-(qlow * qlow * Rg * Rg) / 3.0)
+                * dRg
+            )
+            ** 2
+        ),
+        qlow,
+    )
     vabs = trapezoid(data[imin:, 0] * data[imin:, 1], data[imin:, 0])
     dvabs = trapezoid(data[imin:, 0] * data[imin:, 2], data[imin:, 0])
     vc = I0 / (lowqint + vabs)
@@ -110,8 +124,7 @@ def calc_Vc(data, Rg, dRg, I0, dI0, imin):
     return (vc, dvc)
 
 
-def calc_Rambo_Tainer(data,
-                      guinier, qmax=2.0):
+def calc_Rambo_Tainer(data, guinier, qmax=2.0):
     """calculates the invariants Vc and Qr from the Rambo & Tainer 2013 Paper,
     also the the mass estimate based on Qr for proteins
 
@@ -124,13 +137,24 @@ def calc_Rambo_Tainer(data,
     power_prot = 1.0
 
     imax = abs(data[:, 0] - qmax).argmin()
-    if (imax <= guinier.start_point) or (guinier.start_point < 0):  # unlikely but can happened
-        logger.error("Guinier region start too late for Rambo_Tainer invariants calculation")
+    if (imax <= guinier.start_point) or (
+        guinier.start_point < 0
+    ):  # unlikely but can happened
+        logger.error(
+            "Guinier region start too late for Rambo_Tainer invariants calculation"
+        )
         return None
-    vc = calc_Vc(data[:imax, :], guinier.Rg, guinier.sigma_Rg, guinier.I0, guinier.sigma_I0, guinier.start_point)
+    vc = calc_Vc(
+        data[:imax, :],
+        guinier.Rg,
+        guinier.sigma_Rg,
+        guinier.I0,
+        guinier.sigma_I0,
+        guinier.start_point,
+    )
 
     qr = vc[0] ** 2 / (guinier.Rg)
-    mass = scale_prot * qr ** power_prot
+    mass = scale_prot * qr**power_prot
 
     dqr = qr * (guinier.sigma_Rg / guinier.Rg + 2 * ((vc[1]) / (vc[0])))
     dmass = mass * dqr / qr

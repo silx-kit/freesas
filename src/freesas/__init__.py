@@ -22,9 +22,7 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
-"""
-
-"""
+""" """
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
@@ -46,10 +44,9 @@ try:
         hexversion,
         strictversion,
         dated_version,
-        citation
+        citation,
     )
 except ImportError:
     raise RuntimeError(
-        "Do NOT use %s from its sources: build it and use the built version"
-        % project
+        "Do NOT use %s from its sources: build it and use the built version" % project
     )

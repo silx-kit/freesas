@@ -11,6 +11,7 @@ import unittest
 from .utilstest import get_datafile
 from ..model import SASModel
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cdistance_test")
 
@@ -24,7 +25,9 @@ class TestDistance(unittest.TestCase):
         m.read(self.testfile1)
         f_np, r_np, d_np = m.calc_invariants(False)
         f_cy, r_cy, d_cy = m.calc_invariants(True)
-        self.assertAlmostEqual(f_np, f_cy, 10, "fineness is the same %s!=%s" % (f_np, f_cy))
+        self.assertAlmostEqual(
+            f_np, f_cy, 10, "fineness is the same %s!=%s" % (f_np, f_cy)
+        )
         self.assertAlmostEqual(r_np, r_cy, 10, "Rg is the same %s!=%s" % (r_np, r_cy))
         self.assertAlmostEqual(d_np, d_cy, 10, "Dmax is the same %s!=%s" % (d_np, d_cy))
 
@@ -35,7 +38,9 @@ class TestDistance(unittest.TestCase):
         n.read(self.testfile2)
         f_np = m.dist(n, m.atoms, n.atoms, False)
         f_cy = m.dist(n, m.atoms, n.atoms, True)
-        self.assertAlmostEqual(f_np, f_cy, 10, "distance is the same %s!=%s" % (f_np, f_cy))
+        self.assertAlmostEqual(
+            f_np, f_cy, 10, "distance is the same %s!=%s" % (f_np, f_cy)
+        )
 
     def test_same(self):
         m = SASModel()
@@ -56,6 +61,7 @@ def suite():
     testSuite.addTest(TestDistance("test_same"))
     return testSuite
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

@@ -11,7 +11,9 @@ import logging
 from silx.resources import ExternalResources
 
 logger = logging.getLogger("utilstest")
-downloader = ExternalResources("freesas", "http://www.silx.org/pub/freesas/testdata", "FREESAS_TESTDATA")
+downloader = ExternalResources(
+    "freesas", "http://www.silx.org/pub/freesas/testdata", "FREESAS_TESTDATA"
+)
 
 
 def get_datafile(name):
@@ -25,13 +27,16 @@ def get_datafile(name):
     fullpath = downloader.getfile(name)
     return fullpath
 
+
 def clean():
     pass
+
 
 class TestOptions:
     """
     Class providing useful stuff for preparing tests.
     """
+
     def __init__(self):
         self.TEST_LOW_MEM = False
         """Skip tests using too much memory"""
@@ -42,8 +47,8 @@ class TestOptions:
         self.options = None
 
     def __repr__(self):
-        return f"TEST_LOW_MEM={self.TEST_LOW_MEM} "\
-               f"TEST_RANDOM={self.TEST_RANDOM} "
+        return f"TEST_LOW_MEM={self.TEST_LOW_MEM} TEST_RANDOM={self.TEST_RANDOM} "
+
     @property
     def low_mem(self):
         """For compatibility"""
@@ -56,26 +61,35 @@ class TestOptions:
 
         if parsed_options is not None and parsed_options.low_mem:
             self.TEST_LOW_MEM = True
-        elif os.environ.get('FREESAS_LOW_MEM', 'True') == 'False':
+        elif os.environ.get("FREESAS_LOW_MEM", "True") == "False":
             self.TEST_LOW_MEM = True
 
         if parsed_options is not None and parsed_options.random:
             self.TEST_RANDOM = True
-        if os.environ.get('FREESAS_RANDOM', 'False').lower() in ("1", "true", "on"):
+        if os.environ.get("FREESAS_RANDOM", "False").lower() in ("1", "true", "on"):
             self.TEST_RANDOM = True
-
 
     def add_parser_argument(self, parser):
         """Add extrat arguments to the test argument parser
 
         :param ArgumentParser parser: An argument parser
         """
-        parser.add_argument("-l", "--low-mem", dest="low_mem", default=False,
-                            action="store_true",
-                            help="Disable test with large memory consumption (>100Mbyte")
-        parser.add_argument("-r", "--random", dest="random", default=False,
-                            action="store_true",
-                            help="Enable actual random number to be generated. By default, stable seed ensures reproducibility of tests")
+        parser.add_argument(
+            "-l",
+            "--low-mem",
+            dest="low_mem",
+            default=False,
+            action="store_true",
+            help="Disable test with large memory consumption (>100Mbyte",
+        )
+        parser.add_argument(
+            "-r",
+            "--random",
+            dest="random",
+            default=False,
+            action="store_true",
+            help="Enable actual random number to be generated. By default, stable seed ensures reproducibility of tests",
+        )
 
 
-test_options = TestOptions() #singleton
+test_options = TestOptions()  # singleton

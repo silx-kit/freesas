@@ -10,6 +10,7 @@ class Grid:
     """
     This class is used to create a grid which include all the input models
     """
+
     def __init__(self, inputfiles):
         """
         :param inputfiles: list of pdb files needed for averaging
@@ -21,19 +22,19 @@ class Grid:
         self.coordknots = []
 
     def __repr__(self):
-        return "Grid with %i knots"%self.nbknots
+        return "Grid with %i knots" % self.nbknots
 
     def spatial_extent(self):
         """
         Calculate the maximal extent of input models
-        
+
         :return self.size: 6-list with x,y,z max and then x,y,z min
         """
         atoms = []
         models_fineness = []
         for files in self.inputs:
             m = SASModel(files)
-            if len(atoms)==0:
+            if len(atoms) == 0:
                 atoms = m.atoms
             else:
                 atoms = numpy.append(atoms, m.atoms, axis=0)
@@ -42,19 +43,26 @@ class Grid:
 
         coordmin = atoms.min(axis=0) - mean_fineness
         coordmax = atoms.max(axis=0) + mean_fineness
-        self.size = [coordmax[0],coordmax[1],coordmax[2],coordmin[0],coordmin[1],coordmin[2]]
+        self.size = [
+            coordmax[0],
+            coordmax[1],
+            coordmax[2],
+            coordmin[0],
+            coordmin[1],
+            coordmin[2],
+        ]
 
         return self.size
 
     def calc_radius(self, nbknots=None):
         """
-        Calculate the radius of each point of a hexagonal close-packed grid, 
+        Calculate the radius of each point of a hexagonal close-packed grid,
         knowing the total volume and the number of knots in this grid.
 
         :param nbknots: number of knots wanted for the grid
         :return radius: the radius of each knot of the grid
         """
-        if len(self.size)==0:
+        if len(self.size) == 0:
             self.spatial_extent()
         nbknots = nbknots if nbknots is not None else 5000
         size = self.size
@@ -63,8 +71,8 @@ class Grid:
         dz = size[2] - size[5]
         volume = dx * dy * dz
 
-        density = numpy.pi / (3*2**0.5)
-        radius = ((3 /( 4 * numpy.pi)) * density * volume / nbknots)**(1.0/3)
+        density = numpy.pi / (3 * 2**0.5)
+        radius = ((3 / (4 * numpy.pi)) * density * volume / nbknots) ** (1.0 / 3)
         self.radius = radius
 
         return radius
@@ -76,13 +84,13 @@ class Grid:
 
         :return knots: 2d-array, coordinates of each dot of the grid. Saved as self.coordknots.
         """
-        if len(self.size)==0:
+        if len(self.size) == 0:
             self.spatial_extent()
         if self.radius is None:
             self.calc_radius()
 
         radius = self.radius
-        a = numpy.sqrt(2.0)*radius
+        a = numpy.sqrt(2.0) * radius
 
         xmax = self.size[0]
         xmin = self.size[3]
@@ -98,7 +106,7 @@ class Grid:
         xlist = []
         ylist = []
         zlist = []
-        knots = numpy.empty((1,4), dtype="float")
+        knots = numpy.empty((1, 4), dtype="float")
         while (zmin + z) <= zmax:
             zlist.append(z)
             z += a
@@ -111,24 +119,32 @@ class Grid:
 
         for i in range(len(zlist)):
             z = zlist[i]
-            if i % 2 ==0:
+            if i % 2 == 0:
                 for j in range(len(xlist)):
                     x = xlist[j]
                     if j % 2 == 0:
                         for y in ylist[0:-1:2]:
-                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                            knots = numpy.append(
+                                knots, [[xmin + x, ymin + y, zmin + z, 0.0]], axis=0
+                            )
                     else:
                         for y in ylist[1:-1:2]:
-                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                            knots = numpy.append(
+                                knots, [[xmin + x, ymin + y, zmin + z, 0.0]], axis=0
+                            )
             else:
                 for j in range(len(xlist)):
                     x = xlist[j]
                     if j % 2 == 0:
                         for y in ylist[1:-1:2]:
-                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                            knots = numpy.append(
+                                knots, [[xmin + x, ymin + y, zmin + z, 0.0]], axis=0
+                            )
                     else:
                         for y in ylist[0:-1:2]:
-                            knots = numpy.append(knots, [[xmin+x, ymin+y, zmin+z, 0.0]], axis=0)
+                            knots = numpy.append(
+                                knots, [[xmin + x, ymin + y, zmin + z, 0.0]], axis=0
+                            )
 
         knots = numpy.delete(knots, 0, axis=0)
         self.nbknots = knots.shape[0]
@@ -137,10 +153,11 @@ class Grid:
         return knots
 
 
-class AverModels():
+class AverModels:
     """
     Provides tools to create an averaged models using several aligned dummy atom models
     """
+
     def __init__(self, inputfiles, grid):
         """
         :param inputfiles: list of pdb files of aligned models
@@ -154,7 +171,7 @@ class AverModels():
         self.grid = grid
 
     def __repr__(self):
-        return "Average SAS model with %i atoms"%len(self.atoms)
+        return "Average SAS model with %i atoms" % len(self.atoms)
 
     def read_files(self, reference=None):
         """
@@ -169,7 +186,7 @@ class AverModels():
         models = []
         models.append(SASModel(inputfiles[ref]))
         for i in range(len(inputfiles)):
-            if i==ref:
+            if i == ref:
                 continue
             else:
                 models.append(SASModel(inputfiles[i]))
@@ -203,7 +220,7 @@ class AverModels():
         """
         For each point of the grid, total occupancy and contribution factor are computed and saved.
         The grid is then ordered with decreasing value of occupancy.
-        The fourth column of the array correspond to the occupancy of the point and the fifth to 
+        The fourth column of the array correspond to the occupancy of the point and the fifth to
         the contribution for this point.
 
         :return sortedgrid: 2d-array, coordinates of each point of the grid
@@ -229,25 +246,25 @@ class AverModels():
         Create the layout of the pdb file for the averaged model.
         """
         header = []
-        header.append("Number of files averaged : %s\n"%len(self.inputfiles))
+        header.append("Number of files averaged : %s\n" % len(self.inputfiles))
         for i in self.inputfiles:
             header.append(i + "\n")
-        header.append("Total number of dots in the grid : %s\n"%self.grid.shape[0])
+        header.append("Total number of dots in the grid : %s\n" % self.grid.shape[0])
 
         decade = 1
         for i in range(self.grid.shape[0]):
             line = "ATOM         CA  ASP    1                                    20.00   2 201\n"
-            line = line[:7] + "%4.i"%(i + 1) + line[11:]
+            line = line[:7] + "%4.i" % (i + 1) + line[11:]
             if not (i + 1) % 10:
                 decade += 1
-            line = line[:21] + "%4.i"%decade + line[25:]
+            line = line[:21] + "%4.i" % decade + line[25:]
             header.append(line)
         self.header = header
         return header
 
     def save_aver(self, filename):
         """
-        Save the position of each occupied dot of the grid, its occupancy and its contribution 
+        Save the position of each occupied dot of the grid, its occupancy and its contribution
         in a pdb file.
 
         :param filename: name of the pdb file to write
@@ -264,7 +281,9 @@ class AverModels():
                         coord = "%8.3f%8.3f%8.3f" % tuple(self.grid[nr, 0:3])
                         occ = "%6.2f" % self.grid[nr, 3]
                         contrib = "%2.f" % self.grid[nr, 4]
-                        line = line[:30] + coord + occ + line[60:66] + contrib + line[68:]
+                        line = (
+                            line[:30] + coord + occ + line[60:66] + contrib + line[68:]
+                        )
                     else:
                         line = ""
                     nr += 1

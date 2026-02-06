@@ -68,9 +68,7 @@ def build_parser() -> SASParser:
     It aims at being a drop in replacement for datgnom of the ATSAS suite.
 
     """
-    parser = SASParser(
-        prog="free_bift", description=description, epilog=epilog
-    )
+    parser = SASParser(prog="free_bift", description=description, epilog=epilog)
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
     parser.add_output_filename_argument()
     parser.add_q_unit_argument()

@@ -85,7 +85,7 @@ def scatter_plot(
             ax.errorbar(
                 q,
                 intensity,
-                numpy.maximum(0,err),
+                numpy.maximum(0, err),
                 label=label_exp,
                 capsize=0,
                 color=exp_color,
@@ -100,7 +100,7 @@ def scatter_plot(
             ax.errorbar(
                 q,
                 intensity,
-                numpy.maximum(0,err),
+                numpy.maximum(0, err),
                 label=label_exp,
                 capsize=0,
                 color=exp_color,
@@ -210,7 +210,7 @@ def kratky_plot(
     xdata = q * Rg
     ydata = xdata * xdata * intensity / I0
     if err is not None:
-        dy = xdata * xdata * numpy.maximum(0,err) / abs(I0)
+        dy = xdata * xdata * numpy.maximum(0, err) / abs(I0)
         ax.errorbar(
             xdata,
             ydata,
@@ -328,9 +328,7 @@ def guinier_plot(
     ymin = numpy.log(intensity[last_point])
     dy = (ymax - ymin) / 2.0
     ax.vlines(xmin, ymin=ymin, ymax=ymax + dy, color="0.75", linewidth=1.0)
-    ax.vlines(
-        xmax, ymin=ymin - dy, ymax=ymin + dy, color="0.75", linewidth=1.0
-    )
+    ax.vlines(xmax, ymin=ymin - dy, ymax=ymin + dy, color="0.75", linewidth=1.0)
     ax.annotate(
         "$(qR_{g})_{min}$=%.1f" % (Rg * q[first_point]),
         (xmin, ymax + dy),
@@ -509,14 +507,17 @@ def plot_all(
             fig.savefig(filename)
     return fig
 
-def hplc_plot(hplc,
-              fractions = None,
-              title="Chromatogram",
-              filename=None,
-              img_format="png",
-              ax=None,
-              labelsize=None,
-              fontsize=None,):
+
+def hplc_plot(
+    hplc,
+    fractions=None,
+    title="Chromatogram",
+    filename=None,
+    img_format="png",
+    ax=None,
+    labelsize=None,
+    fontsize=None,
+):
     """
     Generate an HPLC plot I=f(t)
 
@@ -531,8 +532,8 @@ def hplc_plot(hplc,
         fig = ax.figure
     else:
         fig, ax = subplots(figsize=(12, 10))
-    data = [sum(i) if hasattr(i, '__iter__') else i for i in hplc]
-    ax.plot(data, label = "Chromatogram")
+    data = [sum(i) if hasattr(i, "__iter__") else i for i in hplc]
+    ax.plot(data, label="Chromatogram")
     ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
     ax.set_ylabel("Summed intensities", fontsize=fontsize)
     ax.set_title(title)
@@ -543,14 +544,16 @@ def hplc_plot(hplc,
         fractions.sort()
         nbdata = len(data)
         idx = list(range(nbdata))
-        for start,stop in fractions:
-            start = int(min(nbdata-1, max(0, start)))
-            stop = int(min(nbdata-1, max(0, stop)))
-            ax.plot(idx[start:stop+1],
-                    data[start:stop+1],
-                    label=f"Fraction {start}-{stop}",
-                    linewidth=10,
-                    alpha=0.5)
+        for start, stop in fractions:
+            start = int(min(nbdata - 1, max(0, start)))
+            stop = int(min(nbdata - 1, max(0, stop)))
+            ax.plot(
+                idx[start : stop + 1],
+                data[start : stop + 1],
+                label=f"Fraction {start}-{stop}",
+                linewidth=10,
+                alpha=0.5,
+            )
     ax.legend()
 
     if filename:
@@ -559,4 +562,3 @@ def hplc_plot(hplc,
         else:
             fig.savefig(filename)
     return fig
-

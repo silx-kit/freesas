@@ -26,9 +26,16 @@ from .autorg import auto_guinier, NoGuinierRegionError
 logger = logging.getLogger(__name__)
 
 
-def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None,
-              scan_size=11, Dmax_over_Rg=3):
+def auto_bift(
+    data,
+    Dmax=None,
+    alpha=None,
+    npt=100,
+    start_point=None,
+    end_point=None,
+    scan_size=11,
+    Dmax_over_Rg=3,
+):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence
 
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
@@ -55,26 +62,36 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
         except Exception:
             logger.error("Guinier analysis failed !")
             raise
-#         print(Guinier)
+        #         print(Guinier)
         if Guinier.Rg <= 0:
             raise NoGuinierRegionError
         Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
     if alpha is None:
         alpha_max = bo.guess_alpha_max(npt)
         # First scan on alpha:
-        key = bo.grid_scan(Dmax, Dmax, 1,
-                           1.0 / alpha_max, alpha_max, scan_size, npt)
+        key = bo.grid_scan(Dmax, Dmax, 1, 1.0 / alpha_max, alpha_max, scan_size, npt)
         Dmax, alpha = key[:2]
         # Then scan on Dmax:
-        key = bo.grid_scan(max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg), Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg, scan_size,
-                           alpha, alpha, 1, npt)
+        key = bo.grid_scan(
+            max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg),
+            Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg,
+            scan_size,
+            alpha,
+            alpha,
+            1,
+            npt,
+        )
         Dmax, alpha = key[:2]
         if bo.evidence_cache[key].converged:
             bo.update_wisdom()
             use_wisdom = True
 
     # Optimization using Bayesian operator:
-    logger.info("Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom)
-    res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
+    logger.info(
+        "Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom
+    )
+    res = minimize(
+        bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell"
+    )
     logger.info("Result of optimisation:\n  %s", res)
     return bo

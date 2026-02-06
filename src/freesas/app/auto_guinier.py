@@ -54,9 +54,7 @@ def build_parser() -> GuinierParser:
     the autorg algorithm originately part of the ATSAS suite.
     As this tool used a different theory, some results may differ
     """
-    return GuinierParser(
-        prog="free_guinier", description=description, epilog=epilog
-    )
+    return GuinierParser(prog="free_guinier", description=description, epilog=epilog)
 
 
 def main() -> None:

@@ -13,6 +13,7 @@ from .utilstest import get_datafile
 from ..model import SASModel
 from ..transformations import translation_from_matrix, euler_from_matrix
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SASModel_test")
 
@@ -50,9 +51,9 @@ class TesttParser(unittest.TestCase):
         m.read(self.testfile)
         m.save(self.outfile)
         with open(self.testfile) as f:
-            infile=f.read()
+            infile = f.read()
         with open(self.outfile) as f:
-            outfile=f.read()
+            outfile = f.read()
         self.assertEqual(infile, outfile, msg="file content is the same")
 
     def test_rfactor(self):
@@ -60,7 +61,11 @@ class TesttParser(unittest.TestCase):
         m.read(self.testfile)
         n = SASModel()
         n.read(self.testfile)
-        self.assertEqual(m.rfactor, n.rfactor, msg="R-factor is not the same %s != %s" % (m.rfactor, n.rfactor))
+        self.assertEqual(
+            m.rfactor,
+            n.rfactor,
+            msg="R-factor is not the same %s != %s" % (m.rfactor, n.rfactor),
+        )
 
     def test_init(self):
         m = SASModel()
@@ -74,17 +79,29 @@ class TesttParser(unittest.TestCase):
         m = assign_random_mol()
         m.centroid()
         if len(m.com) != 3:
-            logger.error("center of mass has not been saved correctly : length of COM position vector = %s!=3" % (len(m.com)))
+            logger.error(
+                "center of mass has not been saved correctly : length of COM position vector = %s!=3"
+                % (len(m.com))
+            )
         mol_centered = m.atoms[:, 0:3] - m.com
         center = mol_centered.mean(axis=0)
         norm = (center * center).sum()
-        self.assertAlmostEqual(norm, 0, 12, msg="molecule is not centered : norm of the COM position vector %s!=0" % (norm))
+        self.assertAlmostEqual(
+            norm,
+            0,
+            12,
+            msg="molecule is not centered : norm of the COM position vector %s!=0"
+            % (norm),
+        )
 
     def test_inertia_tensor(self):
         m = assign_random_mol()
         m.inertiatensor()
         tensor = m.inertensor
-        assert tensor.shape == (3, 3), "inertia tensor has not been saved correctly : shape of inertia matrix = %s" % (tensor.shape)
+        assert tensor.shape == (3, 3), (
+            "inertia tensor has not been saved correctly : shape of inertia matrix = %s"
+            % (tensor.shape)
+        )
 
     def test_canonical_translate(self):
         m = assign_random_mol()
@@ -94,7 +111,9 @@ class TesttParser(unittest.TestCase):
         com = m.com
         com_componants = [com[0], com[1], com[2]]
         trans_vect = [-trans[0, -1], -trans[1, -1], -trans[2, -1]]
-        self.assertEqual(com_componants, trans_vect, msg="do not translate on canonical position")
+        self.assertEqual(
+            com_componants, trans_vect, msg="do not translate on canonical position"
+        )
 
     def test_canonical_rotate(self):
         m = assign_random_mol()
@@ -104,7 +123,9 @@ class TesttParser(unittest.TestCase):
         if not m.enantiomer:
             logger.error("enantiomer has not been selected")
         det = numpy.linalg.det(rot)
-        self.assertAlmostEqual(det, 1, 10, msg="rotation matrix determinant is not 1: %s" % (det))
+        self.assertAlmostEqual(
+            det, 1, 10, msg="rotation matrix determinant is not 1: %s" % (det)
+        )
 
     def test_canonical_parameters(self):
         m = assign_random_mol()
@@ -114,8 +135,17 @@ class TesttParser(unittest.TestCase):
             logger.error("canonical parameters has not been saved properly")
         com_trans = translation_from_matrix(m.canonical_translate())
         euler_rot = euler_from_matrix(m.canonical_rotate())
-        out_param = [com_trans[0], com_trans[1], com_trans[2], euler_rot[0], euler_rot[1], euler_rot[2]]
-        self.assertEqual(can_param, out_param, msg="canonical parameters are not the good ones")
+        out_param = [
+            com_trans[0],
+            com_trans[1],
+            com_trans[2],
+            euler_rot[0],
+            euler_rot[1],
+            euler_rot[2],
+        ]
+        self.assertEqual(
+            can_param, out_param, msg="canonical parameters are not the good ones"
+        )
 
     def test_dist(self):
         m = assign_random_mol()
@@ -137,7 +167,9 @@ class TesttParser(unittest.TestCase):
         tensor = m.inertensor
         diag = numpy.eye(3)
         matrix = tensor - tensor * diag
-        self.assertAlmostEqual(abs(com).sum(), 0, 10, msg="molecule not on its center of mass")
+        self.assertAlmostEqual(
+            abs(com).sum(), 0, 10, msg="molecule not on its center of mass"
+        )
         self.assertAlmostEqual(abs(matrix).sum(), 0, 10, "inertia moments unaligned ")
 
     def test_dist_move(self):
@@ -149,7 +181,9 @@ class TesttParser(unittest.TestCase):
             logger.error("molecules are different")
         p0 = m.can_param
         dist_after_mvt = m.dist_after_movement(p0, n, [1, 1, 1])
-        self.assertEqual(dist_after_mvt, 0, msg="NSD different of 0: %s!=0" % (dist_after_mvt))
+        self.assertEqual(
+            dist_after_mvt, 0, msg="NSD different of 0: %s!=0" % (dist_after_mvt)
+        )
 
     def test_reverse_transform(self):
         m = assign_random_mol()
@@ -158,7 +192,9 @@ class TesttParser(unittest.TestCase):
         m.atoms = m.transform(m.can_param, [1, 1, 1], reverse=None)
         m.atoms = m.transform(m.can_param, [1, 1, 1], reverse=True)
         dist = m.dist(n, m.atoms, n.atoms)
-        self.assertAlmostEqual(dist, 0.0, 10, msg="pb with reverse transformation : %s != 0.0" % dist)
+        self.assertAlmostEqual(
+            dist, 0.0, 10, msg="pb with reverse transformation : %s != 0.0" % dist
+        )
 
 
 def suite():
@@ -178,6 +214,6 @@ def suite():
     return testSuite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

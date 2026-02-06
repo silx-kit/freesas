@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 def _gpa(q2, Rg, I0):
     """Function to be fitted"""
     x_prime = q2 * Rg * Rg
-    return I0 / Rg * numpy.sqrt(x_prime) * numpy.exp( - x_prime / 3.0)
+    return I0 / Rg * numpy.sqrt(x_prime) * numpy.exp(-x_prime / 3.0)
 
 
 def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
@@ -64,16 +64,16 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
         intensity = intensity[range0]
         err = err[range0]
 
-        q2 = q ** 2
+        q2 = q**2
         lnI = numpy.log(intensity)
-        I2_over_sigma2 = err ** 2 / intensity ** 2
+        I2_over_sigma2 = err**2 / intensity**2
 
         y = intensity * q
         p1 = numpy.argmax(y)
 
         # Those are guess from the max position:
         Rg = (1.5 / q2[p1]) ** 0.5
-        I0 = intensity[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
+        I0 = intensity[p1] * numpy.exp(q2[p1] * Rg**2 / 3.0)
 
         # Let's cut-down the guinier region from 0.5-1.3 in qRg
         try:
@@ -94,17 +94,13 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0 = curate_data(data)
     if len(q1) < 3:
         reduced_data = numpy.delete(data, start0, axis=0)
-        q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0 = curate_data(
-            reduced_data
-        )
+        q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0 = curate_data(reduced_data)
 
     x = q1 * q1
     y = I1 * q1
 
     res = curve_fit(_gpa, x, y, [Rg, I0])
-    logger.debug(
-        "GPA upgrade Rg %s-> %s and I0 %s -> %s", Rg, res[0][0], I0, res[0][1]
-    )
+    logger.debug("GPA upgrade Rg %s-> %s and I0 %s -> %s", Rg, res[0][0], I0, res[0][1])
     Rg, I0 = res[0]
     sigma_Rg, sigma_I0 = numpy.sqrt(numpy.diag(res[1]))
     end = numpy.where(data.T[0] > qRg_max / Rg)[0][0]
@@ -115,9 +111,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     quality = guinier.calc_quality(
         Rg, sigma_Rg, data.T[0, start], data.T[0, end], aggregation, qRg_max
     )
-    return RG_RESULT(
-        Rg, sigma_Rg, I0, sigma_I0, start, end, quality, aggregation
-    )
+    return RG_RESULT(Rg, sigma_Rg, I0, sigma_I0, start, end, quality, aggregation)
 
 
 def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
@@ -158,9 +152,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
         data, q_ary, i_ary, sigma_ary, Rg_min, qRg_max, relax
     )
     if start0 < 0:
-        raise InsufficientDataError(
-            "Minimum region size is %s" % guinier.min_size
-        )
+        raise InsufficientDataError("Minimum region size is %s" % guinier.min_size)
     guinier.guinier_space(
         start0, stop0, q_ary, i_ary, sigma_ary, q2_ary, lnI_ary, wg_ary
     )
@@ -169,9 +161,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
         q2_ary, lnI_ary, wg_ary, start0, stop0, Rg_min, qRg_max, relax
     )
 
-    cnt, relaxed, qRg_max, aslope_max = guinier.count_valid(
-        fits, qRg_max, relax
-    )
+    cnt, relaxed, qRg_max, aslope_max = guinier.count_valid(fits, qRg_max, relax)
     # valid_fits = fits[fits[:, 9] < qRg_max]
     if cnt == 0:
         raise NoGuinierRegionError(qRg_max)
@@ -180,9 +170,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     start, stop = guinier.find_region(fits, qRg_max)
 
     # Now average out the
-    Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(
-        fits, start, stop
-    )
+    Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
 
     aggregated = guinier.check_aggregation(
         q2_ary, lnI_ary, wg_ary, start0, stop, Rg=Rg_avg, threshold=False
@@ -190,7 +178,5 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     quality = guinier.calc_quality(
         Rg_avg, Rg_std, q_ary[start], q_ary[stop], aggregated, qRg_max
     )
-    result = RG_RESULT(
-        Rg_avg, Rg_std, I0_avg, I0_std, start, stop, quality, aggregated
-    )
+    result = RG_RESULT(Rg_avg, Rg_std, I0_avg, I0_std, start, stop, quality, aggregated)
     return result

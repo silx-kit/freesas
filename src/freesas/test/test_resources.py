@@ -31,16 +31,19 @@ import unittest
 import logging
 import os
 from ..resources import resource_filename
+
 logger = logging.getLogger(__name__)
 
-class TestResources(unittest.TestCase):
 
+class TestResources(unittest.TestCase):
     def test_filename(self):
         """
-        Test for returning the actual path of an existing model 
+        Test for returning the actual path of an existing model
         """
-        self.assertTrue(os.path.exists(resource_filename("keras_models/Rg+Dmax.keras")),
-                        msg="file exists")
+        self.assertTrue(
+            os.path.exists(resource_filename("keras_models/Rg+Dmax.keras")),
+            msg="file exists",
+        )
 
 
 def suite():
@@ -49,6 +52,6 @@ def suite():
     return test_suite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

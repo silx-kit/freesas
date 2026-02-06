@@ -12,6 +12,7 @@ from ..model import SASModel
 from ..average import Grid, AverModels
 
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")
 
@@ -45,13 +46,20 @@ class TestAverage(unittest.TestCase):
         grid.calc_radius(nbknots)
         grid.make_grid()
         gap = (1.0 * (grid.nbknots - nbknots) / nbknots) * 100
-        self.assertGreater(threshold, gap, msg="final number of knots too different of wanted number: %s != %s" % (nbknots, grid.nbknots))
+        self.assertGreater(
+            threshold,
+            gap,
+            msg="final number of knots too different of wanted number: %s != %s"
+            % (nbknots, grid.nbknots),
+        )
 
     def test_makegrid(self):
         grid = self.grid
         lattice = grid.make_grid()
         m = SASModel(lattice)
-        self.assertAlmostEqual(m.fineness, 2 * grid.radius, 10, msg="grid do not have the computed radius")
+        self.assertAlmostEqual(
+            m.fineness, 2 * grid.radius, 10, msg="grid do not have the computed radius"
+        )
 
     def test_read(self):
         inputfiles = self.inputfiles
@@ -70,7 +78,9 @@ class TestAverage(unittest.TestCase):
         average.grid = occ_grid
         assert occ_grid.shape[-1] == 5, "problem in grid shape"
         diff = occ_grid[:-1, 3] - occ_grid[1:, 3]
-        self.assertTrue(diff.max() >= 0.0, msg="grid is not properly sorted with occupancy")
+        self.assertTrue(
+            diff.max() >= 0.0, msg="grid is not properly sorted with occupancy"
+        )
 
 
 def suite():
@@ -83,6 +93,6 @@ def suite():
     return testSuite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

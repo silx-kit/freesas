@@ -12,6 +12,7 @@
 """
 Contains helper functions for loading SAS data from differents sources.
 """
+
 __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
@@ -54,15 +55,11 @@ def load_scattering_data(filename: PathType) -> ndarray:
             try:
                 data = parse_ascii_data(text, number_of_columns=3)
             except ValueError:
-                raise ValueError(
-                    "File does not seem to be " "in the format q, I, err. "
-                )
+                raise ValueError("File does not seem to be in the format q, I, err. ")
     return data
 
 
-def parse_ascii_data(
-    input_file_text: List[str], number_of_columns: int
-) -> ndarray:
+def parse_ascii_data(input_file_text: List[str], number_of_columns: int) -> ndarray:
     """
     Parse data from an ascii file into an N column numpy array
 

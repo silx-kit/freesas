@@ -27,7 +27,7 @@ class LongestRunOfHeads:
 
         """
         if n <= c:
-            return 2 ** n
+            return 2**n
         elif (n, c) in self.knowledge:
             return self.knowledge[(n, c)]
         else:
@@ -56,7 +56,7 @@ class LongestRunOfHeads:
         """
         if c >= n:
             return 0
-        delta = 2 ** n - self.A(n, c)
+        delta = 2**n - self.A(n, c)
         if delta <= 0:
             return 0
         return 2.0 ** (log(delta, 2) - n)
@@ -88,7 +88,7 @@ class LongestRunOfHeads:
             return 0
         if c == 0:
             return 0
-        delta = (2 ** n) - self.B(n, c)
+        delta = (2**n) - self.B(n, c)
         if delta <= 0:
             return 0
         return min(2.0 ** (log(delta, 2.0) - n), 1.0)

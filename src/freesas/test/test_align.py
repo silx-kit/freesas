@@ -10,6 +10,7 @@ from .utilstest import get_datafile
 from ..align import AlignModels
 from ..transformations import translation_matrix, euler_matrix
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")
 
@@ -79,7 +80,11 @@ class TestAlign(unittest.TestCase):
         dist_before = mol1.dist(mol2, mol1.atoms, mol2.atoms)
         symmetry, par = align.alignment_sym(mol1, mol2)
         dist_after = mol1.dist_after_movement(par, mol2, symmetry)
-        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after alignment %s<%s" % (dist_before, dist_after))
+        self.assertGreaterEqual(
+            dist_before,
+            dist_after,
+            "increase of distance after alignment %s<%s" % (dist_before, dist_after),
+        )
 
     def test_optimisation_align(self):
         inputfiles = [self.testfile1, self.testfile2]
@@ -93,7 +98,12 @@ class TestAlign(unittest.TestCase):
         align.slow = True
         sym, p = align.alignment_sym(mol1, mol2)
         dist_after = mol1.dist_after_movement(p, mol2, sym)
-        self.assertGreaterEqual(dist_before, dist_after, "increase of distance after optimized alignment %s<%s" % (dist_before, dist_after))
+        self.assertGreaterEqual(
+            dist_before,
+            dist_after,
+            "increase of distance after optimized alignment %s<%s"
+            % (dist_before, dist_after),
+        )
 
     def test_alignment_intruder(self):
         intruder = numpy.random.randint(0, 8)
@@ -111,12 +121,16 @@ class TestAlign(unittest.TestCase):
         if table.sum() == 0:
             logger.error("there is no intruders")
 
-        averNSD = ((table.sum(axis=-1)) / (align.validmodels.sum() - 1))
+        averNSD = (table.sum(axis=-1)) / (align.validmodels.sum() - 1)
         num_intr = averNSD.argmax()
 
         if not num_intr and num_intr != 0:
             logger.error("cannot find the intruder")
-        self.assertEqual(num_intr, intruder, msg="not find the good intruder, %s!=%s" % (num_intr, intruder))
+        self.assertEqual(
+            num_intr,
+            intruder,
+            msg="not find the good intruder, %s!=%s" % (num_intr, intruder),
+        )
 
     def test_reference(self):
         inputfiles = [self.testfile1] * 8
@@ -145,6 +159,7 @@ def suite():
     testSuite.addTest(TestAlign("test_reference"))
     return testSuite
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

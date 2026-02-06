@@ -9,6 +9,7 @@ import os
 from math import sqrt
 import threading
 import numpy
+
 try:
     from . import _distance
 except ImportError:
@@ -48,7 +49,9 @@ class SASModel:
         if isinstance(molecule, (str, bytes)) and os.path.exists(molecule):
             self.read(molecule)
         else:
-            self.atoms = molecule if molecule is not None else []  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
+            self.atoms = (
+                molecule if molecule is not None else []
+            )  # initial coordinates of each dummy atoms of the molecule, fourth column full of one for the transformation matrix
             self.header = ""  # header of the PDB file
             self.rfactor = None
         self.radius = 1.0  # unused at the moment
@@ -81,12 +84,16 @@ class SASModel:
                     y = float(line[38:46])
                     z = float(line[46:54])
                     atoms.append([x, y, z])
-                if line.startswith("REMARK 265  Final R-factor"):  # very dependent of the pdb file format !
+                if line.startswith(
+                    "REMARK 265  Final R-factor"
+                ):  # very dependent of the pdb file format !
                     self.rfactor = float(line[43:56])
                 header.append(line)
         self.header = header
         atom3 = numpy.array(atoms)
-        self.atoms = numpy.append(atom3, numpy.ones((atom3.shape[0], 1), dtype="float"), axis=1)
+        self.atoms = numpy.append(
+            atom3, numpy.ones((atom3.shape[0], 1), dtype="float"), axis=1
+        )
 
     def save(self, filename):
         """
@@ -100,7 +107,11 @@ class SASModel:
             for line in self.header:
                 if line.startswith("ATOM"):
                     if nr < self.atoms.shape[0]:
-                        line = line[:30] + "%8.3f%8.3f%8.3f" % tuple(self.atoms[nr]) + line[54:]
+                        line = (
+                            line[:30]
+                            + "%8.3f%8.3f%8.3f" % tuple(self.atoms[nr])
+                            + line[54:]
+                        )
                     else:
                         line = ""
                     nr += 1
@@ -130,7 +141,9 @@ class SASModel:
 
         for i in range(3):
             for j in range(i, 3):
-                self.inertensor[i, j] = self.inertensor[j, i] = (delta_kron(i, j) * (mol ** 2).sum(axis=1) - (mol[:, i] * mol[:, j])).sum() / mol.shape[0]
+                self.inertensor[i, j] = self.inertensor[j, i] = (
+                    delta_kron(i, j) * (mol**2).sum(axis=1) - (mol[:, i] * mol[:, j])
+                ).sum() / mol.shape[0]
         return self.inertensor
 
     def canonical_translate(self):
@@ -167,7 +180,10 @@ class SASModel:
             self.enantiomer = [1, 1, 1]
         else:
             self.enantiomer = [-1, -1, -1]
-            mirror = numpy.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype="float")
+            mirror = numpy.array(
+                [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]],
+                dtype="float",
+            )
             rot = numpy.dot(mirror, rot)
 
         return rot
@@ -199,7 +215,11 @@ class SASModel:
 
         else:
             size = self.atoms.shape[0]
-            D = delta_expand(self.atoms[:, 0], self.atoms[:, 0]) ** 2 + delta_expand(self.atoms[:, 1], self.atoms[:, 1]) ** 2 + delta_expand(self.atoms[:, 2], self.atoms[:, 2]) ** 2
+            D = (
+                delta_expand(self.atoms[:, 0], self.atoms[:, 0]) ** 2
+                + delta_expand(self.atoms[:, 1], self.atoms[:, 1]) ** 2
+                + delta_expand(self.atoms[:, 2], self.atoms[:, 2]) ** 2
+            )
             Rg = sqrt(D.sum() / 2.0) / size
             Dmax = sqrt(D.max())
             d12 = (D.max() * numpy.eye(size) + D).min(axis=0).mean()
@@ -240,7 +260,9 @@ class SASModel:
         :return D: NSD between the 2 molecules, in their position molecule1 and molecule2
         """
         if _distance and use_cython:
-            return _distance.calc_distance(molecule1, molecule2, self.fineness, other.fineness)
+            return _distance.calc_distance(
+                molecule1, molecule2, self.fineness, other.fineness
+            )
 
         else:
             mol1 = molecule1[:, 0:3]
@@ -260,9 +282,21 @@ class SASModel:
             mol2y.shape = mol2.shape[0], 1
             mol2z.shape = mol2.shape[0], 1
 
-            d2 = delta_expand(mol1x, mol2x) ** 2 + delta_expand(mol1y, mol2y) ** 2 + delta_expand(mol1z, mol2z) ** 2
+            d2 = (
+                delta_expand(mol1x, mol2x) ** 2
+                + delta_expand(mol1y, mol2y) ** 2
+                + delta_expand(mol1z, mol2z) ** 2
+            )
 
-            D = (0.5 * ((1. / ((mol1.shape[0]) * other.fineness * other.fineness)) * (d2.min(axis=1).sum()) + (1. / ((mol2.shape[0]) * self.fineness * self.fineness)) * (d2.min(axis=0)).sum())) ** 0.5
+            D = (
+                0.5
+                * (
+                    (1.0 / ((mol1.shape[0]) * other.fineness * other.fineness))
+                    * (d2.min(axis=1).sum())
+                    + (1.0 / ((mol2.shape[0]) * self.fineness * self.fineness))
+                    * (d2.min(axis=0)).sum()
+                )
+            ) ** 0.5
             return D
 
     def transform(self, param, symmetry, reverse=None):
@@ -275,10 +309,18 @@ class SASModel:
         """
         mol = self.atoms
 
-        sym = numpy.array([[symmetry[0], 0, 0, 0], [0, symmetry[1], 0, 0], [0, 0, symmetry[2], 0], [0, 0, 0, 1]], dtype="float")
+        sym = numpy.array(
+            [
+                [symmetry[0], 0, 0, 0],
+                [0, symmetry[1], 0, 0],
+                [0, 0, symmetry[2], 0],
+                [0, 0, 0, 1],
+            ],
+            dtype="float",
+        )
         if not reverse:
             vect = numpy.array([param[0:3]])
-            angles = (param[3:6])
+            angles = param[3:6]
 
             translat1 = transformations.translation_matrix(vect)
             rotation = transformations.euler_matrix(*angles)
@@ -310,9 +352,13 @@ class SASModel:
             self.canonical_parameters()
 
         can_param1 = self.can_param
-        molref_can = self.transform(can_param1, [1, 1, 1])  # molecule reference put on its canonical position
+        molref_can = self.transform(
+            can_param1, [1, 1, 1]
+        )  # molecule reference put on its canonical position
 
-        mol2_moved = other.transform(param, symmetry)  # movement selected applied to mol2
+        mol2_moved = other.transform(
+            param, symmetry
+        )  # movement selected applied to mol2
         distance = self.dist(other, molref_can, mol2_moved)
 
         return distance

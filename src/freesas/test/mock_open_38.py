@@ -1,7 +1,7 @@
 """
 This is the Python 3.8 implementation of mock_open taken from
 https://github.com/python/cpython/blob/3.8/Lib/unittest/mock.py
-Hence: 
+Hence:
 "Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 Python Software Foundation;
 All Rights Reserved"
@@ -12,8 +12,9 @@ from unittest.mock import MagicMock, DEFAULT
 
 
 file_spec = None
-#sentinel = _Sentinel()
-#DEFAULT = sentinel.DEFAULT
+# sentinel = _Sentinel()
+# DEFAULT = sentinel.DEFAULT
+
 
 def _to_stream(read_data):
     if isinstance(read_data, bytes):
@@ -22,7 +23,7 @@ def _to_stream(read_data):
         return io.StringIO(read_data)
 
 
-def mock_open(mock=None, read_data=''):
+def mock_open(mock=None, read_data=""):
     """
     A helper function to create a mock to replace the use of `open`. It works
     for `open` called directly or used as a context manager.
@@ -65,10 +66,11 @@ def mock_open(mock=None, read_data=''):
     global file_spec
     if file_spec is None:
         import _io
+
         file_spec = list(set(dir(_io.TextIOWrapper)).union(set(dir(_io.BytesIO))))
 
     if mock is None:
-        mock = MagicMock(name='open', spec=open)
+        mock = MagicMock(name="open", spec=open)
 
     handle = MagicMock(spec=file_spec)
     handle.__enter__.return_value = handle

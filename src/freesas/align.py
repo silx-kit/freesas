@@ -6,12 +6,14 @@ import os
 import sys
 import numpy
 import matplotlib
+
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from freesas.model import SASModel
 import itertools
 from scipy.optimize import fmin
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
 
@@ -47,7 +49,10 @@ class InputModels:
                 model.canonical_parameters()
                 self.sasmodels.append(model)
             if len(self.inputfiles) != len(self.sasmodels):
-                logger.error("Problem of assignment\n%s models for %s files" % (len(self.sasmodels), len(self.inputfiles)))
+                logger.error(
+                    "Problem of assignment\n%s models for %s files"
+                    % (len(self.sasmodels), len(self.inputfiles))
+                )
 
         elif len(molecule) != 0:
             model = SASModel()
@@ -61,11 +66,11 @@ class InputModels:
 
     def rcalculation(self):
         """
-        Calculation the maximal value for the R-factors, which is the mean of all the R-factors of 
+        Calculation the maximal value for the R-factors, which is the mean of all the R-factors of
         inputs plus 2 times the standard deviation.
         R-factors are saved in the attribute self.rfactors, 1d array, and in percentage.
 
-        :return rmax: maximal value for the R-factor 
+        :return rmax: maximal value for the R-factor
         """
         if len(self.sasmodels) == 0:
             self.assign_models()
@@ -123,12 +128,20 @@ class InputModels:
 
         xticks = 1 + numpy.arange(dammif_files)
         fig = plt.figure(figsize=(7.5, 10))
-        labels = [os.path.splitext(os.path.basename(self.inputfiles[i]))[0] for i in range(dammif_files)]
+        labels = [
+            os.path.splitext(os.path.basename(self.inputfiles[i]))[0]
+            for i in range(dammif_files)
+        ]
 
         ax2 = fig.add_subplot(1, 1, 1)
         ax2.set_title("Selection of dammif models based on R factor")
         ax2.bar(xticks - 0.5, R)
-        ax2.plot([0.5, dammif_files + 0.5], [Rmax, Rmax], "-r", label="R$_{max}$ = %.3f" % Rmax)
+        ax2.plot(
+            [0.5, dammif_files + 0.5],
+            [Rmax, Rmax],
+            "-r",
+            label="R$_{max}$ = %.3f" % Rmax,
+        )
         ax2.set_ylabel("R factor in percent")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
@@ -137,7 +150,16 @@ class InputModels:
         bbox_props = dict(fc="pink", ec="r", lw=1)
         for i in range(dammif_files):
             if not self.validmodels[i]:
-                ax2.text(i + 0.95, Rmax / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                ax2.text(
+                    i + 0.95,
+                    Rmax / 2,
+                    "Discarded",
+                    ha="center",
+                    va="center",
+                    rotation=90,
+                    size=10,
+                    bbox=bbox_props,
+                )
                 logger.info("model %s discarded, Rfactor > Rmax" % self.inputfiles[i])
 
         if save:
@@ -186,7 +208,10 @@ class AlignModels:
             model.canonical_parameters()
             self.models.append(model)
         if len(self.inputfiles) != len(self.models):
-            logger.error("Problem of assignment\n%s models for %s files" % (len(self.models), len(self.inputfiles)))
+            logger.error(
+                "Problem of assignment\n%s models for %s files"
+                % (len(self.models), len(self.inputfiles))
+            )
 
         return self.models
 
@@ -195,12 +220,20 @@ class AlignModels:
         Use scipy.optimize to optimize transformation parameters to minimize NSD
 
         :param reference: SASmodel
-        :param molecule: SASmodel        
+        :param molecule: SASmodel
         :param symmetry: 3-list of +/-1
         :return p: transformation parameters optimized
         :return dist: NSD after optimization
         """
-        p, dist, niter, nfuncalls, warmflag = fmin(reference.dist_after_movement, molecule.can_param, args=(molecule, symmetry), ftol=1e-4, maxiter=200, full_output=True, disp=False)
+        p, dist, niter, nfuncalls, warmflag = fmin(
+            reference.dist_after_movement,
+            molecule.can_param,
+            args=(molecule, symmetry),
+            ftol=1e-4,
+            maxiter=200,
+            full_output=True,
+            disp=False,
+        )
         if niter == 200:
             logger.debug("convergence not reached")
         else:
@@ -307,12 +340,17 @@ class AlignModels:
 
         dammif_files = len(self.inputfiles)
         valid_models = self.validmodels
-        labels = [os.path.splitext(os.path.basename(self.outputfiles[i]))[0] for i in range(dammif_files)]
-        mask2d = (numpy.outer(valid_models, valid_models))
+        labels = [
+            os.path.splitext(os.path.basename(self.outputfiles[i]))[0]
+            for i in range(dammif_files)
+        ]
+        mask2d = numpy.outer(valid_models, valid_models)
         tableNSD = self.arrayNSD * mask2d
         maskedNSD = numpy.ma.masked_array(tableNSD, mask=numpy.logical_not(mask2d))
-        data = valid_models * (tableNSD.sum(axis=-1) / (valid_models.sum() - 1))  # mean for the valid models, excluding itself
-        
+        data = valid_models * (
+            tableNSD.sum(axis=-1) / (valid_models.sum() - 1)
+        )  # mean for the valid models, excluding itself
+
         fig = plt.figure(figsize=(15, 10))
         xticks = 1 + numpy.arange(dammif_files)
         ax1 = fig.add_subplot(1, 2, 1)
@@ -324,16 +362,36 @@ class AlignModels:
             for j in range(dammif_files):
                 nsd = maskedNSD[i, j]
                 if not maskedNSD.mask[i, j]:
-                    ax1.text(i, j, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
-                    ax1.text(j, i, "%.2f" % nsd, ha="center", va="center", size=12 * 8 // dammif_files)
+                    ax1.text(
+                        i,
+                        j,
+                        "%.2f" % nsd,
+                        ha="center",
+                        va="center",
+                        size=12 * 8 // dammif_files,
+                    )
+                    ax1.text(
+                        j,
+                        i,
+                        "%.2f" % nsd,
+                        ha="center",
+                        va="center",
+                        size=12 * 8 // dammif_files,
+                    )
                     if i != j:
                         lnsd.append(nsd)
 
         lnsd = numpy.array(lnsd)
         nsd_max = lnsd.mean() + lnsd.std()  # threshold for nsd mean
 
-        ax1.imshow(maskedNSD, interpolation="nearest", origin="upper", cmap="YlOrRd", norm=matplotlib.colors.Normalize(vmin=min(lnsd)))
-        ax1.set_title(u"NSD correlation table")
+        ax1.imshow(
+            maskedNSD,
+            interpolation="nearest",
+            origin="upper",
+            cmap="YlOrRd",
+            norm=matplotlib.colors.Normalize(vmin=min(lnsd)),
+        )
+        ax1.set_title("NSD correlation table")
         ax1.set_xticks(range(dammif_files))
         ax1.set_xticklabels(labels, rotation=90)
         ax1.set_xlim(-0.5, dammif_files - 0.5)
@@ -343,26 +401,68 @@ class AlignModels:
 
         # second subplot : the NSD mean for each model
         ax2.bar(xticks - 0.5, data)
-        ax2.plot([0.5, dammif_files + 0.5], [nsd_max, nsd_max], "-r", label=u"NSD$_{max}$ = %.2f" % nsd_max)
-        ax2.set_title(u"NSD between any model and all others")
+        ax2.plot(
+            [0.5, dammif_files + 0.5],
+            [nsd_max, nsd_max],
+            "-r",
+            label="NSD$_{max}$ = %.2f" % nsd_max,
+        )
+        ax2.set_title("NSD between any model and all others")
         ax2.set_ylabel("Normalized Spatial Discrepancy")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
         bbox_props = dict(fc="cyan", ec="b", lw=1)
-        ax2.text(self.reference + 0.95, data[self.reference] / 2, "Reference", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+        ax2.text(
+            self.reference + 0.95,
+            data[self.reference] / 2,
+            "Reference",
+            ha="center",
+            va="center",
+            rotation=90,
+            size=10,
+            bbox=bbox_props,
+        )
         ax2.legend(loc=8)
 
         bbox_props = dict(fc="pink", ec="r", lw=1)
         valid_number = 0
         for i in range(dammif_files):
             if data[i] > nsd_max:
-                ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                ax2.text(
+                    i + 0.95,
+                    data[self.reference] / 2,
+                    "Discarded",
+                    ha="center",
+                    va="center",
+                    rotation=90,
+                    size=10,
+                    bbox=bbox_props,
+                )
                 logger.debug("model %s discarded, nsd > nsd_max" % self.inputfiles[i])
             elif not valid_models[i]:
                 if rmax:
-                    ax2.text(i + 0.95, data[self.reference] / 2, "Discarded, Rfactor = %s > Rmax = %s" % (100.0 * self.models[i].rfactor, rmax), ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                    ax2.text(
+                        i + 0.95,
+                        data[self.reference] / 2,
+                        "Discarded, Rfactor = %s > Rmax = %s"
+                        % (100.0 * self.models[i].rfactor, rmax),
+                        ha="center",
+                        va="center",
+                        rotation=90,
+                        size=10,
+                        bbox=bbox_props,
+                    )
                 else:
-                    ax2.text(i + 0.95, data[self.reference] / 2, "Discarded", ha="center", va="center", rotation=90, size=10, bbox=bbox_props)
+                    ax2.text(
+                        i + 0.95,
+                        data[self.reference] / 2,
+                        "Discarded",
+                        ha="center",
+                        va="center",
+                        rotation=90,
+                        size=10,
+                        bbox=bbox_props,
+                    )
             else:
                 if valid_models[i] == 1.0:
                     valid_number += 1
@@ -379,7 +479,7 @@ class AlignModels:
         """
         Find the reference model among the models aligned.
         The reference model is the one with lower average NSD with other models.
-        
+
         :return ref_number: position of the reference model in the list self.models
         """
         if self.arrayNSD is None:
@@ -404,7 +504,7 @@ class AlignModels:
         """
         if self.reference is None and ref_number is None:
             self.find_reference()
-        
+
         ref_number = self.reference
         models = self.models
         reference = models[ref_number]
@@ -416,8 +516,12 @@ class AlignModels:
                 symmetry, p = self.alignment_sym(reference, molecule)
                 if not self.slow:
                     p, dist = self.optimize(reference, molecule, symmetry)
-                molecule.atoms = molecule.transform(p, symmetry)  # molecule sent on its canonical position
-                molecule.atoms = molecule.transform(reference.can_param, [1, 1, 1], reverse=True)  # molecule sent on reference position
+                molecule.atoms = molecule.transform(
+                    p, symmetry
+                )  # molecule sent on its canonical position
+                molecule.atoms = molecule.transform(
+                    reference.can_param, [1, 1, 1], reverse=True
+                )  # molecule sent on reference position
                 molecule.save(self.outputfiles[i])
         reference.save(self.outputfiles[ref_number])
         return 0
@@ -439,7 +543,9 @@ class AlignModels:
             p, dist = self.optimize(reference, molecule, symmetry)
 
         molecule.atoms = molecule.transform(p, symmetry)
-        molecule.atoms = molecule.transform(reference.can_param, [1, 1, 1], reverse=True)
+        molecule.atoms = molecule.transform(
+            reference.can_param, [1, 1, 1], reverse=True
+        )
         if self.slow:
             dist = reference.dist(molecule, reference.atoms, molecule.atoms)
         if save:

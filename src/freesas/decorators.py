@@ -32,7 +32,7 @@ __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
 __date__ = "27/04/2020"
 __status__ = "development"
-__docformat__ = 'restructuredtext'
+__docformat__ = "restructuredtext"
 
 import sys
 import time
@@ -44,8 +44,8 @@ timelog = logging.getLogger("freesas.timeit")
 def timeit(func):
 
     def wrapper(*arg, **kw):
-        '''This is the docstring of timeit:
-        a decorator that logs the execution time'''
+        """This is the docstring of timeit:
+        a decorator that logs the execution time"""
         t1 = time.perf_counter()
         res = func(*arg, **kw)
         t2 = time.perf_counter()

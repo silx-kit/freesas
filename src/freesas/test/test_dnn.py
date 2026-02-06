@@ -32,14 +32,22 @@ import logging
 import numpy as np
 from .utilstest import get_datafile
 from ..sasio import load_scattering_data
-from ..dnn import DNN, DenseLayer, forward_propagation, preprocess, tanh, relu, sigmoid, linear
+from ..dnn import (
+    DNN,
+    DenseLayer,
+    forward_propagation,
+    preprocess,
+    tanh,
+    relu,
+    sigmoid,
+    linear,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
 class TestDNN(unittest.TestCase):
-
     def test_activation_functions(self):
         """
         Test for the activation functions
@@ -56,14 +64,17 @@ class TestDNN(unittest.TestCase):
 
         # Test sigmoid
         expected_sigmoid = 1 / (1 + np.exp(-x))
-        self.assertTrue(np.allclose(sigmoid(x), expected_sigmoid), msg="sigmoid function failed")
+        self.assertTrue(
+            np.allclose(sigmoid(x), expected_sigmoid), msg="sigmoid function failed"
+        )
 
         # Test linear
         expected_linear = x
-        self.assertTrue(np.allclose(linear(x), expected_linear), msg="linear function failed")
+        self.assertTrue(
+            np.allclose(linear(x), expected_linear), msg="linear function failed"
+        )
 
         logger.info("test_activation_functions ran successfully")
-
 
     def test_preprocess(self):
         """
@@ -76,15 +87,18 @@ class TestDNN(unittest.TestCase):
         self.assertEqual(Iprep.max(), 1, msg="range 0-1")
         self.assertEqual(Iprep.shape, (1024,), msg="size 1024")
 
-
-
     def test_forward_propagation(self):
         """
         Test for the forward_propagation function
         """
         try:
             X = np.random.rand(1, 10)
-            params = [np.random.rand(10, 20), np.random.rand(20), np.random.rand(20, 10), np.random.rand(10)]
+            params = [
+                np.random.rand(10, 20),
+                np.random.rand(20),
+                np.random.rand(20, 10),
+                np.random.rand(10),
+            ]
             activations = [np.tanh, np.tanh]
             output = forward_propagation(X, params, activations)
             self.assertEqual(output.shape, (1, 10))
@@ -93,15 +107,14 @@ class TestDNN(unittest.TestCase):
             logger.error(f"test_forward_propagation failed: {e}")
             raise
 
-
     def test_DenseLayer(self):
         """
         Test for the DenseLayer class
         """
-        try :
+        try:
             weights = np.random.rand(10, 20)
             bias = np.random.rand(20)
-            layer = DenseLayer(weights, bias, 'tanh')
+            layer = DenseLayer(weights, bias, "tanh")
             self.assertEqual(layer.input_size, 10)
             self.assertEqual(layer.output_size, 20)
             output = layer.forward(np.random.rand(1, 10))
@@ -111,15 +124,15 @@ class TestDNN(unittest.TestCase):
             logger.error(f"test_DenseLayer failed: {e}")
             raise
 
-
-
     def test_DNN(self):
         """
         Test for the DNN class
         """
         try:
-            layers = [DenseLayer(np.random.rand(10, 20), np.random.rand(20), 'tanh'),
-                      DenseLayer(np.random.rand(20, 10), np.random.rand(10), 'tanh')]
+            layers = [
+                DenseLayer(np.random.rand(10, 20), np.random.rand(20), "tanh"),
+                DenseLayer(np.random.rand(20, 10), np.random.rand(10), "tanh"),
+            ]
             dnn = DNN(*layers)
             output = dnn.infer(np.random.rand(1, 10))
             self.assertEqual(output.shape, (1, 10))
@@ -137,6 +150,6 @@ def suite():
     return test_suite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

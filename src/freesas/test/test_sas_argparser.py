@@ -38,8 +38,7 @@ class TestSasArgParser(unittest.TestCase):
             msg="GuinierParser provides usage if no file provided",
         )
         self.assertTrue(
-            "the following arguments are required: FILE"
-            in output_catcher.getvalue(),
+            "the following arguments are required: FILE" in output_catcher.getvalue(),
             msg="GuinierParser states that the FILE argument is missing if no file provided",
         )
 
@@ -172,7 +171,9 @@ class TestSasArgParser(unittest.TestCase):
         """
         Test that the parser sets the verbosity to 0 if no args are provided
         """
-        basic_parser = SASParser("program", "description", "epilog", exit_on_error=False)
+        basic_parser = SASParser(
+            "program", "description", "epilog", exit_on_error=False
+        )
         parsed_arguments = basic_parser.parse_args([])
         self.assertEqual(
             parsed_arguments.verbose,
@@ -506,8 +507,9 @@ class TestSasArgParser(unittest.TestCase):
         output = output_catcher.read()
         # print(output)
         valid = "argument -u/--unit: invalid choice: 'm'" in output
-        self.assertTrue(valid,
-                        msg="SASParser does not accept '-u m' argument",
+        self.assertTrue(
+            valid,
+            msg="SASParser does not accept '-u m' argument",
         )
 
     def test_GuinierParser_q_unit_A_gets_converted_to_Å(
