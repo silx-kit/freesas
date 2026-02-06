@@ -48,8 +48,6 @@ jobs:
       - name: Run tests
         env:
           WITH_QT_TEST: "False"  # skip GUI tests
-          PYFAI_OPENCL: "False"  # skip GPU tests
-          PYFAI_LOW_MEM: "True"  # skip all tests >100Mb
           WITH_GL_TEST: "False"  # disable tests using OpenGL
         run: python -c "import freesas.test, sys; sys.exit(freesas.test.run_tests())"
 
@@ -114,7 +112,7 @@ jobs:
       #   run: |
       #     sudo apt-get update
       #     sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
-      - uses: pypa/cibuildwheel@v2.16.5
+      - uses: pypa/cibuildwheel@v3.3.1
         env:
           # Use silx wheelhouse: needed for ppc64le
           CIBW_ENVIRONMENT_LINUX: "PIP_FIND_LINKS=https://www.silx.org/pub/wheelhouse/ PIP_TRUSTED_HOST=www.silx.org"
@@ -134,8 +132,6 @@ jobs:
           # Skip tests for emulated architectures
           CIBW_TEST_SKIP: "*-*linux_{aarch64,ppc64le,s390x} cp312-win_amd64"
           WITH_QT_TEST: "False"  # skip GUI tests
-          PYFAI_OPENCL: "False"  # skip GPU tests
-          PYFAI_LOW_MEM: "True"  # skip all tests >100Mb
           WITH_GL_TEST: "False"  # disable tests using OpenGL
       - uses: actions/upload-artifact@v4
         with:
