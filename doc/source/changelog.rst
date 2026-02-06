@@ -1,6 +1,11 @@
 Change-log
 ##########
 
+FreeSAS v2026.2.0 06/02/2026
+============================
+- Fix some tests
+- Supports Python 3.10-3.14
+
 FreeSAS v2024.9.0 11/09/2021
 ============================
 - Rg+Dmax inferance from a Dense Neural Network (free_dnn)
@@ -34,4 +39,4 @@ FreeSAS v0.6.0: 17/10/2017
 FreeSAS v0.4.0: 17/12/2015
 ==========================
  - First public version
- - built around bead-model alignment  
+ - built around bead-model alignment

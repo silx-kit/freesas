@@ -11,23 +11,31 @@ https://sourceforge.net/p/bioxtasraw/git/ci/master/tree/bioxtasraw/BIFT.py
 Many thanks to Pierre Paleo for the auto-alpha guess
 """
 
-__authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
+__authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020, ESRF"
-__date__ = "04/12/2023"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "06/02/2026"
 
 import logging
-logger = logging.getLogger(__name__)
-from math import log, ceil
-import numpy
+from math import log
 from scipy.optimize import minimize
 from ._bift import BIFT
-from .autorg import auto_gpa, autoRg, auto_guinier, NoGuinierRegionError
+from .autorg import auto_guinier, NoGuinierRegionError
 
 
-def auto_bift(data, Dmax=None, alpha=None, npt=100,
-              start_point=None, end_point=None,
-              scan_size=11, Dmax_over_Rg=3):
+logger = logging.getLogger(__name__)
+
+
+def auto_bift(
+    data,
+    Dmax=None,
+    alpha=None,
+    npt=100,
+    start_point=None,
+    end_point=None,
+    scan_size=11,
+    Dmax_over_Rg=3,
+):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence
 
     :param data: 2D array with q, I(q), δI(q). q can be in 1/nm or 1/A, it imposes the unit for r & Dmax
@@ -44,36 +52,46 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     assert data.shape[1] == 3  # enforce q, I, err
     use_wisdom = False
     data = data[slice(start_point, end_point)]
-    q, I, err = data.T
+    q, intenisty, err = data.T
     npt = min(npt, q.size)  # no chance for oversampling !
-    bo = BIFT(q, I, err)  # this is the bift object
+    bo = BIFT(q, intenisty, err)  # this is the bift object
     if Dmax is None:
         # Try to get a reasonable guess from Rg
         try:
             Guinier = auto_guinier(data)
-        except:
+        except Exception:
             logger.error("Guinier analysis failed !")
             raise
-#         print(Guinier)
+        #         print(Guinier)
         if Guinier.Rg <= 0:
             raise NoGuinierRegionError
         Dmax = bo.set_Guinier(Guinier, Dmax_over_Rg)
     if alpha is None:
         alpha_max = bo.guess_alpha_max(npt)
         # First scan on alpha:
-        key = bo.grid_scan(Dmax, Dmax, 1,
-                           1.0 / alpha_max, alpha_max, scan_size, npt)
+        key = bo.grid_scan(Dmax, Dmax, 1, 1.0 / alpha_max, alpha_max, scan_size, npt)
         Dmax, alpha = key[:2]
         # Then scan on Dmax:
-        key = bo.grid_scan(max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg), Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg, scan_size,
-                           alpha, alpha, 1, npt)
+        key = bo.grid_scan(
+            max(Dmax / 2, Dmax * (Dmax_over_Rg - 1) / Dmax_over_Rg),
+            Dmax * (Dmax_over_Rg + 1) / Dmax_over_Rg,
+            scan_size,
+            alpha,
+            alpha,
+            1,
+            npt,
+        )
         Dmax, alpha = key[:2]
         if bo.evidence_cache[key].converged:
             bo.update_wisdom()
             use_wisdom = True
 
     # Optimization using Bayesian operator:
-    logger.info("Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom)
-    res = minimize(bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell")
+    logger.info(
+        "Start search at Dmax=%.2f alpha=%.2f use wisdom=%s", Dmax, alpha, use_wisdom
+    )
+    res = minimize(
+        bo.opti_evidence, (Dmax, log(alpha)), args=(npt, use_wisdom), method="powell"
+    )
     logger.info("Result of optimisation:\n  %s", res)
     return bo

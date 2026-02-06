@@ -23,28 +23,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__authors__ = ["J. Kieffer"]
+__authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "31/05/2024"
+__date__ = "06/02/2026"
 
+import logging
+import time
 import numpy
 import unittest
-from .utilstest import get_datafile
 from ..bift import auto_bift
-from .._bift import BIFT, distribution_parabola, distribution_sphere, \
-                    ensure_edges_zero, smooth_density
-import logging
-logger = logging.getLogger(__name__)
-import time
+from .._bift import (
+    BIFT,
+    distribution_parabola,
+    distribution_sphere,
+    ensure_edges_zero,
+    smooth_density,
+)
 
 try:
     from numpy import trapezoid  # numpy 2
 except ImportError:
     from numpy import trapz as trapezoid  # numpy1
 
+logger = logging.getLogger(__name__)
+
 
 class TestBIFT(unittest.TestCase):
-
     DMAX = 10
     NPT = 100
     SIZE = 1000
@@ -57,13 +61,15 @@ class TestBIFT(unittest.TestCase):
         cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
         q = numpy.linspace(0, 8 * cls.DMAX / 3, cls.SIZE + 1)
         sincqr = numpy.sinc(numpy.outer(q, cls.r / numpy.pi))
-        I = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
-        err = numpy.sqrt(I)
-        cls.I0 = I[0]
+        intensity = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
+        err = numpy.sqrt(intensity)
+        cls.I0 = intensity[0]
         cls.q = q[1:]
-        cls.I = I[1:]
+        cls.I = intensity[1:]
         cls.err = err[1:]
-        cls.Rg = numpy.sqrt(0.5 * trapezoid(cls.p * cls.r ** 2, cls.r) / trapezoid(cls.p, cls.r))
+        cls.Rg = numpy.sqrt(
+            0.5 * trapezoid(cls.p * cls.r**2, cls.r) / trapezoid(cls.p, cls.r)
+        )
         print(cls.Rg)
 
     @classmethod
@@ -76,9 +82,9 @@ class TestBIFT(unittest.TestCase):
         t0 = time.perf_counter()
         bo = auto_bift(data)
         key, value, valid = bo.get_best()
-#         print("key is ", key)
+        #         print("key is ", key)
         stats = bo.calc_stats()
-#         print("stat is ", stats)
+        #         print("stat is ", stats)
         logger.info("Auto_bift time: %s", time.perf_counter() - t0)
         self.assertAlmostEqual(self.DMAX / key.Dmax, 1, 1, "DMax is correct")
         self.assertAlmostEqual(self.I0 / stats.I0_avg, 1, 1, "I0 is correct")
@@ -97,31 +103,68 @@ class TestBIFT(unittest.TestCase):
     def test_disributions(self):
         pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))
         ps = numpy.asarray(distribution_sphere(self.I0, self.DMAX, self.NPT))
-        self.assertAlmostEqual(trapezoid(ps, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a sphere looks OK")
-        self.assertAlmostEqual(trapezoid(pp, self.r) * 4 * numpy.pi / self.I0, 1, 3, "Distribution for a parabola looks OK")
+        self.assertAlmostEqual(
+            trapezoid(ps, self.r) * 4 * numpy.pi / self.I0,
+            1,
+            3,
+            "Distribution for a sphere looks OK",
+        )
+        self.assertAlmostEqual(
+            trapezoid(pp, self.r) * 4 * numpy.pi / self.I0,
+            1,
+            3,
+            "Distribution for a parabola looks OK",
+        )
         self.assertTrue(numpy.allclose(pp, self.p, 1e-4), "distribution matches")
 
     def test_fixEdges(self):
         ones = numpy.ones(self.NPT)
         ensure_edges_zero(ones)
-        self.assertAlmostEqual(ones[0], 0,  msg="1st point set to 0")
-        self.assertAlmostEqual(ones[-1], 0,  msg="last point set to 0")
-        self.assertTrue(numpy.allclose(ones[1:-1], numpy.ones(self.NPT-2), 1e-7), msg="non-edge points unchanged")
+        self.assertAlmostEqual(ones[0], 0, msg="1st point set to 0")
+        self.assertAlmostEqual(ones[-1], 0, msg="last point set to 0")
+        self.assertTrue(
+            numpy.allclose(ones[1:-1], numpy.ones(self.NPT - 2), 1e-7),
+            msg="non-edge points unchanged",
+        )
 
     def test_smoothing(self):
         ones = numpy.ones(self.NPT)
         empty = numpy.empty(self.NPT)
-        smooth_density(ones,empty)
-        self.assertTrue(numpy.allclose(ones, empty, 1e-7), msg="flat array smoothed into flat array")
+        smooth_density(ones, empty)
+        self.assertTrue(
+            numpy.allclose(ones, empty, 1e-7), msg="flat array smoothed into flat array"
+        )
         random = numpy.random.rand(self.NPT)
-        smooth =  numpy.empty(self.NPT)
-        smooth_density(random,smooth)
-        self.assertAlmostEqual(random[0], smooth[0],  msg="first points of random array and smoothed random array match")
-        self.assertAlmostEqual(random[-1], smooth[-1],  msg="last points of random array and smoothed random array match")
-        self.assertTrue(smooth[1]>=min(smooth[0], smooth[2]) and smooth[1]<=max(smooth[0], smooth[2]), msg="second point of random smoothed array between 1st and 3rd")
-        self.assertTrue(smooth[-2]>=min(smooth[-1], smooth[-3]) and smooth[-2]<= max(smooth[-1], smooth[-3]), msg="second to last point of random smoothed array between 3rd to last and last")
-        sign = numpy.sign(random[1:-3] - smooth[2:-2]) * numpy.sign(smooth[2:-2] - random[3:-1])
-        self.assertTrue(numpy.allclose(sign, numpy.ones(self.NPT-4), 1e-7), msg="central points of random array and smoothed random array alternate")
+        smooth = numpy.empty(self.NPT)
+        smooth_density(random, smooth)
+        self.assertAlmostEqual(
+            random[0],
+            smooth[0],
+            msg="first points of random array and smoothed random array match",
+        )
+        self.assertAlmostEqual(
+            random[-1],
+            smooth[-1],
+            msg="last points of random array and smoothed random array match",
+        )
+        self.assertTrue(
+            smooth[1] >= min(smooth[0], smooth[2])
+            and smooth[1] <= max(smooth[0], smooth[2]),
+            msg="second point of random smoothed array between 1st and 3rd",
+        )
+        self.assertTrue(
+            smooth[-2] >= min(smooth[-1], smooth[-3])
+            and smooth[-2] <= max(smooth[-1], smooth[-3]),
+            msg="second to last point of random smoothed array between 3rd to last and last",
+        )
+        sign = numpy.sign(random[1:-3] - smooth[2:-2]) * numpy.sign(
+            smooth[2:-2] - random[3:-1]
+        )
+        self.assertTrue(
+            numpy.allclose(sign, numpy.ones(self.NPT - 4), 1e-7),
+            msg="central points of random array and smoothed random array alternate",
+        )
+
 
 def suite():
     testSuite = unittest.TestSuite()
@@ -132,6 +175,6 @@ def suite():
     return testSuite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())

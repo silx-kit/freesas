@@ -68,21 +68,22 @@ logger = logging.getLogger(__name__)
 # importlib_resources is useful when this package is stored in a zip
 # When importlib.resources is not available, the resources dir defaults to the
 # directory containing this module.
-if sys.version_info >= (3,9):
+if sys.version_info >= (3, 9):
     import importlib.resources as importlib_resources
 else:
     try:
-        import  importlib_resources
+        import importlib_resources
     except ImportError:
         logger.info("Unable to import importlib_resources")
         logger.debug("Backtrace", exc_info=True)
         importlib_resources = None
 
 if importlib_resources is not None:
-        import atexit
-        from contextlib import ExitStack
-        file_manager = ExitStack()
-        atexit.register(file_manager.close)
+    import atexit
+    from contextlib import ExitStack
+
+    file_manager = ExitStack()
+    atexit.register(file_manager.close)
 
 
 # For packaging purpose, patch this variable to use an alternative directory
@@ -96,11 +97,11 @@ _RESOURCES_DIR = None
 
 # cx_Freeze forzen support
 # See http://cx-freeze.readthedocs.io/en/latest/faq.html#using-data-files
-if getattr(sys, 'frozen', False):
+if getattr(sys, "frozen", False):
     # Running in a frozen application:
     # We expect resources to be located either in a pyFAI/resources/ dir
     # relative to the executable or within this package.
-    _dir = os.path.join(os.path.dirname(sys.executable), 'freesas', 'resources')
+    _dir = os.path.join(os.path.dirname(sys.executable), "freesas", "resources")
     if os.path.isdir(_dir):
         _RESOURCES_DIR = _dir
 
@@ -124,10 +125,11 @@ def resource_filename(resource):
     #     return os.path.join(_RESOURCES_DOC_DIR, *resource.split('/')[1:])
 
     if _RESOURCES_DIR is not None:  # if set, use this directory
-        return os.path.join(_RESOURCES_DIR, *resource.split('/'))
+        return os.path.join(_RESOURCES_DIR, *resource.split("/"))
     elif importlib_resources is None:  # Fallback if pkg_resources is not available
-        return os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                            *resource.split('/'))
+        return os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), *resource.split("/")
+        )
     else:  # Preferred way to get resources as it supports zipfile package
         ref = importlib_resources.files(__name__) / resource
         path = file_manager.enter_context(importlib_resources.as_file(ref))
@@ -143,7 +145,6 @@ def silx_integration():
     if _integrated:
         return
     import silx.resources
-    silx.resources.register_resource_directory("freesas",
-                                               __name__,
-                                               _RESOURCES_DIR)
+
+    silx.resources.register_resource_directory("freesas", __name__, _RESOURCES_DIR)
     _integrated = True

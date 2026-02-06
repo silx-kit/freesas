@@ -26,13 +26,13 @@
 """
 Set of namedtuples defined a bit everywhere
 """
+
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020 ESRF"
 __date__ = "13/10/2020"
 
 from collections import namedtuple
-from os import linesep
 import numpy
 
 # Used in AutoRg
@@ -43,7 +43,7 @@ RG_RESULT = namedtuple(
 
 
 def _RG_RESULT_repr(self):
-    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0*self.quality:5.2f}% {'aggregated' if self.aggregated>0.1 else ''}"
+    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0 * self.quality:5.2f}% {'aggregated' if self.aggregated > 0.1 else ''}"
 
 
 RG_RESULT.__repr__ = _RG_RESULT_repr

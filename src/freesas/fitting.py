@@ -5,7 +5,7 @@ __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "11/09/2024"
+__date__ = "06/02/2026"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
@@ -83,9 +83,7 @@ def get_linesep(output_destination: IO[str]) -> str:
         return "\n"
 
 
-def get_guinier_header(
-    linesep: str, output_format: Optional[str] = None
-) -> str:
+def get_guinier_header(linesep: str, output_format: Optional[str] = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -110,9 +108,8 @@ def get_guinier_header(
     else:
         return ""
 
-def get_dnn_header(
-    linesep: str, output_format: Optional[str] = None
-) -> str:
+
+def get_dnn_header(linesep: str, output_format: Optional[str] = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -182,6 +179,7 @@ def rg_result_to_output_line(
         )
     else:
         return f"{afile} {rg_result}{linesep}"
+
 
 def dnn_result_to_output_line(
     dnn_result: tuple,
@@ -280,6 +278,8 @@ def run_guinier_fit(
                     )
                     output_destination.write(res)
                     output_destination.flush()
+
+
 def run_dnn(
     parser: SASParser,
     logger: logging.Logger,
@@ -289,7 +289,7 @@ def run_dnn(
     :param parser: a function that returns the output of argparse.parse()
     :param logger: a Logger
     """
-    from .dnn import Rg_Dmax # heavy import
+    from .dnn import Rg_Dmax  # heavy import
 
     args = parser.parse_args()
     set_logging_level(args.verbose)
@@ -317,9 +317,9 @@ def run_dnn(
             else:
                 if args.unit == "Å":
                     data = convert_inverse_angstrom_to_nanometer(data)
-                q, I = data.T[:2]
+                q, intensity = data.T[:2]
                 try:
-                    dnn_result = Rg_Dmax(q, I)
+                    dnn_result = Rg_Dmax(q, intensity)
                 except (
                     InsufficientDataError,
                     NoGuinierRegionError,

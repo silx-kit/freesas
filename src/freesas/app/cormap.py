@@ -4,27 +4,25 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "12/07/2024"
+__date__ = "06/02/2026"
 
 import os
 import logging
 import glob
+import platform
 from itertools import combinations
 from collections import namedtuple
-import numpy
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("cormap")
-import freesas
 from freesas.cormap import gof
 from freesas.sasio import load_scattering_data
 from freesas.sas_argparser import SASParser
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("cormap")
+
 datum = namedtuple("datum", ["index", "filename", "data"])
 
-import platform
 
 operatingSystem = platform.system()
-
 
 
 def parse():
@@ -55,7 +53,7 @@ def parse():
 def compare(lstfiles):
     res = [
         "Pair-wise Correlation Map",
-        "" "                                C       Pr(>C)",
+        "                                C       Pr(>C)",
     ]
     data = []
     for i, f in enumerate(lstfiles):
@@ -69,14 +67,10 @@ def compare(lstfiles):
         data.append(d)
     for a, b in combinations(data, 2):
         r = gof(a.data, b.data)
-        res.append(
-            "%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P)
-        )
+        res.append("%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P))
     res.append("")
     for a in data:
-        res.append(
-            "%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename)
-        )
+        res.append("%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename))
     res.append("")
     print(os.linesep.join(res))
     return res

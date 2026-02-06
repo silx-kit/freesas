@@ -29,7 +29,6 @@ def parse_unit(unit_input: str) -> str:
 
 
 class SASParser:
-
     """
     Wrapper class for argparse ArgumentParser that provides predefined argument.
     """
@@ -69,11 +68,11 @@ class SASParser:
         self.add_argument("-V", "--version", action="version", version=version)
 
     def parse_args(self, *args, **kwargs):
-        """ Wrapper for argparse parse_args() """
+        """Wrapper for argparse parse_args()"""
         return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
-        """ Wrapper for argparse add_argument() """
+        """Wrapper for argparse add_argument()"""
         self.parser.add_argument(*args, **kwargs)
 
     def add_file_argument(self, help_text: str):
@@ -100,7 +99,7 @@ class SASParser:
         )
 
     def add_output_filename_argument(self):
-        """ Add default argument for specifying output format. """
+        """Add default argument for specifying output format."""
         self.add_argument(
             "-o",
             "--output",
@@ -111,7 +110,7 @@ class SASParser:
         )
 
     def add_output_data_format(self, *formats: str, default: str = None):
-        """ Add default argument for specifying output format. """
+        """Add default argument for specifying output format."""
         help_string = "Output format: " + ", ".join(formats)
         self.add_argument(
             "-f",
@@ -150,16 +149,14 @@ class GuinierParser:
         )
         self.parser.add_file_argument(help_text=file_help_text)
         self.parser.add_output_filename_argument()
-        self.parser.add_output_data_format(
-            "native", "csv", "ssf", default="native"
-        )
+        self.parser.add_output_data_format("native", "csv", "ssf", default="native")
         self.parser.add_q_unit_argument()
         self.usage = self.parser.usage
 
     def parse_args(self, *args, **kwargs):
-        """ Wrapper for SASParser parse_args() """
+        """Wrapper for SASParser parse_args()"""
         return self.parser.parse_args(*args, **kwargs)
 
     def add_argument(self, *args, **kwargs):
-        """ Wrapper for SASParser add_argument() """
+        """Wrapper for SASParser add_argument()"""
         self.parser.add_argument(*args, **kwargs)

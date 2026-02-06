@@ -76,9 +76,7 @@ def parse():
     description = "Generate typical sas plots with matplotlib"
     epilog = """freesas is an open-source implementation of a bunch of
     small angle scattering algorithms. """
-    parser = SASParser(
-        prog="freesas.py", description=description, epilog=epilog
-    )
+    parser = SASParser(prog="freesas.py", description=description, epilog=epilog)
     parser.add_file_argument(help_text="dat files to plot")
     parser.add_output_filename_argument()
     parser.add_output_data_format("jpeg", "svg", "png", "pdf")

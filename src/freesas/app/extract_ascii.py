@@ -26,8 +26,8 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2020-2024, ESRF"
-__date__ = "22/04/2025"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "06/02/2026"
 
 import io
 import os
@@ -57,16 +57,13 @@ NexusJuice = namedtuple(
 
 
 def parse():
-
     """Parse input and return list of files.
     :return: list of input files
     """
     description = "Extract the SAXS data from a Nexus files as a 3 column ascii (q, I, err). Metadata are exported in the headers as needed."
     epilog = """extract_ascii.py allows you to export the data in inverse nm or inverse A with possible intensity scaling.
     """
-    parser = SASParser(
-        prog="extract-ascii.py", description=description, epilog=epilog
-    )
+    parser = SASParser(prog="extract-ascii.py", description=description, epilog=epilog)
     # Commented option need to be implemented
     # parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
     # parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
@@ -90,7 +87,7 @@ def parse():
 
 
 def extract_averaged(filename):
-    "return some infomations extracted from a HDF5 file "
+    "return some infomations extracted from a HDF5 file"
     results = OrderedDict()
     results["filename"] = filename
     # Missing: comment normalization
@@ -105,13 +102,15 @@ def extract_averaged(filename):
         # if program == ""
         default = entry_grp.attrs["default"]
         if posixpath.split(default)[-1] == "hplc":
-            default = posixpath.join(posixpath.split(default)[0],"results")
+            default = posixpath.join(posixpath.split(default)[0], "results")
         # print(default)
         nxdata_grp = nxsr.h5[default]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"]
-        if not isinstance(axis, (str,bytes)):
-            logger.error(f"There are several curves if the dataset {default} from file {filename}, please use the option --all to extract them all")
+        if not isinstance(axis, (str, bytes)):
+            logger.error(
+                f"There are several curves if the dataset {default} from file {filename}, please use the option --all to extract them all"
+            )
             sys.exit(1)
         results["I"] = nxdata_grp[signal][()]
         results["q"] = nxdata_grp[axis][()]
@@ -120,15 +119,16 @@ def extract_averaged(filename):
             axis + "_" + nxdata_grp[axis].attrs["units"]
         )
         integration_grp = nxdata_grp.parent
-        results["geometry"] = json.loads(
-            integration_grp["configuration/data"][()]
-        )
-        results["polarization"] = integration_grp["configuration/polarization_factor"][()]
+        results["geometry"] = json.loads(integration_grp["configuration/data"][()])
+        results["polarization"] = integration_grp["configuration/polarization_factor"][
+            ()
+        ]
 
         instrument_grps = nxsr.get_class(entry_grp, class_type="NXinstrument")
         if instrument_grps:
-            detector_grp = nxsr.get_class(instrument_grps[0], 
-                                          class_type="NXdetector")[0]
+            detector_grp = nxsr.get_class(instrument_grps[0], class_type="NXdetector")[
+                0
+            ]
             results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
         sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
         results["sample"] = posixpath.split(sample_grp.name)[-1]
@@ -137,12 +137,14 @@ def extract_averaged(filename):
         results["exposure temperature"] = sample_grp["temperature"][()]
         results["concentration"] = sample_grp["concentration"][()]
         if "2_correlation_mapping" in entry_grp:
-            results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
+            results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][
+                ()
+            ]
     return results
 
 
 def extract_all(filename):
-    """return some infomations extracted from a HDF5 file for all individual frames. 
+    """return some infomations extracted from a HDF5 file for all individual frames.
     Supports HPLC and SC and freshly integrated blocks of frames"""
     res = []
     results = OrderedDict()
@@ -153,7 +155,11 @@ def extract_all(filename):
             entry_grp = nxsr.h5[default]
         else:
             entry_grp = nxsr.get_entries()[0]
-        program = entry_grp.get("program_name")[()].decode() if "program_name" in entry_grp else None
+        program = (
+            entry_grp.get("program_name")[()].decode()
+            if "program_name" in entry_grp
+            else None
+        )
 
         if program == "bm29.hplc":
             target = "1_chromatogram"
@@ -168,11 +174,13 @@ def extract_all(filename):
         nxdata_grp = nxsr.h5[target]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"][1]
-        I = nxdata_grp[signal][()]
+        intensity = nxdata_grp[signal][()]
         results["q"] = nxdata_grp[axis][()]
         std = nxdata_grp["errors"][()]
         try:
-            results["unit"] = pyFAI.units.to_unit(axis + "_" + nxdata_grp[axis].attrs["units"])
+            results["unit"] = pyFAI.units.to_unit(
+                axis + "_" + nxdata_grp[axis].attrs["units"]
+            )
         except KeyError:
             logger.warning("Unable to parse radial units")
         integration_grp = nxdata_grp.parent
@@ -181,7 +189,9 @@ def extract_all(filename):
         else:
             logger.warning("Unable to parse AzimuthalIntegrator configuration")
         if "configuration/polarization_factor" in integration_grp:
-            results["polarization"] = integration_grp["configuration/polarization_factor"][()]
+            results["polarization"] = integration_grp[
+                "configuration/polarization_factor"
+            ][()]
         instrument_grp = nxsr.get_class(entry_grp, class_type="NXinstrument")
         if instrument_grp:
             detector_grp = nxsr.get_class(instrument_grp[0], class_type="NXdetector")
@@ -201,7 +211,7 @@ def extract_all(filename):
                 results["concentration"] = sample_grp["concentration"][()]
     #         if "2_correlation_mapping" in entry_grp:
     #             results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
-    for i, s in zip(I, std):
+    for i, s in zip(intensity, std):
         r = copy.copy(results)
         r["I"] = i
         r["std"] = s
@@ -257,28 +267,18 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
         headers.append(hdr + " " + results["comments"])
     else:
         headers.append(hdr)
-    headers.append(
-        hdr + " Sample c= %s mg/ml" % results.get("concentration", -1)
-    )
+    headers.append(hdr + " Sample c= %s mg/ml" % results.get("concentration", -1))
     headers += [hdr, hdr + " Sample environment:"]
     if "geometry" in results:
-        headers.append(
-            hdr + " Detector = %s" % results["geometry"]["detector"]
-        )
-        headers.append(
-            hdr + " SampleDistance = %s" % results["geometry"]["dist"]
-        )
-        headers.append(
-            hdr + " WaveLength = %s" % results["geometry"]["wavelength"]
-        )
+        headers.append(hdr + " Detector = %s" % results["geometry"]["detector"])
+        headers.append(hdr + " SampleDistance = %s" % results["geometry"]["dist"])
+        headers.append(hdr + " WaveLength = %s" % results["geometry"]["wavelength"])
     headers.append(hdr)
     if "comments" in results:
         headers.append(hdr + " title = %s" % results["comment"])
     if "to_merge" in results:
         headers.append(
-            hdr
-            + " Frames merged: "
-            + " ".join([str(i) for i in results["to_merge"]])
+            hdr + " Frames merged: " + " ".join([str(i) for i in results["to_merge"]])
         )
     if "normalization" in results:
         headers.append(hdr + " Normalization = %s" % results["normalization"])
@@ -302,8 +302,7 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
     if "storage temperature" in results:
         headers.append(
             hdr
-            + " Storage Temperature (degrees C): %s"
-            % results["storage temperature"]
+            + " Storage Temperature (degrees C): %s" % results["storage temperature"]
         )
     if "exposure temperature" in results:
         headers.append(
@@ -312,9 +311,7 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
             % results["exposure temperature"]
         )
 
-    headers.append(
-        hdr + " Concentration: %s" % results.get("concentration", -1)
-    )
+    headers.append(hdr + " Concentration: %s" % results.get("concentration", -1))
     if "buffer" in results:
         headers.append(hdr + " Buffer: %s" % results["buffer"])
     headers.append(hdr + " Code: %s" % results.get("sample", ""))
@@ -326,15 +323,13 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
 
         if "std" in results:
             data = [
-                "%14.6e\t%14.6e\t%14.6e" % (q, I, std)
-                for q, I, std in zip(
-                    results["q"], results["I"], results["std"]
-                )
+                "%14.6e\t%14.6e\t%14.6e" % (q, intensity, std)
+                for q, intensity, std in zip(results["q"], results["I"], results["std"])
             ]
         else:
             data = [
-                "%14.6e\t%14.6e\t" % (q, I)
-                for q, I in zip(results["q"], results["I"])
+                "%14.6e\t%14.6e\t" % (q, intensity)
+                for q, intensity in zip(results["q"], results["I"])
             ]
         data.append("")
         file_.writelines(linesep.join(data))

@@ -23,9 +23,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__authors__ = ["J. Kieffer"]
+__authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "29/11/2023"
+__date__ = "06/02/2026"
 
 import logging
 import unittest
@@ -59,9 +59,9 @@ def create_synthetic_data(R0=4, I0=100):
     q = numpy.linspace(0, 10, size)
     qr = numpy.outer(q, r / pi)
     T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
-    I = T.dot(p)
-    err = numpy.sqrt(I)
-    return numpy.vstack((q, I, err)).T[1:]
+    intensity = T.dot(p)
+    err = numpy.sqrt(intensity)
+    return numpy.vstack((q, intensity, err)).T[1:]
 
 
 class TestAutoRg(unittest.TestCase):
@@ -116,9 +116,7 @@ class TestAutoRg(unittest.TestCase):
         data = create_synthetic_data(R0=R0, I0=I0)
         Rg = autoRg(data)
         logger.info("auto_rg %s", Rg)
-        self.assertAlmostEqual(
-            R0 * sqrt(3 / 5), Rg.Rg, 0, "Rg matches for a sphere"
-        )
+        self.assertAlmostEqual(R0 * sqrt(3 / 5), Rg.Rg, 0, "Rg matches for a sphere")
         self.assertGreater(
             R0 * sqrt(3 / 5),
             Rg.Rg - Rg.sigma_Rg,
@@ -158,16 +156,12 @@ class TestAutoRg(unittest.TestCase):
             "Rg in range matches for a sphere",
         )
         self.assertAlmostEqual(I0, guinier.I0, 0, "I0 matches for a sphere")
-        self.assertGreater(
-            I0, guinier.I0 - sigma_I0, "I0 matches for a sphere"
-        )
+        self.assertGreater(I0, guinier.I0 - sigma_I0, "I0 matches for a sphere")
         self.assertLess(I0, guinier.I0 + sigma_I0, "I0 matches for a sphere")
 
         # Check RT invarients...
         rt = calc_Rambo_Tainer(data, guinier)
-        self.assertIsNotNone(
-            rt, "Rambo-Tainer invariants are actually calculated"
-        )
+        self.assertIsNotNone(rt, "Rambo-Tainer invariants are actually calculated")
 
     def test_auto_gpa_with_outlier(self):
         if "outlier_position" not in self.extra_arg:
@@ -266,7 +260,6 @@ class TestFit(unittest.TestCase):
         )
 
     def test_random(self):
-
         """
         Tests that our linear regression implementation
         gives the same results as scipy.stats for random data
@@ -288,7 +281,7 @@ class TestFit(unittest.TestCase):
         )
         self.assertAlmostEqual(
             fit_result.R2,
-            ref.rvalue ** 2,
+            ref.rvalue**2,
             5,
             "R² value matcheswihtin 4(?) digits",
         )
@@ -378,7 +371,7 @@ class TestDataCuration(unittest.TestCase):
     def test_curate_synthetic_data_with_negative_points(self):
         if "negative_point_index" not in self.extra_arg:
             raise unittest.SkipTest("No negative point index to test")
-        
+
         """Test that if one of the first three points is negative, all date before it gets ignored."""
         negative_point_index = self.extra_arg["negative_point_index"]
 
@@ -415,11 +408,10 @@ class TestDataCuration(unittest.TestCase):
         )
 
         self.assertTrue(
-            data[offsets[data_range[1]] - 1, 1]
-            > data[negative_point_index + 1, 1] / 10
+            data[offsets[data_range[1]] - 1, 1] > data[negative_point_index + 1, 1] / 10
             and data[offsets[data_range[1]] + 1, 1]
             < data[negative_point_index + 1, 1] / 10,
-            msg=f"curated data for artificial data ends at approx. I(point after negaitve point)/10 if negative point at {negative_point_index + 1}",
+            msg=f"curated data for artificial data ends at approx. I(point after negative point)/10 if negative point at {negative_point_index + 1}",
         )
 
 
@@ -430,9 +422,7 @@ def suite():
     testSuite.addTest(TestAutoRg("test_synthetic"))
     for outlier_position in range(3):
         testSuite.addTest(
-            TestAutoRg(
-                "test_auto_gpa_with_outlier", outlier_position=outlier_position
-            )
+            TestAutoRg("test_auto_gpa_with_outlier", outlier_position=outlier_position)
         )
     testSuite.addTest(TestFit("test_linear_fit_static"))
     testSuite.addTest(TestFit("test_linspace"))

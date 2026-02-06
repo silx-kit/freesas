@@ -26,8 +26,8 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2017, ESRF"
-__date__ = "13/10/2020"
+__copyright__ = "2017-2026, ESRF"
+__date__ = "06/02/2026"
 
 import sys
 import logging
@@ -68,9 +68,7 @@ def build_parser() -> SASParser:
     It aims at being a drop in replacement for datgnom of the ATSAS suite.
 
     """
-    parser = SASParser(
-        prog="free_bift", description=description, epilog=epilog
-    )
+    parser = SASParser(prog="free_bift", description=description, epilog=epilog)
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
     parser.add_output_filename_argument()
     parser.add_q_unit_argument()
@@ -118,7 +116,7 @@ def main():
     for afile in files:
         try:
             data = load_scattering_data(afile)
-        except:
+        except Exception:
             logger.error("Unable to parse file %s", afile)
         else:
             if args.unit == "Å":

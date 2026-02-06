@@ -1,21 +1,21 @@
 #!/usr/bin/python
 # coding: utf-8
 
-__author__ = "Jerome"
+__author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2017, ESRF"
+__copyright__ = "2017-2026, ESRF"
 
 import numpy
 import unittest
-
 import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("test_cormap")
 from .. import cormap
 
 
-class TestCormap(unittest.TestCase):
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("test_cormap")
 
+
+class TestCormap(unittest.TestCase):
     def test_longest(self):
         size = 1000
         target = 50
@@ -30,21 +30,25 @@ class TestCormap(unittest.TestCase):
         self.assertEqual(res, size, msg="computed size is correct: negative")
 
         data[:] = 0
-        data[start: start + target] = 1.0
+        data[start : start + target] = 1.0
         res = cormap.measure_longest(data)
         self.assertEqual(res, target, msg="computed size is correct: positive/zero")
         data = numpy.zeros(size, dtype="float32")
-        data[start: start + target] = -1.0
+        data[start : start + target] = -1.0
         res = cormap.measure_longest(data)
         self.assertEqual(res, target, msg="computed size is correct: negative/zero")
-        data = numpy.fromfunction(lambda n:(-1) ** n, (size,))
-        data[start: start + target] = 1.0
+        data = numpy.fromfunction(lambda n: (-1) ** n, (size,))
+        data[start : start + target] = 1.0
         res = cormap.measure_longest(data)
-        self.assertEqual(res, target + 1, msg="computed size is correct: positive/alternating")
-        data = numpy.fromfunction(lambda n:(-1) ** n, (size,))
-        data[start: start + target] = -1.0
+        self.assertEqual(
+            res, target + 1, msg="computed size is correct: positive/alternating"
+        )
+        data = numpy.fromfunction(lambda n: (-1) ** n, (size,))
+        data[start : start + target] = -1.0
         res = cormap.measure_longest(data)
-        self.assertEqual(res, target + 1, msg="computed size is correct: negative/alternating")
+        self.assertEqual(
+            res, target + 1, msg="computed size is correct: negative/alternating"
+        )
 
     def test_stats(self):
         self.assertEqual(cormap.LROH.A(10, 0), 1)
@@ -82,6 +86,6 @@ def suite():
     return testSuite
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     runner = unittest.TextTestRunner()
     runner.run(suite())
