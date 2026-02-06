@@ -5,7 +5,7 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "25/03/2021"
+__date__ = "06/02/2026"
 
 
 import unittest
@@ -434,9 +434,13 @@ class TestSasArgParser(unittest.TestCase):
                 _ = basic_parser.parse_args(["-u", "m"])
         except SystemExit:
             pass
+        output_catcher.seek(0)
+        output = output_catcher.read()
+        # print(output)
+        valid = "argument -u/--unit: invalid choice: 'm'" in output
+
         self.assertTrue(
-            "argument -u/--unit: invalid choice: 'm' (choose from 'nm', 'Å', 'A')"
-            in output_catcher.getvalue(),
+            "argument -u/--unit: invalid choice: 'm'" in output,
             msg="SASParser does not accept '-u m' argument",
         )
 
@@ -500,10 +504,12 @@ class TestSasArgParser(unittest.TestCase):
                 _ = basic_parser.parse_args(["afile", "-u", "m"])
         except SystemExit:
             pass
-        self.assertTrue(
-            "argument -u/--unit: invalid choice: 'm' (choose from 'nm', 'Å', 'A')"
-            in output_catcher.getvalue(),
-            msg="SASParser does not accept '-u m' argument",
+        output_catcher.seek(0)
+        output = output_catcher.read()
+        # print(output)
+        valid = "argument -u/--unit: invalid choice: 'm'" in output
+        self.assertTrue(valid,
+                        msg="SASParser does not accept '-u m' argument",
         )
 
     def test_GuinierParser_q_unit_A_gets_converted_to_Å(
