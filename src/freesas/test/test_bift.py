@@ -23,24 +23,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__authors__ = ["J. Kieffer"]
+__authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "31/05/2024"
+__date__ = "06/02/2026"
 
+import logging
+import time
 import numpy
 import unittest
 from ..bift import auto_bift
 from .._bift import BIFT, distribution_parabola, distribution_sphere, \
                     ensure_edges_zero, smooth_density
-import logging
-logger = logging.getLogger(__name__)
-import time
 
 try:
     from numpy import trapezoid  # numpy 2
 except ImportError:
     from numpy import trapz as trapezoid  # numpy1
 
+logger = logging.getLogger(__name__)
 
 class TestBIFT(unittest.TestCase):
 
@@ -56,11 +56,11 @@ class TestBIFT(unittest.TestCase):
         cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
         q = numpy.linspace(0, 8 * cls.DMAX / 3, cls.SIZE + 1)
         sincqr = numpy.sinc(numpy.outer(q, cls.r / numpy.pi))
-        I = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
-        err = numpy.sqrt(I)
-        cls.I0 = I[0]
+        intensity = 4 * numpy.pi * (cls.p * sincqr).sum(axis=-1) * dr
+        err = numpy.sqrt(intensity)
+        cls.I0 = intensity[0]
         cls.q = q[1:]
-        cls.I = I[1:]
+        cls.I = intensity[1:]
         cls.err = err[1:]
         cls.Rg = numpy.sqrt(0.5 * trapezoid(cls.p * cls.r ** 2, cls.r) / trapezoid(cls.p, cls.r))
         print(cls.Rg)

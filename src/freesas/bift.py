@@ -11,17 +11,19 @@ https://sourceforge.net/p/bioxtasraw/git/ci/master/tree/bioxtasraw/BIFT.py
 Many thanks to Pierre Paleo for the auto-alpha guess
 """
 
-__authors__ = ["Jerome Kieffer", "Jesse Hopkins"]
+__authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020, ESRF"
-__date__ = "04/12/2023"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "06/02/2026"
 
 import logging
-logger = logging.getLogger(__name__)
 from math import log
 from scipy.optimize import minimize
 from ._bift import BIFT
 from .autorg import auto_guinier, NoGuinierRegionError
+
+
+logger = logging.getLogger(__name__)
 
 
 def auto_bift(data, Dmax=None, alpha=None, npt=100,
@@ -43,9 +45,9 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
     assert data.shape[1] == 3  # enforce q, I, err
     use_wisdom = False
     data = data[slice(start_point, end_point)]
-    q, I, err = data.T
+    q, intenisty, err = data.T
     npt = min(npt, q.size)  # no chance for oversampling !
-    bo = BIFT(q, I, err)  # this is the bift object
+    bo = BIFT(q, intenisty, err)  # this is the bift object
     if Dmax is None:
         # Try to get a reasonable guess from Rg
         try:

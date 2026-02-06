@@ -8,16 +8,16 @@ import os
 
 
 # Activation functions
-def tanh(x): 
+def tanh(x):
     return np.tanh(x)
 
-def relu(x): 
+def relu(x):
     return np.maximum(0, x)
 
-def sigmoid(x): 
+def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-def linear(x): 
+def linear(x):
     return x
 
 # Mapping activation names to functions
@@ -40,7 +40,7 @@ def parse_config(config_path):
         raise RuntimeError(f"config_path type {type(config_path)} not handled, got {config_path}")
     layer_dims = []
     activations = []
-    
+
     for layer in config.get('config',{}).get('layers', {}):
         if layer['class_name'] == 'InputLayer':
             layer_dims.append(layer['config']['batch_shape'][1])
@@ -48,7 +48,7 @@ def parse_config(config_path):
             layer_dims.append(layer['config']['units'])
             activation = layer['config']['activation']
             activations.append(activation_functions[activation])
-    
+
     return layer_dims, activations
 
 # Load weights from model.weights.h5
@@ -66,21 +66,21 @@ def load_weights(weights_path, layer_dims):
 def forward_propagation(X, params, activations):
     A = X
     L = len(params) // 2
-    for l in range(L):
-        W, b = params[2*l], params[2*l+1]
+    for i in range(L):
+        W, b = params[2*i], params[2*i+1]
         Z = np.dot(A, W) + b
-        A = activations[l](Z)
+        A = activations[i](Z)
     return A
 
 
 class DenseLayer:
     def __init__(self, weights, bias, activation):
         """ Constructor
-        
+
         :param weight: 2d array of size input_size x output_size
         :param bias: 1d array of size output_size
         :param activation: name of the activation function"""
-        assert weights.ndim == 2 
+        assert weights.ndim == 2
         self.weights = weights
         assert bias.ndim == 1
         assert weights.shape[1] == bias.size
@@ -111,7 +111,7 @@ class DenseLayer:
 class DNN:
     def __init__(self, *args):
         """Constructor
-        
+
         :param args: list of dense layers
         """
         self.list = args
@@ -123,26 +123,26 @@ class DNN:
         return tmp
     __call__ = infer
 
-def preprocess(q, I):
+def preprocess(q, intensity):
     """
     Preprocess the input data and infer Rg and Dmax using the DNN.
-    
+
     :param dnn: An instance of the DNN class
     :param q: 1D array of q values
-    :param I: 1D array of intensity values
+    :param intensity: 1D array of intensity values
     :param dI: 1D array of the intensity error values
     :param q_interp: 1D array of the interpolated q values
     :return: Rg and Dmax
     """
-    
+
     # Define q_interp as a regularly spaced array in the range 0-4 nm^-1 with 1024 points
     q_interp = np.linspace(0, 4, 1024)
 
-    # Normalize I by Imax
-    Imax = I.max()
-    I_normalized = I / Imax
+    # Normalize intensity by Imax
+    Imax = intensity.max()
+    I_normalized = intensity / Imax
 
-    # Interpolate I over q_interp
+    # Interpolate intensity over q_interp
     I_interp = np.interp(q_interp, q, I_normalized, left=1, right=0)
     return I_interp
 
@@ -162,19 +162,19 @@ class KerasDNN:
     def __init__(self, keras_file):
         config, weights = parse_keras_file(keras_file)
         self.dnn =  DNN(*[DenseLayer(weights[2*i], weights[2*i+1], a) for i,a in enumerate(config[1])])
-                
-    def infer(self, q, I):
-        """Infer the neural network with q/I
+
+    def infer(self, q, intensity):
+        """Infer the neural network with q/intensity
         :param q: 1D array, in inverse nm
-        :param I: 1D array, same size as q
+        :param intensity: 1D array, same size as q
         :return: result of the neural network.
         """
-        Iprep = preprocess(q,I)
+        Iprep = preprocess(q,intensity)
         output = self.dnn.infer(Iprep)
         # Extract Rg and Dmax from the output
         Rg = output[0]  # Assuming Rg is the first element
         Dmax = output[1]  # Assuming Dmax is the second element
-    
+
         return Rg, Dmax
     __call__ = infer
 

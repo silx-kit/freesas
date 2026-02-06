@@ -25,6 +25,12 @@ from ._autorg import (  # noqa
 logger = logging.getLogger(__name__)
 
 
+def _gpa(q2, Rg, I0):
+    """Function to be fitted"""
+    x_prime = q2 * Rg * Rg
+    return I0 / Rg * numpy.sqrt(x_prime) * numpy.exp( - x_prime / 3.0)
+
+
 def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     """
     Uses the GPA theory to guess quickly Rg, the
@@ -97,13 +103,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     x = q1 * q1
     y = I1 * q1
 
-    f = (
-        lambda x, Rg, I0: I0
-        / Rg
-        * numpy.sqrt(x * Rg * Rg)
-        * numpy.exp(-x * Rg * Rg / 3.0)
-    )
-    res = curve_fit(f, x, y, [Rg, I0])
+    res = curve_fit(_gpa, x, y, [Rg, I0])
     logger.debug(
         "GPA upgrade Rg %s-> %s and I0 %s -> %s", Rg, res[0][0], I0, res[0][1]
     )

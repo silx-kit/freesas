@@ -34,7 +34,9 @@ from .utilstest import get_datafile
 from ..sasio import load_scattering_data
 from ..dnn import DNN, DenseLayer, forward_propagation, preprocess, tanh, relu, sigmoid, linear
 
+
 logger = logging.getLogger(__name__)
+
 
 class TestDNN(unittest.TestCase):
 
@@ -69,8 +71,8 @@ class TestDNN(unittest.TestCase):
         """
         datfile = get_datafile("bsa_005_sub.dat")
         data = load_scattering_data(datfile)
-        q, I, sigma = data.T
-        Iprep = preprocess(q, I)
+        q, intensity, sigma = data.T
+        Iprep = preprocess(q, intensity)
         self.assertEqual(Iprep.max(), 1, msg="range 0-1")
         self.assertEqual(Iprep.shape, (1024,), msg="size 1024")
 

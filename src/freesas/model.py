@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-__author__ = "Guillaume"
+__author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
@@ -14,6 +14,11 @@ try:
 except ImportError:
     _distance = None
 from . import transformations
+
+
+def delta_kron(i, j):
+    "Delta Kronecker function"
+    return 1 if i == j else 0
 
 
 def delta_expand(vec1, vec2):
@@ -122,7 +127,7 @@ class SASModel:
 
         mol = self.atoms[:, 0:3] - self.com
         self.inertensor = numpy.empty((3, 3), dtype="float")
-        delta_kron = lambda i, j: 1 if i == j else 0
+
         for i in range(3):
             for j in range(i, 3):
                 self.inertensor[i, j] = self.inertensor[j, i] = (delta_kron(i, j) * (mol ** 2).sum(axis=1) - (mol[:, i] * mol[:, j])).sum() / mol.shape[0]

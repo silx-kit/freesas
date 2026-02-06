@@ -23,9 +23,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__authors__ = ["J. Kieffer"]
+__authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "29/11/2023"
+__date__ = "06/02/2026"
 
 import logging
 import unittest
@@ -59,9 +59,9 @@ def create_synthetic_data(R0=4, I0=100):
     q = numpy.linspace(0, 10, size)
     qr = numpy.outer(q, r / pi)
     T = (4 * pi * (r[-1] - r[0]) / npt) * numpy.sinc(qr)
-    I = T.dot(p)
-    err = numpy.sqrt(I)
-    return numpy.vstack((q, I, err)).T[1:]
+    intensity = T.dot(p)
+    err = numpy.sqrt(intensity)
+    return numpy.vstack((q, intensity, err)).T[1:]
 
 
 class TestAutoRg(unittest.TestCase):
@@ -378,7 +378,7 @@ class TestDataCuration(unittest.TestCase):
     def test_curate_synthetic_data_with_negative_points(self):
         if "negative_point_index" not in self.extra_arg:
             raise unittest.SkipTest("No negative point index to test")
-        
+
         """Test that if one of the first three points is negative, all date before it gets ignored."""
         negative_point_index = self.extra_arg["negative_point_index"]
 
@@ -419,7 +419,7 @@ class TestDataCuration(unittest.TestCase):
             > data[negative_point_index + 1, 1] / 10
             and data[offsets[data_range[1]] + 1, 1]
             < data[negative_point_index + 1, 1] / 10,
-            msg=f"curated data for artificial data ends at approx. I(point after negaitve point)/10 if negative point at {negative_point_index + 1}",
+            msg=f"curated data for artificial data ends at approx. I(point after negative point)/10 if negative point at {negative_point_index + 1}",
         )
 
 

@@ -5,7 +5,7 @@ __authors__ = ["Martha Brennich"]
 __contact__ = "martha.brennich@googlemail.com"
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "11/09/2024"
+__date__ = "06/02/2026"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
@@ -317,9 +317,9 @@ def run_dnn(
             else:
                 if args.unit == "Å":
                     data = convert_inverse_angstrom_to_nanometer(data)
-                q, I = data.T[:2]
+                q, intensity = data.T[:2]
                 try:
-                    dnn_result = Rg_Dmax(q, I)
+                    dnn_result = Rg_Dmax(q, intensity)
                 except (
                     InsufficientDataError,
                     NoGuinierRegionError,

@@ -3,16 +3,16 @@
 Functions to generating graphs related to SAS.
 """
 
-__authors__ = ["Jerome Kieffer"]
+__authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__copyright__ = "2020, ESRF"
-__date__ = "15/09/2022"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "06/02/2026"
 
 import logging
-
-logger = logging.getLogger(__name__)
 import numpy
 from matplotlib.pyplot import subplots
+
+logger = logging.getLogger(__name__)
 
 
 def scatter_plot(
@@ -30,7 +30,7 @@ def scatter_plot(
     """
     Generate a scattering plot I = f(q) in semi_log_y.
 
-    :param data: data read from an ASCII file, 3 column (q,I,err)
+    :param data: data read from an ASCII file, 3 column (q, I, err)
     :param filename: name of the file where the cuve should be saved
     :param img_format: image format
     :param unit: Unit name for Rg and 1/q
@@ -49,10 +49,10 @@ def scatter_plot(
     assert data.ndim == 2
     assert data.shape[1] >= 2
     q = data.T[0]
-    I = data.T[1]
+    intensity = data.T[1]
     try:
         err = data.T[2]
-    except:
+    except Exception:
         err = None
     if ax:
         fig = ax.figure
@@ -84,7 +84,7 @@ def scatter_plot(
         if err is not None:
             ax.errorbar(
                 q,
-                I,
+                intensity,
                 numpy.maximum(0,err),
                 label=label_exp,
                 capsize=0,
@@ -92,14 +92,14 @@ def scatter_plot(
                 ecolor=err_color,
             )
         else:
-            ax.plot(q, I, label=label_exp, color="blue")
+            ax.plot(q, intensity, label=label_exp, color="blue")
     else:
         q_guinier = q[first_point:last_point]
         I_guinier = I0 * numpy.exp(-((q_guinier * rg) ** 2) / 3)
         if err is not None:
             ax.errorbar(
                 q,
-                I,
+                intensity,
                 numpy.maximum(0,err),
                 label=label_exp,
                 capsize=0,
@@ -108,7 +108,7 @@ def scatter_plot(
                 alpha=0.5,
             )
         else:
-            ax.plot(q, I, label=label_exp, color=exp_color, alpha=0.5)
+            ax.plot(q, intensity, label=label_exp, color=exp_color, alpha=0.5)
         label_guinier += ": $R_g=$%.2f %s, $I_0=$%.2f" % (rg, unit, I0)
         ax.plot(
             q_guinier,
@@ -151,10 +151,10 @@ def scatter_plot(
     crv, lab = ax.get_legend_handles_labels()
     ordered_lab = []
     ordered_crv = []
-    for l in [label_exp, label_guinier, label_ift]:
+    for lbl in [label_exp, label_guinier, label_ift]:
         try:
-            idx = lab.index(l)
-        except:
+            idx = lab.index(lbl)
+        except Exception:
             continue
         ordered_lab.append(lab[idx])
         ordered_crv.append(crv[idx])
@@ -183,7 +183,7 @@ def kratky_plot(
     """
     Generate a Kratky plot q²Rg²I/I₀ = f(q·Rg)
 
-    :param data: data read from an ASCII file, 3 column (q,I,err)
+    :param data: data read from an ASCII file, 3 column (q, I, err)
     :param guinier: output of autoRg
     :param filename: name of the file where the cuve should be saved
     :param img_format: image format
@@ -195,10 +195,10 @@ def kratky_plot(
     assert data.ndim == 2
     assert data.shape[1] >= 2
     q = data.T[0]
-    I = data.T[1]
+    intensity = data.T[1]
     try:
         err = data.T[2]
-    except:
+    except Exception:
         err = None
     if ax:
         fig = ax.figure
@@ -208,10 +208,10 @@ def kratky_plot(
     I0 = guinier.I0
 
     xdata = q * Rg
-    ydata = xdata * xdata * I / I0
+    ydata = xdata * xdata * intensity / I0
     if err is not None:
         dy = xdata * xdata * numpy.maximum(0,err) / abs(I0)
-        dplot = ax.errorbar(
+        ax.errorbar(
             xdata,
             ydata,
             dy,
@@ -221,7 +221,7 @@ def kratky_plot(
             ecolor="lightblue",
         )
     else:
-        dplot = ax.plot(xdata, ydata, label=label, color="blue")
+        ax.plot(xdata, ydata, label=label, color="blue")
     ax.set_ylabel("$(qR_{g})^2 I/I_{0}$", fontsize=fontsize)
     ax.set_xlabel("$qR_{g}$", fontsize=fontsize)
     ax.legend(loc=1)
@@ -269,7 +269,7 @@ def guinier_plot(
     """
     Generate a guinier plot: ln(I) = f(q²)
 
-    :param data: data read from an ASCII file, 3 column (q,I,err)
+    :param data: data read from an ASCII file, 3 column (q, I, err)
     :param guinier: A RG_RESULT object from AutoRg
     :param  filename: name of the file where the cuve should be saved
     :param img_format: image format
@@ -279,9 +279,9 @@ def guinier_plot(
     assert data.ndim == 2
     assert data.shape[1] >= 2
 
-    q, I, err = data.T[:3]
+    q, intensity, err = data.T[:3]
 
-    mask = (I > 0) & numpy.isfinite(I) & (q > 0) & numpy.isfinite(q)
+    mask = (intensity > 0) & numpy.isfinite(intensity) & (q > 0) & numpy.isfinite(q)
     if err is not None:
         mask &= (err > 0.0) & numpy.isfinite(err)
     mask = mask.astype(bool)
@@ -295,14 +295,14 @@ def guinier_plot(
     mask[end:] = False
 
     q2 = q[mask] ** 2
-    logI = numpy.log(I[mask])
+    logI = numpy.log(intensity[mask])
 
     if ax:
         fig = ax.figure
     else:
         fig, ax = subplots(figsize=(12, 10))
     if err is not None:
-        dlogI = err[mask] / I[mask]
+        dlogI = err[mask] / intensity[mask]
         ax.errorbar(
             q2,
             logI,
@@ -324,8 +324,8 @@ def guinier_plot(
     # ax.plot(q2[first_point:last_point], logI[first_point:last_point], marker='D', markersize=5, label="guinier region")
     xmin = q[first_point] ** 2
     xmax = q[last_point] ** 2
-    ymax = numpy.log(I[first_point])
-    ymin = numpy.log(I[last_point])
+    ymax = numpy.log(intensity[first_point])
+    ymin = numpy.log(intensity[last_point])
     dy = (ymax - ymin) / 2.0
     ax.vlines(xmin, ymin=ymin, ymax=ymax + dy, color="0.75", linewidth=1.0)
     ax.vlines(
@@ -512,7 +512,7 @@ def plot_all(
 def hplc_plot(hplc,
               fractions = None,
               title="Chromatogram",
-              filename=None,    
+              filename=None,
               img_format="png",
               ax=None,
               labelsize=None,
@@ -536,23 +536,23 @@ def hplc_plot(hplc,
     ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
     ax.set_ylabel("Summed intensities", fontsize=fontsize)
     ax.set_title(title)
-    
+
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
     if fractions is not None and len(fractions):
         fractions.sort()
-        l = len(data)
-        idx = list(range(l))
+        nbdata = len(data)
+        idx = list(range(nbdata))
         for start,stop in fractions:
-            start = int(min(l-1, max(0, start)))
-            stop = int(min(l-1, max(0, stop)))
+            start = int(min(nbdata-1, max(0, start)))
+            stop = int(min(nbdata-1, max(0, stop)))
             ax.plot(idx[start:stop+1],
                     data[start:stop+1],
                     label=f"Fraction {start}-{stop}",
                     linewidth=10,
                     alpha=0.5)
     ax.legend()
-            
+
     if filename:
         if img_format:
             fig.savefig(filename, format=img_format)
