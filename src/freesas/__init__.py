@@ -28,7 +28,7 @@
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "04/12/2023"
+__date__ = "06/02/2026"
 
 import os as _os
 import logging as _logging
@@ -40,14 +40,14 @@ project = _os.path.basename(_os.path.dirname(_os.path.abspath(__file__)))
 
 try:
     from .version import __date__ as date  # noqa
-    from .version import (
+    from .version import (  # noqa
         version,
         version_info,
         hexversion,
         strictversion,
         dated_version,
         citation
-    )  # noqa
+    )
 except ImportError:
     raise RuntimeError(
         "Do NOT use %s from its sources: build it and use the built version"

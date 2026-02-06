@@ -26,8 +26,8 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2020-2024, ESRF"
-__date__ = "22/04/2025"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "06/02/2026"
 
 import io
 import os
@@ -127,7 +127,7 @@ def extract_averaged(filename):
 
         instrument_grps = nxsr.get_class(entry_grp, class_type="NXinstrument")
         if instrument_grps:
-            detector_grp = nxsr.get_class(instrument_grps[0], 
+            detector_grp = nxsr.get_class(instrument_grps[0],
                                           class_type="NXdetector")[0]
             results["mask"] = detector_grp["pixel_mask"].attrs["filename"]
         sample_grp = nxsr.get_class(entry_grp, class_type="NXsample")[0]
@@ -142,7 +142,7 @@ def extract_averaged(filename):
 
 
 def extract_all(filename):
-    """return some infomations extracted from a HDF5 file for all individual frames. 
+    """return some infomations extracted from a HDF5 file for all individual frames.
     Supports HPLC and SC and freshly integrated blocks of frames"""
     res = []
     results = OrderedDict()
@@ -168,7 +168,7 @@ def extract_all(filename):
         nxdata_grp = nxsr.h5[target]
         signal = nxdata_grp.attrs["signal"]
         axis = nxdata_grp.attrs["axes"][1]
-        I = nxdata_grp[signal][()]
+        intensity = nxdata_grp[signal][()]
         results["q"] = nxdata_grp[axis][()]
         std = nxdata_grp["errors"][()]
         try:
@@ -201,7 +201,7 @@ def extract_all(filename):
                 results["concentration"] = sample_grp["concentration"][()]
     #         if "2_correlation_mapping" in entry_grp:
     #             results["to_merge"] = entry_grp["2_correlation_mapping/results/to_merge"][()]
-    for i, s in zip(I, std):
+    for i, s in zip(intensity, std):
         r = copy.copy(results)
         r["I"] = i
         r["std"] = s
@@ -326,15 +326,15 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
 
         if "std" in results:
             data = [
-                "%14.6e\t%14.6e\t%14.6e" % (q, I, std)
-                for q, I, std in zip(
+                "%14.6e\t%14.6e\t%14.6e" % (q, intensity, std)
+                for q, intensity, std in zip(
                     results["q"], results["I"], results["std"]
                 )
             ]
         else:
             data = [
-                "%14.6e\t%14.6e\t" % (q, I)
-                for q, I in zip(results["q"], results["I"])
+                "%14.6e\t%14.6e\t" % (q, intensity)
+                for q, intensity in zip(results["q"], results["I"])
             ]
         data.append("")
         file_.writelines(linesep.join(data))

@@ -54,28 +54,26 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
     """
 
     def curate_data(data):
-        q = data.T[0]
-        I = data.T[1]
-        err = data.T[2]
+        q, intensity, err = data.T[:3]
 
-        start0 = numpy.argmax(I)
+        start0 = numpy.argmax(intensity)
         stop0 = numpy.where(q > qRg_max / Rg_min)[0][0]
 
         range0 = slice(start0, stop0)
         q = q[range0]
-        I = I[range0]
+        intensity = intensity[range0]
         err = err[range0]
 
         q2 = q ** 2
-        lnI = numpy.log(I)
-        I2_over_sigma2 = err ** 2 / I ** 2
+        lnI = numpy.log(intensity)
+        I2_over_sigma2 = err ** 2 / intensity ** 2
 
-        y = I * q
+        y = intensity * q
         p1 = numpy.argmax(y)
 
         # Those are guess from the max position:
         Rg = (1.5 / q2[p1]) ** 0.5
-        I0 = I[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
+        I0 = intensity[p1] * numpy.exp(q2[p1] * Rg ** 2 / 3.0)
 
         # Let's cut-down the guinier region from 0.5-1.3 in qRg
         try:
@@ -89,7 +87,7 @@ def auto_gpa(data, Rg_min=1.0, qRg_max=1.3, qRg_min=0.5):
         range1 = slice(start1, stop1)
 
         q1 = q[range1]
-        I1 = I[range1]
+        I1 = intensity[range1]
 
         return q1, I1, Rg, I0, q2, lnI, I2_over_sigma2, start0
 

@@ -26,8 +26,8 @@
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
-__copyright__ = "2017, ESRF"
-__date__ = "13/10/2020"
+__copyright__ = "2017-2026, ESRF"
+__date__ = "06/02/2026"
 
 import sys
 import logging
@@ -118,7 +118,7 @@ def main():
     for afile in files:
         try:
             data = load_scattering_data(afile)
-        except:
+        except Exception:
             logger.error("Unable to parse file %s", afile)
         else:
             if args.unit == "Å":

@@ -52,7 +52,7 @@ def auto_bift(data, Dmax=None, alpha=None, npt=100,
         # Try to get a reasonable guess from Rg
         try:
             Guinier = auto_guinier(data)
-        except:
+        except Exception:
             logger.error("Guinier analysis failed !")
             raise
 #         print(Guinier)
