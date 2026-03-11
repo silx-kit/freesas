@@ -3,7 +3,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2020  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2020-2026  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,84 +24,161 @@
 # THE SOFTWARE.
 
 """
-Set of namedtuples defined a bit everywhere
+Set of namedtuples/dataclasses defined a bit everywhere
 """
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__copyright__ = "2020 ESRF"
-__date__ = "13/10/2020"
+__copyright__ = "2020-2026 ESRF"
+__date__ = "09/03/2026"
 
 from collections import namedtuple
+from typing import NamedTuple
 import numpy
 
 # Used in AutoRg
-RG_RESULT = namedtuple(
-    "RG_RESULT",
-    "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated",
-)
+class RG_RESULT(NamedTuple):
+    Rg: float|None=None
+    sigma_Rg: float|None=None
+    I0: float|None=None
+    sigma_I0: float|None=None
+    start_point: int|None=None
+    end_point: int|None=None
+    quality: float|None=None
+    aggregated: bool|None=None
+
+    def __repr__(self):
+        return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0 * self.quality:5.2f}% {'aggregated' if self.aggregated > 0.1 else ''}"
 
 
-def _RG_RESULT_repr(self):
-    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0 * self.quality:5.2f}% {'aggregated' if self.aggregated > 0.1 else ''}"
+class FIT_RESULT(NamedTuple):
+    slope: float|None=None
+    sigma_slope: float|None=None
+    intercept: float|None=None
+    sigma_intercept: float|None=None
+    R: float|None=None
+    R2: float|None=None
+    chi2: float|None=None
+    RMSD: float|None=None
 
 
-RG_RESULT.__repr__ = _RG_RESULT_repr
+class RT_RESULT(NamedTuple):
+    Vc: float|None=None
+    sigma_Vc: float|None=None
+    Qr: float|None=None
+    sigma_Qr: float|None=None
+    mass: float|None=None
+    sigma_mass: float|None=None
 
-FIT_RESULT = namedtuple(
-    "FIT_RESULT",
-    "slope sigma_slope intercept sigma_intercept, R, R2, chi2, RMSD",
-)
-RT_RESULT = namedtuple("RT_RESULT", "Vc sigma_Vc Qr sigma_Qr mass sigma_mass")
+    def __repr__(self):
+        return f"Vc={self.Vc:6.4f}(±{self.sigma_Vc:6.4f}) Qr={self.Qr:6.4f}(±{self.sigma_Qr:6.4f}) mass={self.mass:6.4f}(±{self.sigma_mass:6.4f})"
 
-
-def _RT_RESULT_repr(self):
-    return f"Vc={self.Vc:6.4f}(±{self.sigma_Vc:6.4f}) Qr={self.Qr:6.4f}(±{self.sigma_Qr:6.4f}) mass={self.mass:6.4f}(±{self.sigma_mass:6.4f})"
-
-
-RT_RESULT.__repr__ = _RT_RESULT_repr
 
 # Used in BIFT
-RadiusKey = namedtuple("RadiusKey", "Dmax npt")
-PriorKey = namedtuple("PriorKey", "type npt")
-TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
-EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple(
-    "EvidenceResult", "evidence chi2r regularization radius density converged"
-)
+class RadiusKey(NamedTuple):
+    Dmax: float|None=None
+    npt: int|None=None
 
-StatsResult = namedtuple(
-    "StatsResult",
-    "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std",
-)
+class PriorKey(NamedTuple):
+    type: str=""
+    npt: int|None=None
 
-
-def save_bift(stats, filename, source=None):
-    "Save the results of the fit to the file"
-    res = [
-        "Dmax= %.2f±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
-        "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
-        "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
-        "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
-        "logP= %.2f±%.2f" % (stats.evidence_avg, stats.evidence_std),
-        "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
-        "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
-    ]
-    with open(filename, "wt", encoding="utf-8") as out:
-        out.write("# %s %s" % (source or filename, "\n"))
-        for txt in res:
-            out.write("# %s %s" % (txt, "\n"))
-        out.write("%s# r\tp(r)\tsigma_p(r)%s" % ("\n", "\n"))
-        for r, p, s in zip(
-            stats.radius.astype(numpy.float32),
-            stats.density_avg.astype(numpy.float32),
-            stats.density_std.astype(numpy.float32),
-        ):
-            out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
-    return filename + ": " + "; ".join(res)
+class TransfoValue(NamedTuple):
+    transfo: numpy.ndarray
+    B: numpy.ndarray
+    sum_dia: numpy.ndarray
 
 
-StatsResult.save = save_bift
+class EvidenceKey(NamedTuple):
+    Dmax: float
+    alpha: float
+    npt: int
+
+class EvidenceResult(NamedTuple):
+    evidence: float
+    chi2r: float
+    regularization: float
+    radius: float
+    density: float
+    converged: bool
+
+class StatsResult(NamedTuple):
+    radius: numpy.ndarray|None = None
+    density_avg: numpy.ndarray|None = None
+    density_std: numpy.ndarray|None = None
+    evidence_avg: float|None = None
+    evidence_std: float|None = None
+    Dmax_avg: float|None = None
+    Dmax_std: float|None = None
+    alpha_avg: float|None = None
+    alpha_std: float|None = None
+    chi2r_avg: float|None = None
+    chi2r_std: float|None = None
+    regularization_avg: float|None = None
+    regularization_std: float|None = None
+    Rg_avg: float|None = None
+    Rg_std: float|None = None
+    I0_avg: float|None = None
+    I0_std: float|None = None
+
+    def save(self, filename, source=None):
+        "Save the results of the fit to the file"
+        res = [
+            f"Dmax= {self.Dmax_avg:.2f}±{self.Dmax_std:.2f}",
+            f"𝛂= {self.alpha_avg:.1f}±{self.alpha_std:.1f}",
+            f"S₀= {self.regularization_avg:.4f}±{self.regularization_std:.4f}",
+            f"χ²= {self.chi2r_avg:.2f}±{self.chi2r_std:.2f}",
+            f"logP= {self.evidence_avg:.2f}±{self.evidence_std:.2f}",
+            f"Rg= {self.Rg_avg:.2f}±{self.Rg_std:.2f}",
+            f"I₀= {self.I0_avg:.2f}±{self.I0_std:.2f}",
+        ]
+        with open(filename, "wt", encoding="utf-8") as out:
+            out.write("# %s %s" % (source or filename, "\n"))
+            for txt in res:
+                out.write(f"# {txt} \n")
+            out.write("\n# r\tp(r)\tsigma_p(r)\n")
+            for r, p, s in zip(
+                self.radius.astype(numpy.float32),
+                self.density_avg.astype(numpy.float32),
+                self.density_std.astype(numpy.float32),
+            ):
+                out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
+        return filename + ": " + "; ".join(res)
+
 
 # Used in Cormap
 GOF = namedtuple("GOF", ["n", "c", "P"])
+
+
+class UVJuice(NamedTuple):
+    """All information of an UV-file"""
+    wavelengths: numpy.ndarray
+    timestamps: numpy.ndarray
+    absorbance: numpy.ndarray
+
+    @classmethod
+    def from_file(cls, filename):
+        """Create dataclass from filename
+
+        :param filename: name or Path of the .dat file to read & parse
+        :return: dataclass instance
+        """
+        with open(filename) as fd:
+            header = fd.readline()
+        keys = [k.strip() for k in header.split("|")]
+        raw = numpy.loadtxt(filename, skiprows=1, delimiter="|", unpack=True)
+        nb_time = raw.shape[1]
+        nb_wl = raw.shape[0] // 3
+        absorbance = numpy.empty((nb_wl, nb_time))
+        timestamps = numpy.empty(nb_time)
+        wavelengths = numpy.empty(nb_wl)
+        for i,k in enumerate(keys):
+            if k=="T0":
+                timestamps = raw[i]
+            elif k.startswith("w"):
+                j = int(k[1])
+                wavelengths[j] = raw[i,0]
+            elif k.startswith("ABS"):
+                j = int(k[3])
+                absorbance[j] = raw[i]
+        return cls(wavelengths, timestamps, absorbance)

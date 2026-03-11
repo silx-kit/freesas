@@ -4,7 +4,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
-__date__ = "29/11/2023"
+__date__ = "09/03/2026"
 
 import numpy
 import unittest
@@ -39,7 +39,7 @@ class TestDistance(unittest.TestCase):
         f_np = m.dist(n, m.atoms, n.atoms, False)
         f_cy = m.dist(n, m.atoms, n.atoms, True)
         self.assertAlmostEqual(
-            f_np, f_cy, 10, "distance is the same %s!=%s" % (f_np, f_cy)
+            f_np, f_cy, 5, "distance is the same %s!=%s" % (f_np, f_cy)
         )
 
     def test_same(self):

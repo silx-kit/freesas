@@ -20,8 +20,8 @@ cdef:
 
 __authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
-__copyright__ = "2020-2024, ESRF"
-__date__ = "31/05/2024"
+__copyright__ = "2020-2026, ESRF"
+__date__ = "09/03/2026"
 
 import time
 import cython
@@ -248,7 +248,7 @@ cpdef inline double calc_rlogdet(double[::1] f_r,
 
 cpdef inline void ensure_edges_zero(double[::1] distribution) noexcept nogil:
     """This function sets the first and last point of the density plot to 0
-    
+
     :param distribution: raw density
     The operation is performed in place
     """
@@ -565,7 +565,7 @@ cdef class BIFT:
                                double Dmax,
                                double alpha,
                                int npt,
-                               bint prior=False) with gil:
+                               bint prior=False) noexcept with gil:
         """
         Calculate the evidence for the given set of parameters
 
@@ -746,7 +746,7 @@ cdef class BIFT:
             p_r[j] = v * scale_p
             f_r[j] = v * scale_f
         return scale_p
-    
+
 
     cdef inline double _bift_inner_loop(self,
                                         double[::1] f_r,
@@ -875,15 +875,12 @@ cdef class BIFT:
         grid = numpy.array(list(itertools.product(dmax_array, alpha_array)))
 
         results = numpy.zeros(steps, dtype=numpy.float64)
-#         for idx in range(steps):
         with nogil:
             for idx in prange(steps):
                 Dmax = grid[idx, 0]
                 alpha = grid[idx, 1]
                 results[idx] += self.calc_evidence(Dmax, alpha, npt)
         best = numpy.argmax(results)
-#         for i, j in zip(grid, results):
-#             print(j, i[0], i[1], )
         return EvidenceKey(grid[best, 0], grid[best, 1], npt)
 
     def monte_carlo_sampling(self,

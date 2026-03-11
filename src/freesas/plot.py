@@ -6,7 +6,7 @@ Functions to generating graphs related to SAS.
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020-2026, ESRF"
-__date__ = "06/02/2026"
+__date__ = "09/03/2026"
 
 import logging
 import numpy
@@ -510,6 +510,7 @@ def plot_all(
 
 def hplc_plot(
     hplc,
+    timestamps=None,
     fractions=None,
     title="Chromatogram",
     filename=None,
@@ -517,6 +518,7 @@ def hplc_plot(
     ax=None,
     labelsize=None,
     fontsize=None,
+    uv_data=None
 ):
     """
     Generate an HPLC plot I=f(t)
@@ -526,29 +528,45 @@ def hplc_plot(
     :param filename: name of the file where the cuve should be saved
     :param img_format: image image format
     :param ax: subplotib where to plot in
+    :param labelsize: size of the font for labels
+    :param fontsize: size of the font for axis
+    :param uv_data: UV_Juice namedtuple
     :return: the matplotlib figure
     """
     if ax:
         fig = ax.figure
     else:
         fig, ax = subplots(figsize=(12, 10))
-    data = [sum(i) if hasattr(i, "__iter__") else i for i in hplc]
-    ax.plot(data, label="Chromatogram")
-    ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
-    ax.set_ylabel("Summed intensities", fontsize=fontsize)
+    data = numpy.array([sum(i) if hasattr(i, "__iter__") else i for i in hplc])
+    data -= data.min()
+    data /= data.max()  # Normalizes the signal from 0 to 1
+    nbdata = data.size
+
+    if timestamps is not None:
+        ax.plot(timestamps, data, label="SAXS")
+        ax.set_xlabel("Elution time (s)", fontsize=fontsize)
+    else:
+        timestamps = list(range(nbdata))
+        ax.plot(timestamps, data, label="SAXS")
+        ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
+    ax.set_ylabel("Signal", fontsize=fontsize)
     ax.set_title(title)
+    if uv_data:
+        for i, wl in enumerate(uv_data.wavelengths):
+            a = uv_data.absorbance[i].copy()
+            a -= a.min()
+            a /= a.max()
+            ax.plot(uv_data.timestamps, a+i*0.2, label=f"λ={wl}nm")
 
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
     if fractions is not None and len(fractions):
         fractions.sort()
-        nbdata = len(data)
-        idx = list(range(nbdata))
         for start, stop in fractions:
             start = int(min(nbdata - 1, max(0, start)))
             stop = int(min(nbdata - 1, max(0, stop)))
             ax.plot(
-                idx[start : stop + 1],
+                timestamps[start : stop + 1],
                 data[start : stop + 1],
                 label=f"Fraction {start}-{stop}",
                 linewidth=10,
