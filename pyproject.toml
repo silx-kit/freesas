@@ -36,6 +36,7 @@ dependencies = [
    'scipy',
    'matplotlib',
    'silx'
+   'pyFAI'
 ]
 [build-system]
 build-backend = 'mesonpy'
