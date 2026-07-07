@@ -57,7 +57,7 @@ requires = [
 [project.urls]
 homepage = 'http://silx.org'
 documentation = 'http://www.silx.org/doc/freesas/latest/'
-source = 'https://github.com/silx-kit/freeas'
+source = 'https://github.com/silx-kit/freesas'
 download = 'https://github.com/silx-kit/freesas/releases'
 tracker = 'https://github.com/silx-kit/freesas/issues'
 
