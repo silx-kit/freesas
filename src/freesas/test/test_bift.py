@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,9 +28,10 @@ __date__ = "06/02/2026"
 
 import logging
 import time
-import numpy
 import unittest
-from ..bift import auto_bift
+
+import numpy
+
 from .._bift import (
     BIFT,
     distribution_parabola,
@@ -39,6 +39,7 @@ from .._bift import (
     ensure_edges_zero,
     smooth_density,
 )
+from ..bift import auto_bift
 
 try:
     from numpy import trapezoid  # numpy 2
@@ -55,7 +56,7 @@ class TestBIFT(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(TestBIFT, cls).setUpClass()
+        super().setUpClass()
         cls.r = numpy.linspace(0, cls.DMAX, cls.NPT + 1)
         dr = cls.DMAX / cls.NPT
         cls.p = -cls.r * (cls.r - cls.DMAX)  # Nice parabola
@@ -74,7 +75,7 @@ class TestBIFT(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        super(TestBIFT, cls).tearDownClass()
+        super().tearDownClass()
         cls.r = cls.p = cls.I = cls.q = cls.err = None
 
     def test_autobift(self):

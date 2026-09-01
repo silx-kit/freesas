@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -31,18 +30,20 @@ __license__ = "MIT"
 __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
-import platform
 import logging
+import platform
 from pathlib import Path
-from matplotlib.pyplot import switch_backend
+
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.pyplot import switch_backend
+
 from freesas import plot
-from freesas.sasio import (
-    load_scattering_data,
-    convert_inverse_angstrom_to_nanometer,
-)
 from freesas.autorg import InsufficientDataError, NoGuinierRegionError
 from freesas.sas_argparser import SASParser
+from freesas.sasio import (
+    convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")

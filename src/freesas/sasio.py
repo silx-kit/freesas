@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 #    Project: FreeSAS
 #             https://github.com/kif/freesas
@@ -22,9 +21,10 @@ __status__ = "development"
 __docformat__ = "restructuredtext"
 
 import io
-from typing import List, Union
 from os import PathLike
-from numpy import loadtxt, array, ndarray
+from typing import Union
+
+from numpy import array, loadtxt, ndarray
 
 PathType = Union[PathLike, str, bytes, io.StringIO, io.BytesIO]
 
@@ -59,7 +59,7 @@ def load_scattering_data(filename: PathType) -> ndarray:
     return data
 
 
-def parse_ascii_data(input_file_text: List[str], number_of_columns: int) -> ndarray:
+def parse_ascii_data(input_file_text: list[str], number_of_columns: int) -> ndarray:
     """
     Parse data from an ascii file into an N column numpy array
 

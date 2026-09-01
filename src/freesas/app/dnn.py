@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,10 +28,11 @@ __license__ = "MIT"
 __copyright__ = "2024, ESRF"
 __date__ = "11/09/2024"
 
-import sys
 import logging
-from freesas.sas_argparser import SASParser
+import sys
+
 from freesas.fitting import run_dnn
+from freesas.sas_argparser import SASParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("free_dnn")

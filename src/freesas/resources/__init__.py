@@ -1,4 +1,3 @@
-# coding: utf-8
 # /*##########################################################################
 #
 # Copyright (C) 2016-2024 European Synchrotron Radiation Facility
@@ -59,9 +58,9 @@ __license__ = "MIT"
 __date__ = "07/03/2024"
 
 
+import logging
 import os
 import sys
-import logging
 
 logger = logging.getLogger(__name__)
 

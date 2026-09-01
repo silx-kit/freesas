@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,19 +28,20 @@ __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
 __date__ = "01/09/2026"
 
-import sys
 import logging
 import platform
+import sys
 import traceback
+
 from freesas import bift
-from freesas.sasio import (
-    load_scattering_data,
-    convert_inverse_angstrom_to_nanometer,
+from freesas.fitting import (
+    collect_files,
+    set_logging_level,
 )
 from freesas.sas_argparser import SASParser
-from freesas.fitting import (
-    set_logging_level,
-    collect_files,
+from freesas.sasio import (
+    convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
 )
 
 logging.basicConfig(level=logging.WARNING)

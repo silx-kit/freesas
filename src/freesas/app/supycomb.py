@@ -5,8 +5,9 @@ __copyright__ = "2015, ESRF"
 __date__ = "09/07/2020"
 
 import logging
-from os.path import dirname, abspath
-from freesas.align import InputModels, AlignModels
+from os.path import abspath, dirname
+
+from freesas.align import AlignModels, InputModels
 from freesas.sas_argparser import SASParser
 
 base = dirname(dirname(abspath(__file__)))

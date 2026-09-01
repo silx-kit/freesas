@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for calculating the radius of gyration and forward scattering intensity."""
 
 __authors__ = ["Jérôme Kieffer"]
@@ -7,20 +6,21 @@ __copyright__ = "2020-2026, ESRF"
 __date__ = "06/02/2026"
 
 import logging
+
 import numpy
 from scipy.optimize import curve_fit
-from ._autorg import (  # noqa
-    RG_RESULT,
-    guinier,
-    NoGuinierRegionError,
-    DTYPE,
-    InsufficientDataError,
-    autoRg,
-    AutoGuinier,
-    linear_fit,
-    FIT_RESULT,
-)
 
+from ._autorg import (  # noqa
+    DTYPE,
+    FIT_RESULT,
+    RG_RESULT,
+    AutoGuinier,
+    InsufficientDataError,
+    NoGuinierRegionError,
+    autoRg,
+    guinier,
+    linear_fit,
+)
 
 logger = logging.getLogger(__name__)
 

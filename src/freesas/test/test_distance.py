@@ -1,16 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "09/03/2026"
 
-import numpy
-import unittest
-from .utilstest import get_datafile
-from ..model import SASModel
 import logging
+import unittest
+
+import numpy
+
+from ..model import SASModel
+from .utilstest import get_datafile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cdistance_test")

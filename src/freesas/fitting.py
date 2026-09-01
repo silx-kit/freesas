@@ -9,24 +9,27 @@ __date__ = "06/02/2026"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
-import sys
 import logging
-import platform
 import os
-from pathlib import Path
+import platform
+import sys
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Callable, List, Optional, IO, Generator
+from pathlib import Path
+from typing import IO
+
 from numpy import ndarray
+
 from .autorg import (
     RG_RESULT,
     InsufficientDataError,
     NoGuinierRegionError,
 )
-from .sasio import (
-    load_scattering_data,
-    convert_inverse_angstrom_to_nanometer,
-)
 from .sas_argparser import GuinierParser, SASParser
+from .sasio import (
+    convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
+)
 
 
 def set_logging_level(verbose_flag: int) -> None:
@@ -40,7 +43,7 @@ def set_logging_level(verbose_flag: int) -> None:
         logging.root.setLevel(logging.DEBUG)
 
 
-def collect_files(file_list: List[str]) -> List[Path]:
+def collect_files(file_list: list[str]) -> list[Path]:
     """
     Take file list from argparser and return list of paths
     :param file_list: file list as returned by the argparser
@@ -55,7 +58,7 @@ def collect_files(file_list: List[str]) -> List[Path]:
 
 @contextmanager
 def get_output_destination(
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
 ) -> Generator[IO[str], None, None]:
     """
     Return file or stdout object to write output to
@@ -83,7 +86,7 @@ def get_linesep(output_destination: IO[str]) -> str:
         return "\n"
 
 
-def get_guinier_header(linesep: str, output_format: Optional[str] = None) -> str:
+def get_guinier_header(linesep: str, output_format: str | None = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -109,7 +112,7 @@ def get_guinier_header(linesep: str, output_format: Optional[str] = None) -> str
         return ""
 
 
-def get_dnn_header(linesep: str, output_format: Optional[str] = None) -> str:
+def get_dnn_header(linesep: str, output_format: str | None = None) -> str:
     """Return appropriate header line for selected output format
     :param output_format: output format from string parser
     :param linesep: correct linesep for chosen destination
@@ -134,7 +137,7 @@ def rg_result_to_output_line(
     rg_result: RG_RESULT,
     afile: Path,
     linesep: str,
-    output_format: Optional[str] = None,
+    output_format: str | None = None,
 ) -> str:
     """Return result line formatted according to selected output format
     :param rg_result: Result of an rg fit
@@ -185,7 +188,7 @@ def dnn_result_to_output_line(
     dnn_result: tuple,
     afile: Path,
     linesep: str,
-    output_format: Optional[str] = None,
+    output_format: str | None = None,
 ) -> str:
     """Return result line formatted according to selected output format
     :param dnn_result: Result of an dnn inference, 2 tuple

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # transformations.py
 
 # Copyright (c) 2006-2015, Christoph Gohlke

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -36,7 +35,9 @@ __license__ = "MIT"
 __date__ = "06/02/2026"
 
 import logging
+
 import numpy
+
 from .containers import RT_RESULT
 
 try:

@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,11 +28,12 @@ __license__ = "MIT"
 __copyright__ = "2021, ESRF"
 __date__ = "19/03/2021"
 
-import sys
 import logging
+import sys
+
 from freesas.autorg import auto_guinier
-from freesas.sas_argparser import GuinierParser
 from freesas.fitting import run_guinier_fit
+from freesas.sas_argparser import GuinierParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_guinier")

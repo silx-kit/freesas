@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# coding: utf-8
 
 """Test the functionality of fitting module."""
 
@@ -8,28 +7,30 @@ __license__ = "MIT"
 __date__ = "12/09/2024"
 
 
-import unittest
-from unittest.mock import patch, MagicMock
-import logging
-import sys
-import importlib
-import platform
-from io import StringIO
-import pathlib
 import contextlib
-from types import SimpleNamespace
-from typing import Callable
+import importlib
+import logging
+import pathlib
+import platform
+import sys
+import unittest
+from collections.abc import Callable
 from errno import ENOENT
+from io import StringIO
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
 import numpy
-from ..fitting import (
-    set_logging_level,
-    get_output_destination,
-    get_guinier_header,
-    rg_result_to_output_line,
-    get_linesep,
-    run_guinier_fit,
-)
+
 from ..autorg import RG_RESULT, InsufficientDataError, NoGuinierRegionError
+from ..fitting import (
+    get_guinier_header,
+    get_linesep,
+    get_output_destination,
+    rg_result_to_output_line,
+    run_guinier_fit,
+    set_logging_level,
+)
 from ..sas_argparser import GuinierParser
 
 if sys.version_info.minor > 6:

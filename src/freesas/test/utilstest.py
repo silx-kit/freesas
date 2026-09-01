@@ -1,13 +1,13 @@
 #!usr/bin/env python
-# coding: utf-8
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __date__ = "06/02/2026"
 __copyright__ = "2015-2026, ESRF"
 
-import os
 import logging
+import os
+
 from silx.resources import ExternalResources
 
 logger = logging.getLogger("utilstest")
@@ -59,9 +59,7 @@ class TestOptions:
         environment variables
         """
 
-        if parsed_options is not None and parsed_options.low_mem:
-            self.TEST_LOW_MEM = True
-        elif os.environ.get("FREESAS_LOW_MEM", "True") == "False":
+        if parsed_options is not None and parsed_options.low_mem or os.environ.get("FREESAS_LOW_MEM", "True") == "False":
             self.TEST_LOW_MEM = True
 
         if parsed_options is not None and parsed_options.random:

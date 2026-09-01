@@ -4,12 +4,14 @@ __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
-import numpy
-import unittest
-from .utilstest import get_datafile
-from ..align import AlignModels
-from ..transformations import translation_matrix, euler_matrix
 import logging
+import unittest
+
+import numpy
+
+from ..align import AlignModels
+from ..transformations import euler_matrix, translation_matrix
+from .utilstest import get_datafile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")

@@ -1,5 +1,4 @@
 #!usr/bin/env python
-# coding: utf-8
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
@@ -8,6 +7,7 @@ __copyright__ = "2015-2021, ESRF"
 
 import sys
 import unittest
+
 from .test_all import suite
 
 

@@ -1,20 +1,20 @@
 #!/usr/bin/python3
-# coding: utf-8
 
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "06/02/2026"
 
-import os
-import logging
 import glob
+import logging
+import os
 import platform
-from itertools import combinations
 from collections import namedtuple
+from itertools import combinations
+
 from freesas.cormap import gof
-from freesas.sasio import load_scattering_data
 from freesas.sas_argparser import SASParser
+from freesas.sasio import load_scattering_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")

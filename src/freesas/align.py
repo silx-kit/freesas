@@ -2,17 +2,19 @@ __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
+import itertools
+import logging
 import os
 import sys
-import numpy
+
 import matplotlib
 
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from freesas.model import SASModel
-import itertools
+import numpy
 from scipy.optimize import fmin
-import logging
+
+from freesas.model import SASModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")

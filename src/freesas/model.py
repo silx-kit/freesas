@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
 import os
-from math import sqrt
 import threading
+from math import sqrt
+
 import numpy
 
 try:

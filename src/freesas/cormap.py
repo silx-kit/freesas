@@ -2,10 +2,12 @@ __author__ = "Jerome Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
 
-import numpy
 from math import log
-from .containers import GOF
+
+import numpy
+
 from ._cormap import measure_longest
+from .containers import GOF
 
 
 class LongestRunOfHeads:

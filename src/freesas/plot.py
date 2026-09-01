@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions to generating graphs related to SAS.
 """
@@ -9,6 +8,7 @@ __copyright__ = "2020-2026, ESRF"
 __date__ = "09/03/2026"
 
 import logging
+
 import numpy
 from matplotlib.pyplot import subplots
 
@@ -443,7 +443,7 @@ def plot_all(
     labelsize=None,
     fontsize=None,
 ):
-    from . import bift, autorg
+    from . import autorg, bift
 
     try:
         guinier = autorg.autoRg(data)

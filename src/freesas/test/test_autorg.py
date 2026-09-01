@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,22 +28,22 @@ __date__ = "06/02/2026"
 
 import logging
 import unittest
-from math import sqrt, pi
+from math import pi, sqrt
 
 import numpy
 from scipy.stats import linregress
 
-from .utilstest import get_datafile
+from .._autorg import curate_data  # pylint: disable=E0401
+from .._bift import distribution_sphere  # pylint: disable=E0401
 from ..autorg import (
-    autoRg,
     RG_RESULT,
-    linear_fit,
     auto_gpa,
     auto_guinier,
+    autoRg,
+    linear_fit,
 )
-from .._autorg import curate_data  # pylint: disable=E0401
 from ..invariants import calc_Rambo_Tainer
-from .._bift import distribution_sphere  # pylint: disable=E0401
+from .utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
 

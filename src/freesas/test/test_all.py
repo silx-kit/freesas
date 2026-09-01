@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 __author__ = "Guillaume"
 __license__ = "MIT"
@@ -7,17 +6,20 @@ __copyright__ = "2015, ESRF"
 __date__ = "03/07/2024"
 
 import unittest
-from . import test_model
-from . import test_align
-from . import test_distance
-from . import test_cormap
-from . import test_autorg
-from . import test_bift
-from . import test_sasio
-from . import test_sas_argparser
-from . import test_fitting
-from . import test_resources
-from . import test_dnn
+
+from . import (
+    test_align,
+    test_autorg,
+    test_bift,
+    test_cormap,
+    test_distance,
+    test_dnn,
+    test_fitting,
+    test_model,
+    test_resources,
+    test_sas_argparser,
+    test_sasio,
+)
 
 
 def suite():

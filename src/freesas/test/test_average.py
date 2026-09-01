@@ -1,17 +1,17 @@
 #!/usr/bin/python
-# coding: utf-8
 
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
-import numpy
-import unittest
-from .utilstest import get_datafile
-from ..model import SASModel
-from ..average import Grid, AverModels
-
 import logging
+import unittest
+
+import numpy
+
+from ..average import AverModels, Grid
+from ..model import SASModel
+from .utilstest import get_datafile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")

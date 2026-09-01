@@ -1,18 +1,19 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
-import numpy
-import unittest
+import logging
 import os
 import tempfile
-from .utilstest import get_datafile
+import unittest
+
+import numpy
+
 from ..model import SASModel
-from ..transformations import translation_from_matrix, euler_from_matrix
-import logging
+from ..transformations import euler_from_matrix, translation_from_matrix
+from .utilstest import get_datafile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SASModel_test")

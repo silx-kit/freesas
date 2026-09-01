@@ -3,15 +3,15 @@ __license__ = "MIT"
 __copyright__ = "2017, ESRF"
 __date__ = "06/02/2026"
 
-import sys
-import os
-import zipfile
-import posixpath
 import logging
-from typing import Union
-from silx.io.nxdata import NXdata
+import os
+import posixpath
+import sys
+import zipfile
 from dataclasses import dataclass
+
 import numpy
+from silx.io.nxdata import NXdata
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,10 @@ except ImportError:
 class IntegratedPattern:
     """Store one pyFAI integrated pattern"""
 
-    point: Union[float, int, None]
+    point: float | int | None
     radial: numpy.ndarray
     intensity: numpy.ndarray
-    intensity_errors: Union[numpy.ndarray, None] = None
+    intensity_errors: numpy.ndarray | None = None
     radial_name: str = ""
     radial_units: str = ""
     intensity_name: str = ""

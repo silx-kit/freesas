@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,19 +28,21 @@ __license__ = "MIT"
 __copyright__ = "2020-2026, ESRF"
 __date__ = "06/02/2026"
 
-import io
-import os
-import sys
-import logging
+import copy
 import glob
+import io
+import json
+import logging
+import os
 import platform
 import posixpath
-from collections import namedtuple, OrderedDict
-import json
+import sys
 import zipfile
-import copy
+from collections import OrderedDict, namedtuple
+
 import pyFAI
 from pyFAI.io import Nexus
+
 from freesas.sas_argparser import SASParser
 
 logging.basicConfig(level=logging.INFO)

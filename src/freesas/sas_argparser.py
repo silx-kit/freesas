@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Generalized arg parser for freeSAS apps to ensure unified command line API.
 """
@@ -10,6 +9,7 @@ __date__ = "09/08/2020"
 
 import argparse
 from pathlib import Path
+
 from freesas import dated_version as freesas_version
 
 
