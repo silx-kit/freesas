@@ -30,7 +30,7 @@ Set of namedtuples/dataclasses defined a bit everywhere
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020-2026 ESRF"
-__date__ = "09/03/2026"
+__date__ = "01/09/2026"
 
 from collections import namedtuple
 from typing import NamedTuple
@@ -143,7 +143,7 @@ class StatsResult(NamedTuple):
                 self.density_std.astype(numpy.float32),
             ):
                 out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
-        return filename + ": " + "; ".join(res)
+        return f"{filename}: " + "; ".join(res)
 
 
 # Used in Cormap

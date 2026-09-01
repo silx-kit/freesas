@@ -27,7 +27,7 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
-__date__ = "06/02/2026"
+__date__ = "01/09/2026"
 
 import sys
 import logging
@@ -137,7 +137,7 @@ def main():
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    dest = afile.stem + ".out"
+                    dest = afile.with_suffix(".out")
                     print(stats.save(dest, source=afile))
 
 
