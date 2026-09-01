@@ -85,7 +85,7 @@ def calc_Porod(data, guinier):
     :param Guinier: result of a Guinier fit (instance of RT_RESULT)
     :return: Volume calculated according to Porrod's formula
     """
-    q, intensity, dI = extrapolate(data, guinier).T
+    q, intensity, _dI = extrapolate(data, guinier).T
 
     denom = trapezoid(intensity * q**2, q)
     volume = 2 * numpy.pi**2 * guinier.I0 / denom

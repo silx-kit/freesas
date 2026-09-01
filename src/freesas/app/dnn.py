@@ -29,7 +29,6 @@ __copyright__ = "2024, ESRF"
 __date__ = "11/09/2024"
 
 import logging
-import sys
 
 from freesas.fitting import run_dnn
 from freesas.sas_argparser import SASParser
@@ -37,8 +36,6 @@ from freesas.sas_argparser import SASParser
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("free_dnn")
 
-if sys.version_info < (3, 6):
-    logger.error("This code uses F-strings and requires Python 3.6+")
 
 
 def build_parser() -> SASParser:

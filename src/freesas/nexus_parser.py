@@ -138,9 +138,8 @@ class Tree:
                             self.skip.add(posixpath.join(name, key, sub))
             else:
                 node[path[-1]] = {}
-        if isinstance(obj, h5py.Dataset):
-            if len(obj.shape) <= 1:
-                node[path[-1]] = obj[()]
+        if isinstance(obj, h5py.Dataset) and len(obj.shape) <= 1:
+            node[path[-1]] = obj[()]
 
     def save(self, filename):
         with zipfile.ZipFile(filename, "w") as z:

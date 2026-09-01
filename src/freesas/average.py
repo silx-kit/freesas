@@ -247,10 +247,10 @@ class AverModels:
         Create the layout of the pdb file for the averaged model.
         """
         header = []
-        header.append("Number of files averaged : %s\n" % len(self.inputfiles))
+        header.append(f"Number of files averaged : {len(self.inputfiles)}\n")
         for i in self.inputfiles:
             header.append(i + "\n")
-        header.append("Total number of dots in the grid : %s\n" % self.grid.shape[0])
+        header.append(f"Total number of dots in the grid : {self.grid.shape[0]}\n")
 
         decade = 1
         for i in range(self.grid.shape[0]):
@@ -279,9 +279,9 @@ class AverModels:
             for line in self.header:
                 if line.startswith("ATOM"):
                     if nr < self.grid.shape[0] and self.grid[nr, 4] != 0:
-                        coord = "%8.3f%8.3f%8.3f" % tuple(self.grid[nr, 0:3])
-                        occ = "%6.2f" % self.grid[nr, 3]
-                        contrib = "%2.f" % self.grid[nr, 4]
+                        coord = "{:8.3f}{:8.3f}{:8.3f}".format(*tuple(self.grid[nr, 0:3]))
+                        occ = f"{self.grid[nr, 3]:6.2f}"
+                        contrib = f"{self.grid[nr, 4]:2.0f}"
                         line = (
                             line[:30] + coord + occ + line[60:66] + contrib + line[68:]
                         )

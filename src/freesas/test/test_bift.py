@@ -82,7 +82,7 @@ class TestBIFT(unittest.TestCase):
         data = numpy.vstack((self.q, self.I, self.err)).T
         t0 = time.perf_counter()
         bo = auto_bift(data)
-        key, value, valid = bo.get_best()
+        key, _value, _valid = bo.get_best()
         #         print("key is ", key)
         stats = bo.calc_stats()
         #         print("stat is ", stats)

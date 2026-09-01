@@ -47,5 +47,5 @@ try:
     )
 except ImportError:
     raise RuntimeError(
-        "Do NOT use %s from its sources: build it and use the built version" % project
+        f"Do NOT use {project} from its sources: build it and use the built version"
     )

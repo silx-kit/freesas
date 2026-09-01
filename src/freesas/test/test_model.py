@@ -65,7 +65,7 @@ class TesttParser(unittest.TestCase):
         self.assertEqual(
             m.rfactor,
             n.rfactor,
-            msg="R-factor is not the same %s != %s" % (m.rfactor, n.rfactor),
+            msg=f"R-factor is not the same {m.rfactor} != {n.rfactor}",
         )
 
     def test_init(self):
@@ -81,8 +81,7 @@ class TesttParser(unittest.TestCase):
         m.centroid()
         if len(m.com) != 3:
             logger.error(
-                "center of mass has not been saved correctly : length of COM position vector = %s!=3"
-                % (len(m.com))
+                f"center of mass has not been saved correctly : length of COM position vector = {len(m.com)}!=3"
             )
         mol_centered = m.atoms[:, 0:3] - m.com
         center = mol_centered.mean(axis=0)
@@ -91,8 +90,7 @@ class TesttParser(unittest.TestCase):
             norm,
             0,
             12,
-            msg="molecule is not centered : norm of the COM position vector %s!=0"
-            % (norm),
+            msg=f"molecule is not centered : norm of the COM position vector {norm}!=0",
         )
 
     def test_inertia_tensor(self):
@@ -100,15 +98,14 @@ class TesttParser(unittest.TestCase):
         m.inertiatensor()
         tensor = m.inertensor
         assert tensor.shape == (3, 3), (
-            "inertia tensor has not been saved correctly : shape of inertia matrix = %s"
-            % (tensor.shape)
+            f"inertia tensor has not been saved correctly : shape of inertia matrix = {tensor.shape}"
         )
 
     def test_canonical_translate(self):
         m = assign_random_mol()
         trans = m.canonical_translate()
         if trans.shape != (4, 4):
-            logger.error("pb with translation matrix shape: shape=%s" % (trans.shape))
+            logger.error(f"pb with translation matrix shape: shape={trans.shape}")
         com = m.com
         com_componants = [com[0], com[1], com[2]]
         trans_vect = [-trans[0, -1], -trans[1, -1], -trans[2, -1]]
@@ -125,7 +122,7 @@ class TesttParser(unittest.TestCase):
             logger.error("enantiomer has not been selected")
         det = numpy.linalg.det(rot)
         self.assertAlmostEqual(
-            det, 1, 10, msg="rotation matrix determinant is not 1: %s" % (det)
+            det, 1, 10, msg=f"rotation matrix determinant is not 1: {det}"
         )
 
     def test_canonical_parameters(self):
@@ -152,7 +149,7 @@ class TesttParser(unittest.TestCase):
         m = assign_random_mol()
         n = SASModel(m.atoms)
         distance = m.dist(n, m.atoms, n.atoms)
-        self.assertEqual(distance, 0, msg="NSD different of 0: %s!=0" % (distance))
+        self.assertEqual(distance, 0, msg=f"NSD different of 0: {distance}!=0")
 
     def test_can_transform(self):
         m = assign_random_mol()
@@ -183,7 +180,7 @@ class TesttParser(unittest.TestCase):
         p0 = m.can_param
         dist_after_mvt = m.dist_after_movement(p0, n, [1, 1, 1])
         self.assertEqual(
-            dist_after_mvt, 0, msg="NSD different of 0: %s!=0" % (dist_after_mvt)
+            dist_after_mvt, 0, msg=f"NSD different of 0: {dist_after_mvt}!=0"
         )
 
     def test_reverse_transform(self):
@@ -194,7 +191,7 @@ class TesttParser(unittest.TestCase):
         m.atoms = m.transform(m.can_param, [1, 1, 1], reverse=True)
         dist = m.dist(n, m.atoms, n.atoms)
         self.assertAlmostEqual(
-            dist, 0.0, 10, msg="pb with reverse transformation : %s != 0.0" % dist
+            dist, 0.0, 10, msg=f"pb with reverse transformation : {dist} != 0.0"
         )
 
 

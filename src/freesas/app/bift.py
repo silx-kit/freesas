@@ -124,7 +124,7 @@ def main():
             try:
                 bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
             except Exception as err:
-                print("%s: %s %s" % (afile, err.__class__.__name__, err))
+                print(f"{afile}: {err.__class__.__name__} {err}")
                 if logging.root.level < logging.WARNING:
                     traceback.print_exc(file=sys.stdout)
             else:
@@ -133,7 +133,7 @@ def main():
                         args.mc, args.threshold, npt=args.npt
                     )
                 except RuntimeError as err:
-                    print("%s: %s %s" % (afile, err.__class__.__name__, err))
+                    print(f"{afile}: {err.__class__.__name__} {err}")
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:

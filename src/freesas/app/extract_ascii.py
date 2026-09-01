@@ -48,8 +48,6 @@ from freesas.sas_argparser import SASParser
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("extract_ascii")
 
-if sys.version_info[0] < 3:
-    logger.error("This code requires Python 3.4+")
 
 NexusJuice = namedtuple(
     "NexusJuice",
@@ -268,23 +266,23 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
         headers.append(hdr + " " + results["comments"])
     else:
         headers.append(hdr)
-    headers.append(hdr + " Sample c= %s mg/ml" % results.get("concentration", -1))
+    headers.append(hdr + " Sample c= {} mg/ml".format(results.get("concentration", -1)))
     headers += [hdr, hdr + " Sample environment:"]
     if "geometry" in results:
-        headers.append(hdr + " Detector = %s" % results["geometry"]["detector"])
-        headers.append(hdr + " SampleDistance = %s" % results["geometry"]["dist"])
-        headers.append(hdr + " WaveLength = %s" % results["geometry"]["wavelength"])
+        headers.append(hdr + " Detector = {}".format(results["geometry"]["detector"]))
+        headers.append(hdr + " SampleDistance = {}".format(results["geometry"]["dist"]))
+        headers.append(hdr + " WaveLength = {}".format(results["geometry"]["wavelength"]))
     headers.append(hdr)
     if "comments" in results:
-        headers.append(hdr + " title = %s" % results["comment"])
+        headers.append(hdr + " title = {}".format(results["comment"]))
     if "to_merge" in results:
         headers.append(
             hdr + " Frames merged: " + " ".join([str(i) for i in results["to_merge"]])
         )
     if "normalization" in results:
-        headers.append(hdr + " Normalization = %s" % results["normalization"])
+        headers.append(hdr + " Normalization = {}".format(results["normalization"]))
     if "mask" in results:
-        headers.append(hdr + " Mask = %s" % results["mask"])
+        headers.append(hdr + " Mask = {}".format(results["mask"]))
     headers.append(hdr)
     headers.append(hdr + (" N 3" if "std" in results else " N 2"))
     line = hdr + " L "
@@ -303,19 +301,18 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
     if "storage temperature" in results:
         headers.append(
             hdr
-            + " Storage Temperature (degrees C): %s" % results["storage temperature"]
+            + " Storage Temperature (degrees C): {}".format(results["storage temperature"])
         )
     if "exposure temperature" in results:
         headers.append(
             hdr
-            + " Measurement Temperature (degrees C): %s"
-            % results["exposure temperature"]
+            + " Measurement Temperature (degrees C): {}".format(results["exposure temperature"])
         )
 
-    headers.append(hdr + " Concentration: %s" % results.get("concentration", -1))
+    headers.append(hdr + " Concentration: {}".format(results.get("concentration", -1)))
     if "buffer" in results:
-        headers.append(hdr + " Buffer: %s" % results["buffer"])
-    headers.append(hdr + " Code: %s" % results.get("sample", ""))
+        headers.append(hdr + " Buffer: {}".format(results["buffer"]))
+    headers.append(hdr + " Code: {}".format(results.get("sample", "")))
 
     def write(headers, file_):
 
@@ -324,12 +321,12 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
 
         if "std" in results:
             data = [
-                "%14.6e\t%14.6e\t%14.6e" % (q, intensity, std)
+                f"{q:14.6e}\t{intensity:14.6e}\t{std:14.6e}"
                 for q, intensity, std in zip(results["q"], results["I"], results["std"])
             ]
         else:
             data = [
-                "%14.6e\t%14.6e\t" % (q, intensity)
+                f"{q:14.6e}\t{intensity:14.6e}\t"
                 for q, intensity in zip(results["q"], results["I"])
             ]
         data.append("")

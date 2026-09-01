@@ -105,7 +105,7 @@ class SASModel:
                     if nr < self.atoms.shape[0]:
                         line = (
                             line[:30]
-                            + "%8.3f%8.3f%8.3f" % tuple(self.atoms[nr])
+                            + "{:8.3f}{:8.3f}{:8.3f}".format(*tuple(self.atoms[nr]))
                             + line[54:]
                         )
                     else:

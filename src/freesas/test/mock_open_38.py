@@ -54,8 +54,7 @@ def mock_open(mock=None, read_data=""):
         if handle.readline.return_value is not None:
             while True:
                 yield handle.readline.return_value
-        for line in _state[0]:
-            yield line
+        yield from _state[0]
 
     def _next_side_effect():
         if handle.readline.return_value is not None:

@@ -46,7 +46,7 @@ def parse():
         files = glob.glob(args.file[0])
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug(f"{input_len} input files")
     return files
 
 

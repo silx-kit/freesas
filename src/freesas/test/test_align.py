@@ -71,7 +71,7 @@ class TestAlign(unittest.TestCase):
             logger.error(m.dist(n, m.atoms, n.atoms))
             logger.error("pb of movement")
         dist = align.alignment_2models(save=False)
-        self.assertAlmostEqual(dist, 0, 12, msg="NSD unequal 0, %s!=0" % dist)
+        self.assertAlmostEqual(dist, 0, 12, msg=f"NSD unequal 0, {dist}!=0")
 
     def test_usefull_alignment(self):
         inputfiles = [self.testfile1, self.testfile2]
@@ -85,7 +85,7 @@ class TestAlign(unittest.TestCase):
         self.assertGreaterEqual(
             dist_before,
             dist_after,
-            "increase of distance after alignment %s<%s" % (dist_before, dist_after),
+            f"increase of distance after alignment {dist_before}<{dist_after}",
         )
 
     def test_optimisation_align(self):
@@ -103,8 +103,7 @@ class TestAlign(unittest.TestCase):
         self.assertGreaterEqual(
             dist_before,
             dist_after,
-            "increase of distance after optimized alignment %s<%s"
-            % (dist_before, dist_after),
+            f"increase of distance after optimized alignment {dist_before}<{dist_after}",
         )
 
     def test_alignment_intruder(self):
@@ -131,7 +130,7 @@ class TestAlign(unittest.TestCase):
         self.assertEqual(
             num_intr,
             intruder,
-            msg="not find the good intruder, %s!=%s" % (num_intr, intruder),
+            msg=f"not find the good intruder, {num_intr}!={intruder}",
         )
 
     def test_reference(self):

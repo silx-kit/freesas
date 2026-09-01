@@ -82,7 +82,7 @@ class TestDNN(unittest.TestCase):
         """
         datfile = get_datafile("bsa_005_sub.dat")
         data = load_scattering_data(datfile)
-        q, intensity, sigma = data.T
+        q, intensity, _sigma = data.T
         Iprep = preprocess(q, intensity)
         self.assertEqual(Iprep.max(), 1, msg="range 0-1")
         self.assertEqual(Iprep.shape, (1024,), msg="size 1024")

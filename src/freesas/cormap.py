@@ -2,7 +2,7 @@ __author__ = "Jerome Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017, ESRF"
 
-from math import log
+from math import log2
 
 import numpy
 
@@ -61,7 +61,7 @@ class LongestRunOfHeads:
         delta = 2**n - self.A(n, c)
         if delta <= 0:
             return 0
-        return 2.0 ** (log(delta, 2) - n)
+        return 2.0 ** (log2(delta) - n)
 
     def probaHeadOrTail(self, n, c):
         """Calculate the probability of a longest run of head or tails to occur
@@ -77,7 +77,7 @@ class LongestRunOfHeads:
         delta = self.B(n, c) - self.B(n, c - 1)
         if delta <= 0:
             return 0
-        return min(2.0 ** (log(delta, 2.0) - n), 1.0)
+        return min(2.0 ** (log2(delta) - n), 1.0)
 
     def probaLongerRun(self, n, c):
         """Calculate the probability for the longest run of heads or tails to exceed the observed length
@@ -93,7 +93,7 @@ class LongestRunOfHeads:
         delta = (2**n) - self.B(n, c)
         if delta <= 0:
             return 0
-        return min(2.0 ** (log(delta, 2.0) - n), 1.0)
+        return min(2.0 ** (log2(delta) - n), 1.0)
 
 
 LROH = LongestRunOfHeads()

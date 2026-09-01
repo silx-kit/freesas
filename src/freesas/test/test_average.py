@@ -49,8 +49,7 @@ class TestAverage(unittest.TestCase):
         self.assertGreater(
             threshold,
             gap,
-            msg="final number of knots too different of wanted number: %s != %s"
-            % (nbknots, grid.nbknots),
+            msg=f"final number of knots too different of wanted number: {nbknots} != {grid.nbknots}",
         )
 
     def test_makegrid(self):

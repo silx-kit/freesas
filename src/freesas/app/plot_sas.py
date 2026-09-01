@@ -49,7 +49,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
 
-def set_backend(output: Path = None, output_format: str = None):
+def set_backend(output: Path | None = None, output_format: str | None = None):
     """Explicitely set silent backend based on format or filename
     Needed on MacOS
     @param output: Name of the specified output file

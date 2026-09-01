@@ -77,7 +77,7 @@ def main():
 
     args = parse()
     input_len = len(args.file)
-    logger.info("%s input files" % input_len)
+    logger.info(f"{input_len} input files")
     selection = InputModels()
 
     if args.mode == "SLOW":
@@ -110,8 +110,8 @@ def main():
         align.outputfiles = args.output
         align.assign_models()
         dist = align.alignment_2models()
-        logger.info("%s and %s aligned" % (args.file[0], args.file[1]))
-        logger.info("NSD after optimized alignment = %.2f" % dist)
+        logger.info(f"{args.file[0]} and {args.file[1]} aligned")
+        logger.info(f"NSD after optimized alignment = {dist:.2f}")
     else:
         align.outputfiles = ["model-%02i.pdb" % (i + 1) for i in range(input_len)]
         selection.inputfiles = args.file

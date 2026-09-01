@@ -29,7 +29,6 @@ __copyright__ = "2021, ESRF"
 __date__ = "19/03/2021"
 
 import logging
-import sys
 
 from freesas.autorg import auto_guinier
 from freesas.fitting import run_guinier_fit
@@ -38,8 +37,6 @@ from freesas.sas_argparser import GuinierParser
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_guinier")
 
-if sys.version_info < (3, 6):
-    logger.error("This code uses F-strings and requires Python 3.6+")
 
 
 def build_parser() -> GuinierParser:

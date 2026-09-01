@@ -94,18 +94,7 @@ def get_guinier_header(linesep: str, output_format: str | None = None) -> str:
     # pylint: disable=R1705
     if output_format == "csv":
         return (
-            ",".join(
-                (
-                    "File",
-                    "Rg",
-                    "Rg StDev",
-                    "I(0)",
-                    "I(0) StDev",
-                    "First point",
-                    "Last point",
-                    "Quality,Aggregated",
-                )
-            )
+            "File,Rg,Rg StDev,I(0),I(0) StDev,First point,Last point,Quality,Aggregated"
             + linesep
         )
     else:
@@ -120,13 +109,7 @@ def get_dnn_header(linesep: str, output_format: str | None = None) -> str:
     # pylint: disable=R1705
     if output_format == "csv":
         return (
-            ",".join(
-                (
-                    "File",
-                    "Rg",
-                    "Dmax",
-                )
-            )
+            "File,Rg,Dmax"
             + linesep
         )
     else:

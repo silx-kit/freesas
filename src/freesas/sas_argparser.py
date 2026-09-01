@@ -48,12 +48,8 @@ class SASParser:
         :param kwargs:       additional kwargs for argparse ArgumentParser
         """
 
-        self.usage = "%s [OPTIONS] FILES " % (prog)
-        version = "%s version %s from %s" % (
-            prog,
-            freesas_version.version,
-            freesas_version.date,
-        )
+        self.usage = f"{prog} [OPTIONS] FILES "
+        version = f"{prog} version {freesas_version.version} from {freesas_version.date}"
 
         self.parser = argparse.ArgumentParser(
             usage=self.usage, description=description, epilog=epilog, **kwargs
@@ -109,7 +105,7 @@ class SASParser:
             type=Path,
         )
 
-    def add_output_data_format(self, *formats: str, default: str = None):
+    def add_output_data_format(self, *formats: str, default: str | None = None):
         """Add default argument for specifying output format."""
         help_string = "Output format: " + ", ".join(formats)
         self.add_argument(

@@ -134,10 +134,10 @@ class StatsResult(NamedTuple):
             f"I₀= {self.I0_avg:.2f}±{self.I0_std:.2f}",
         ]
         with open(filename, "wt", encoding="utf-8") as out:
-            out.write("# %s %s" % (source or filename, "\n"))
+            out.write("# {} {}".format(source or filename, "\n"))
             out.writelines(f"# {txt} \n" for txt in res)
             out.write("\n# r\tp(r)\tsigma_p(r)\n")
-            out.writelines("%s\t%s\t%s%s" % (r, p, s, "\n") for r, p, s in zip(
+            out.writelines("{}\t{}\t{}{}".format(r, p, s, "\n") for r, p, s in zip(
                 self.radius.astype(numpy.float32),
                 self.density_avg.astype(numpy.float32),
                 self.density_std.astype(numpy.float32),

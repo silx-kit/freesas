@@ -87,11 +87,11 @@ class TestAutoRg(unittest.TestCase):
         logger.info("test file: %s", self.testfile)
         data = numpy.loadtxt(self.testfile)
         atsas_result = self.atsas_autorg.copy()
-        logger.debug("Reference version: %s" % atsas_result.pop("Version"))
+        logger.debug("Reference version: {}".format(atsas_result.pop("Version")))
         atsas_result = RG_RESULT(**atsas_result)
         free_result = autoRg(data)
-        logger.debug("Ref: %s" % (atsas_result,))
-        logger.debug("Obt: %s" % (free_result,))
+        logger.debug(f"Ref: {atsas_result}")
+        logger.debug(f"Obt: {free_result}")
         self.assertAlmostEqual(
             atsas_result.Rg, free_result.Rg, 1, "RG fits within 2 digits"
         )
