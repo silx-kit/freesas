@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dmax from Shannon sampling — an evaluation</title>
+<style>
+  :root {
+    --ground: #F6F7F9;
+    --surface: #FFFFFF;
+    --surface-alt: #EDF0F4;
+    --ink: #151A22;
+    --ink-soft: #4A535F;
+    --ink-faint: #77808D;
+    --rule: #D6DBE3;
+    --rule-soft: #E4E8ED;
+    --accent: #1B4F9C;
+    --accent-soft: #E3EBF7;
+    --good: #1F6B4A;
+    --warn: #96601A;
+    --bad: #97241D;
+    --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F131A;
+      --surface: #161B24;
+      --surface-alt: #1D242F;
+      --ink: #E7EBF1;
+      --ink-soft: #AEB8C6;
+      --ink-faint: #7E8996;
+      --rule: #2C343F;
+      --rule-soft: #232B35;
+      --accent: #78A8EC;
+      --accent-soft: #1A2536;
+      --good: #6FC49B;
+      --warn: #D5A65C;
+      --bad: #E38078;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F131A;
+    --surface: #161B24;
+    --surface-alt: #1D242F;
+    --ink: #E7EBF1;
+    --ink-soft: #AEB8C6;
+    --ink-faint: #7E8996;
+    --rule: #2C343F;
+    --rule-soft: #232B35;
+    --accent: #78A8EC;
+    --accent-soft: #1A2536;
+    --good: #6FC49B;
+    --warn: #D5A65C;
+    --bad: #E38078;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1.1rem, 4vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  header { display: flex; flex-direction: column; gap: 1rem; }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-size: clamp(1.85rem, 4.4vw, 2.8rem);
+    line-height: 1.13;
+    font-weight: 600;
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  .standfirst {
+    font-size: 1.14rem;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 45rem;
+  }
+  .meta {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--rule);
+    padding-top: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.6rem;
+  }
+
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    padding: 1.5rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+  .verdict h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+  .verdict p { margin: 0; }
+
+  section { display: flex; flex-direction: column; gap: 1.05rem; }
+  h2.head {
+    font-size: 1.42rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  h3 {
+    font-family: var(--sans);
+    font-size: 0.86rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    margin: 0.5rem 0 -0.35rem;
+    color: var(--ink);
+  }
+  p { margin: 0; max-width: 45rem; }
+  ul, ol { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; max-width: 45rem; }
+  li::marker { color: var(--ink-faint); }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.855em;
+    background: var(--surface-alt);
+    padding: 0.08em 0.32em;
+    border-radius: 2px;
+  }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: var(--mono);
+    font-size: 0.79rem;
+    font-variant-numeric: tabular-nums;
+  }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--rule-soft);
+    background: var(--surface-alt);
+  }
+  th, td { padding: 0.42rem 0.9rem; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th {
+    font-weight: 600;
+    font-size: 0.71rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+  }
+  tbody tr + tr td { border-top: 1px solid var(--rule-soft); }
+  tbody tr.hi td { background: var(--accent-soft); }
+  td.num-good, .t-good { color: var(--good); }
+  td.num-bad, .t-bad { color: var(--bad); }
+  td.num-warn, .t-warn { color: var(--warn); }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 650;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.42rem;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    vertical-align: 0.08em;
+  }
+  .pill.good { color: var(--good); }
+  .pill.bad { color: var(--bad); }
+
+  .retracted {
+    border: 1px solid var(--bad);
+    border-left-width: 3px;
+    background: var(--surface);
+    padding: 1rem 1.2rem;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    max-width: 45rem;
+  }
+  .retracted strong { color: var(--bad); }
+
+  figure { margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+  .fig-frame { border: 1px solid var(--rule); background: var(--surface); padding: 0.6rem; overflow-x: auto; }
+  figcaption {
+    font-family: var(--sans);
+    font-size: 0.79rem;
+    color: var(--ink-faint);
+    max-width: 45rem;
+    line-height: 1.5;
+  }
+  svg { display: block; max-width: 100%; height: auto; }
+
+  .note {
+    border-left: 2px solid var(--rule);
+    padding-left: 1rem;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    max-width: 44rem;
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  footer code { font-size: 0.78rem; }
+  pre {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule-soft);
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    margin: 0;
+    color: var(--ink);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Evaluation note · FreeSAS</div>
+  <h1>Determining <span style="font-family:var(--mono);font-size:0.82em">D<sub>max</sub></span> by Shannon sampling: the formalism is sound, the estimator is not</h1>
+  <p class="standfirst">Evaluation of the method of De Caro <em>et al.</em> (2026) against the dense neural network already in FreeSAS, on <strong>5416 experimental BM29 curves with two independent references</strong> (BIFT and GNOM/ATSAS), plus 517 synthetic curves with exact ground truth, apoferritin SASDFN8 and the three test datasets shipped with the repository.</p>
+  <div class="meta">
+    <span>J. Appl. Cryst. 59, 1170–1183</span>
+    <span>freesas 2026.3.0 · ATSAS 4.1.4</span>
+    <span>python 3.13 · numpy 2.5.2</span>
+    <span>2 September 2026</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <h2>Bottom line</h2>
+  <p><strong>The published method, exactly as specified, does not improve on <code>Dmax = 3·Rg</code></strong> — the heuristic already inside <code>auto_bift</code>. On the least-biased experimental judge the two tie (11.4 % against 11.0 %) and Shannon wins on only 50.6 % of curves; on the synthetic bench, 21 % against 17 %.</p>
+  <p><strong>The cause is structural, not numerical.</strong> The residuals <code>f₁</code> and <code>f₂</code> have no minimum: they have a plateau. Past the true <code>Dmax</code>, the Shannon sums recover the same moments. Taking the argmin of a plateau is ill-posed, and the <code>[2.5, 3.5]·Rg</code> search window does all the remaining work — a window that excludes 48 % of the real curves (§6.5).</p>
+  <p><strong>The most important result is elsewhere, and it reframes the whole question.</strong> Across 5416 experimental curves, BIFT and GNOM agree on <code>Rg</code> to <strong>5 %</strong> and contradict each other on <code>Dmax</code> by <strong>22 %</strong> (§6.1). The implementations are not at fault — freesas and ATSAS return the same <code>Rg</code> to 1.3 %. It is <code>Dmax</code> itself that is poorly constrained by SAXS data. <strong>Chasing a 5 %-accurate <code>Dmax</code> estimator makes little sense when the two reference methods do not agree to better than 22 %.</strong></p>
+  <p><strong>I have withdrawn my plateau-onset variant.</strong> It is the worst of the four on experimental data (§6.6): its bias grows with object size, from −17 % to −64 %, so no constant calibration can fix it. The plateau mechanism itself stands; my way of detecting its onset does not survive real data.</p>
+  <p><strong>The network does not estimate <code>Dmax</code> — it estimates BIFT's <code>Dmax</code></strong>, bias included (§6.2, verified arithmetically). Read it as a fast surrogate for BIFT, not an independent measurement. Its solid structural advantage lies elsewhere: it needs no Guinier fit, and dominates where no usable Guinier region exists (12.5 % against 47 % for Shannon, §6.4).</p>
+  <p><strong>One advantage of the Shannon route that I had not anticipated:</strong> the formalism is unit-covariant — <code>Dmax</code> comes out in the reciprocal of whatever unit <code>q</code> is in — whereas the network is bound to a grid fixed in nm⁻¹ and returns a wrong answer silently when the unit is wrong. Given that SASBDB serves both conventions, this favours Shannon structurally (§3.1).</p>
+  <p><strong>A hard limit worth knowing:</strong> the method requires the first Shannon channel to be measured, i.e. <code>Dmax ≤ π/q_min</code> — 36.9 nm on this instrument (§6.3). Beyond that it loses the dominant term of its alternating series and degrades abruptly.</p>
+</div>
+
+<section>
+  <h2 class="head">1. The comparison table — synthetic bench</h2>
+  <p class="note">The verdict that matters is <a href="#experimental">§6, on experimental data</a>. This section uses analytical shapes: ground truth is exact there, but the shapes are not representative of BioSAXS. The two are meant to be read together, and where they disagree is discussed in §6.7.</p>
+  <p>52 held-out validation curves — sizes, shape parameters, noise seeds and polydisperse populations that the tuning never saw. The 10 cases where the Guinier fit itself fails are excluded: no Guinier-anchored estimator can work there, and such data would be rejected in production.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Relative error on <code>Dmax</code>, held-out validation set (n = 52)</caption>
+      <thead>
+        <tr><th>Estimator</th><th>median</th><th>p90</th><th>max</th><th>cost</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hi"><td>plateau onset <span class="pill bad">withdrawn §6.6</span></td><td class="num-good">5.16 %</td><td>26.5 %</td><td class="num-warn">54.5 %</td><td>19 ms</td></tr>
+        <tr><td>neural network</td><td>8.75 %</td><td>33.0 %</td><td>35.5 %</td><td class="num-good">0.23 ms</td></tr>
+        <tr><td><code>3·Rg</code> <span class="pill">control</span></td><td>16.75 %</td><td>26.7 %</td><td>32.0 %</td><td>0 ms</td></tr>
+        <tr><td>Shannon as published</td><td class="num-bad">21.38 %</td><td class="num-bad">36.8 %</td><td>39.6 %</td><td>18 ms</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The <code>3·Rg</code> control is the decisive row: an estimator that does not beat it does not deserve to be integrated. The published method does not beat it. On the main benchmark (455 curves, noise 0 to 20 %) the coincidence is striking: <strong>18.32 % for Shannon against 18.31 % for <code>3·Rg</code></strong>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Main benchmark by noise level — median / p90 of |relative error|</caption>
+      <thead>
+        <tr><th>noise</th><th>shannon</th><th>shannon_ex<sup>1</sup></th><th>network</th><th>3·Rg</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0 %</td><td>8.55 / 21.9</td><td>7.43 / 30.0</td><td>18.55 / 40.7</td><td>16.95 / 23.1</td></tr>
+        <tr><td>2 %</td><td>18.20 / 42.2</td><td>8.54 / 33.2</td><td>18.44 / 41.2</td><td>18.28 / 27.4</td></tr>
+        <tr><td>5 %</td><td>20.89 / 48.7</td><td>7.77 / 29.4</td><td>18.21 / 41.3</td><td>18.32 / 29.3</td></tr>
+        <tr><td>10 %</td><td>20.04 / 45.3</td><td>10.99 / 28.4</td><td>17.91 / 41.3</td><td>18.41 / 29.3</td></tr>
+        <tr><td>20 %</td><td>19.13 / 50.6</td><td>7.59 / 23.4</td><td>17.83 / 40.7</td><td>18.80 / 30.9</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><sup>1</sup> <code>shannon_ex</code> is the published method fed the <strong>exact</strong> <code>Rg</code> and <code>I(0)</code> instead of the Guinier fit. This ablation isolates the Shannon step from the anchor error. The gap between the two columns (18 % against 8 %) is the first clue to the conditioning problem.</p>
+
+  <p class="note">Useful reference point: on the same 10 nm sphere, BIFT itself returns 10.18 nm, i.e. +1.8 %. No fast estimator comes close. They can only accelerate or stabilise BIFT — never replace it.</p>
+</section>
+
+<section>
+  <h2 class="head">2. Why the published method fails</h2>
+
+  <h3>2.1 The residuals have a plateau, not a minimum</h3>
+  <p>The method looks for the <code>Dmax</code> at which the moments reconstructed on the Shannon channels match those of the Guinier plot. Measured on apoferritin SASDFN8 with <code>nmax</code> = 11, <code>Rg_NS(Dmax)</code> <strong>saturates</strong>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Apoferritin SASDFN8 — the reconstructed moments stop responding to <code>Dmax</code></caption>
+      <thead>
+        <tr><th>trial Dmax (nm)</th><th>Rg reconstructed</th><th>dRg/dDmax</th><th>I0 reconstructed</th><th>amplification ∂lnDmax/∂lnRg</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>10.50</td><td>4.8635</td><td>0.4932</td><td>4.487e+04</td><td>0.94</td></tr>
+        <tr><td>11.50</td><td>5.1450</td><td>0.2160</td><td>4.998e+04</td><td>2.07</td></tr>
+        <tr><td>12.00</td><td>5.2042</td><td>0.1183</td><td>5.069e+04</td><td>3.67</td></tr>
+        <tr class="hi"><td>12.50</td><td>5.2140</td><td>0.0198</td><td>5.020e+04</td><td class="num-bad">21.10</td></tr>
+        <tr class="hi"><td>13.00</td><td>5.2132</td><td>−0.0016</td><td>5.052e+04</td><td class="num-bad">−248</td></tr>
+        <tr class="hi"><td>14.00</td><td>5.2253</td><td>−0.0000</td><td>5.065e+04</td><td class="num-bad">−14 747</td></tr>
+        <tr><td>16.00</td><td>5.2206</td><td>0.0538</td><td>5.060e+04</td><td>6.06</td></tr>
+        <tr><td>19.00</td><td>5.2471</td><td>0.1918</td><td>5.098e+04</td><td>1.44</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <figure>
+    <div class="fig-frame">
+      <svg viewBox="0 0 560 290" role="img" aria-label="Radius of gyration reconstructed from the Shannon sums as a function of the trial Dmax: the curve rises up to 12 nm then flattens into a plateau, so a horizontal line at the Guinier Rg crosses it at many points or none at all.">
+        <defs>
+          <marker id="ar" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto">
+            <path d="M0,0.5 L6,3 L0,5.5 Z" fill="currentColor"/>
+          </marker>
+        </defs>
+        <g stroke="var(--rule-soft)" stroke-width="1">
+          <line x1="60" y1="240" x2="530" y2="240"/>
+          <line x1="60" y1="190" x2="530" y2="190"/>
+          <line x1="60" y1="140" x2="530" y2="140"/>
+          <line x1="60" y1="90" x2="530" y2="90"/>
+          <line x1="60" y1="40" x2="530" y2="40"/>
+        </g>
+        <g stroke="var(--rule)" stroke-width="1.2">
+          <line x1="60" y1="40" x2="60" y2="255"/>
+          <line x1="60" y1="255" x2="530" y2="255"/>
+        </g>
+        <g font-family="ui-monospace, monospace" font-size="9.5" fill="var(--ink-faint)" text-anchor="end">
+          <text x="53" y="243">4.80</text>
+          <text x="53" y="193">4.95</text>
+          <text x="53" y="143">5.10</text>
+          <text x="53" y="93">5.25</text>
+          <text x="53" y="43">5.40</text>
+        </g>
+        <g font-family="ui-monospace, monospace" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">
+          <text x="84" y="269">10.5</text>
+          <text x="181" y="269">12.5</text>
+          <text x="278" y="269">14.5</text>
+          <text x="375" y="269">16.5</text>
+          <text x="472" y="269">18.5</text>
+        </g>
+        <line x1="60" y1="58" x2="530" y2="58" stroke="var(--bad)" stroke-width="1.4" stroke-dasharray="5 3"/>
+        <text x="527" y="53" font-family="ui-monospace, monospace" font-size="9.5" fill="var(--bad)" text-anchor="end">Rg from auto_guinier = 5.346 — no solution at all</text>
+        <line x1="60" y1="94.3" x2="530" y2="94.3" stroke="var(--warn)" stroke-width="1.4" stroke-dasharray="5 3"/>
+        <text x="527" y="107" font-family="ui-monospace, monospace" font-size="9.5" fill="var(--warn)" text-anchor="end">Rg from the paper = 5.237 — many solutions</text>
+        <polyline fill="none" stroke="var(--accent)" stroke-width="2.1"
+          points="84.2,218.8 108.4,161.0 132.6,125.0 156.8,105.3 181.1,102.0 205.3,102.3 229.5,98.2 253.7,98.2 277.9,106.6 302.1,108.2 326.3,108.8 350.5,99.8 374.8,107.0 399.0,112.3 423.2,123.4 447.4,108.0 471.6,123.0 495.8,90.9"/>
+        <line x1="187.8" y1="40" x2="187.8" y2="255" stroke="var(--good)" stroke-width="1.6"/>
+        <text x="193" y="52" font-family="ui-monospace, monospace" font-size="9.5" fill="var(--good)">published Dmax = 12.64 nm</text>
+        <g color="var(--ink-faint)">
+          <line x1="200" y1="228" x2="500" y2="228" stroke="currentColor" stroke-width="1" marker-end="url(#ar)"/>
+        </g>
+        <text x="204" y="222" font-family="ui-sans-serif, sans-serif" font-size="10" fill="var(--ink-faint)">plateau: no information about Dmax left</text>
+        <text x="14" y="150" font-family="ui-sans-serif, sans-serif" font-size="10.5" fill="var(--ink-soft)" transform="rotate(-90 14 150)" text-anchor="middle">reconstructed Rg (nm)</text>
+        <text x="295" y="286" font-family="ui-sans-serif, sans-serif" font-size="10.5" fill="var(--ink-soft)" text-anchor="middle">trial Dmax (nm)</text>
+      </svg>
+    </div>
+    <figcaption>Solving <code>Rg_NS(Dmax) = Rg_Guinier</code> means intersecting the blue curve with a horizontal line. With the paper's <code>Rg</code> (orange) there is one good solution at 12.6 nm — and five spurious ones beyond it. With the <code>Rg</code> that <code>auto_guinier</code> returns, 2.1 % higher (red), there is none at all, and the argmin wanders anywhere (16.6 nm measured, +31 %).</figcaption>
+  </figure>
+
+  <p>This is physically expected: under-estimating <code>Dmax</code> aliases the alternating series and corrupts the moments, whereas over-estimating it is harmless — extra channels are added and the series still converges to the same moments. The practical consequence is brutal: on a <strong>noise-free</strong> synthetic sphere, a <strong>+0.07 %</strong> shift in <code>Rg</code> moves the estimate by <strong>21 %</strong>.</p>
+
+  <h3>2.2 Equation 12 has no diagnostic power</h3>
+  <p>The paper's self-consistency criterion — the two minima must agree to within 1 %, presented as a validation of the Guinier plot — is satisfied in <strong>76 %</strong> of the 455 cases, and the median error is <strong>the same</strong> whether it holds or not: <strong>18.26 % against 18.60 %</strong>. Once the plateau is understood this is unsurprising: the criterion compares two near-random positions on a plateau, and their occasional coincidence proves nothing.</p>
+
+  <h3>2.3 The search window does the work</h3>
+  <p>Falsification test: move the search window and see whether the answer follows. It does. Format is <code>estimated Dmax / window centre</code>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Estimate obtained as a function of the imposed window, in units of <code>Rg</code></caption>
+      <thead>
+        <tr><th>Case</th><th>true</th><th>[2.0, 3.0]</th><th>[2.5, 3.5]</th><th>[3.0, 4.0]</th><th>[3.5, 4.5]</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>sphere</td><td>8.0</td><td>8.06 / 7.94</td><td>10.60 / 9.53</td><td>11.86 / 11.12</td><td>11.80 / 12.71</td></tr>
+        <tr><td>spheroid ε = 2</td><td>10.0</td><td>8.19 / 6.82</td><td>8.61 / 8.19</td><td>8.61 / 9.55</td><td>9.61 / 10.91</td></tr>
+        <tr><td>core–shell</td><td>10.0</td><td>11.82 / 10.61</td><td>12.95 / 12.74</td><td>13.24 / 14.86</td><td>14.86 / 16.98</td></tr>
+        <tr><td>parabolic P(r)</td><td>12.0</td><td>13.32 / 11.83</td><td>13.20 / 14.19</td><td>17.63 / 16.56</td><td>17.66 / 18.92</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The estimate stays glued to the centre of the window whatever the truth is. The <code>[2.5, 3.5]·Rg</code> window is centred on <code>3·Rg</code> — hence the tie with the control. Note that the paper itself allows &ldquo;other suitable intervals, if needed&rdquo;, and that its published <code>Dmax</code> for apoferritin (126.4 Å = 2.42·<code>Rg</code>) falls <em>outside</em> the window it states.</p>
+
+  <h3>2.4 This is not an implementation defect</h3>
+  <p>Checked before concluding:</p>
+  <ul>
+    <li><strong>Equations 3 and 5 are correct.</strong> At the exact <code>Dmax</code> and on a fine grid, <code>I(0)</code> and <code>Rg</code> are recovered to within 0.01–0.5 % for all four shapes tested.</li>
+    <li><strong>The truncation corrections (eq. 10–11) work.</strong> On the parabolic case at <code>nmax</code> = 5, the error on <code>I(0)</code> drops from 1.95 % to 0.41 %.</li>
+    <li><strong>On apoferritin at the published <code>Dmax</code></strong>, the sums give <code>I0</code> to −1.3 % and <code>Rg</code> to −2.4 % — and those −2.4 % are exactly the gap between my Guinier <code>Rg</code> and theirs.</li>
+    <li><strong>All free parameters were swept</strong> (<code>sensitivity.py</code>): <code>nmax</code> from 4 to 20, mean-filter width on <code>f₁</code>/<code>f₂</code> from 1 to 401 points, the <code>q</code>-adaptive filter parameters (<code>m</code>, <code>α</code>, <code>q̄₀</code>), and the window width. The best setting found (3.9 % median) turned out to be precisely the one that makes the estimator track the window — see §2.3.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 class="head">3. What the evaluation reveals about the neural network</h2>
+  <p>The network holds up well — 8.75 % median error, 0.23 ms per call, and remarkable stability: on a 10 nm sphere it returns 10.52 to 10.79 nm regardless of the <code>q</code> range supplied, from 0.4 to 12 nm⁻¹. It does carry a structural constraint that is not declared anywhere.</p>
+
+  <h3>3.1 The network is tied to an absolute scale; the Shannon route is not</h3>
+  <p><code>freesas.dnn.preprocess()</code> interpolates onto a <strong>fixed</strong> 1024-point grid over [0, 4] nm⁻¹, with <code>left=1</code> and <code>right=0</code>. It therefore needs a correct absolute scale on input. The Shannon formalism is <strong>covariant</strong>: <code>Dmax</code> comes out in the reciprocal of the unit of <code>q</code>, whatever that unit is.</p>
+
+  <p>This shows up directly on <code>SASDFX7.dat</code>, whose own header declares <code>REMARK 265  q : defined in inverse Angstroms</code> — a remark that <code>load_scattering_data()</code> does not read.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption><code>SASDFX7.dat</code> read under both interpretations</caption>
+      <thead>
+        <tr><th>Interpretation</th><th>q (native)</th><th>Rg Guinier</th><th>Rg network</th><th>Dmax network</th><th>Dmax onset</th><th>Dmax Shannon</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>raw, treated as nm⁻¹</td><td>0.003 – 0.370</td><td>22.828</td><td>2.541</td><td>8.52</td><td>61.01</td><td>71.57</td></tr>
+        <tr class="hi"><td>converted Å⁻¹ → nm⁻¹</td><td>0.032 – 3.696</td><td>2.283</td><td>1.975</td><td>5.66</td><td>6.10</td><td>7.10</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The last two columns change by <strong>exactly a factor of ten</strong> (61.01 → 6.10; 71.57 → 7.10): they are merely changing unit. The network goes from 8.52 to 5.66, with no factor of ten — its answer on the mis-scaled input is simply wrong, and nothing flags it. An instructive coincidence: with the wrong unit its <code>Rg</code> (2.541) landed closer to the true value (2.283 nm) than with the right one (1.975).</p>
+
+  <p><strong>Faced with SASBDB's mixed units, this is a clear advantage for the Shannon route and a real risk for the network.</strong></p>
+
+  <h3>3.2 A genuine domain limit in object size</h3>
+  <p>Independently of units, measured on synthetic curves where the scale is unambiguous (spheres, <code>qmax</code> = 4 nm⁻¹, 5 % noise):</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>The network drops out abruptly for large objects</caption>
+      <thead>
+        <tr><th>true Dmax</th><th>true Rg</th><th>Rg network</th><th>Dmax network</th><th>error</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>3.0</td><td>1.16</td><td>1.15</td><td>4.47</td><td class="num-bad">+49 %</td></tr>
+        <tr><td>8.0</td><td>3.10</td><td>3.13</td><td>8.50</td><td class="num-good">+6 %</td></tr>
+        <tr><td>20.0</td><td>7.75</td><td>8.04</td><td>26.47</td><td class="num-warn">+32 %</td></tr>
+        <tr><td>35.0</td><td>13.56</td><td>12.35</td><td>42.07</td><td class="num-warn">+20 %</td></tr>
+        <tr class="hi"><td>60.0</td><td>23.24</td><td>0.96</td><td>0.16</td><td class="num-bad">−99.7 %</td></tr>
+        <tr class="hi"><td>100.0</td><td>38.73</td><td>2.09</td><td>5.96</td><td class="num-bad">−94 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The usable domain is roughly <code>Dmax</code> ∈ [5, 40] nm at <code>qmax</code> = 4 nm⁻¹. The failure mechanism is <strong>the same</strong> as in §3.1: as soon as the informative structure of the curve is compressed into the low-<code>q</code> end of the grid — because the object is large, or because the unit is wrong — the network leaves its training distribution and returns nonsense. One cause, two triggers. It also returns negative <code>Dmax</code> values on some very low-contrast curves.</p>
+
+  <p>The other two test datasets in the repository, with no unit ambiguity, cause no trouble:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Repository test data, unambiguous units</caption>
+      <thead>
+        <tr><th>File</th><th>q range (nm⁻¹)</th><th>Rg Guinier</th><th>Rg network</th><th>Dmax network</th><th>Dmax onset</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>bsa_005_sub.dat</td><td>0.028 – 4.53</td><td>2.914</td><td>2.998</td><td>9.30</td><td>8.46</td></tr>
+        <tr><td>SASDF52.dat</td><td>0.035 – 4.94</td><td>3.127</td><td>3.294</td><td>10.61</td><td>10.12</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><code>bsa_005_sub.dat</code> declares <code>AutoRg: Rg = 2.9802</code> in its own header; the network gives 2.998 and <code>auto_guinier</code> 2.914.</p>
+
+  <p><strong>Two fixes for <code>dnn.py</code>, to be made regardless of what happens next:</strong> check that the <code>q</code> range covers the training grid and refuse otherwise, and validate the sign and order of magnitude of the output. Neither is present today.</p>
+
+  <h3>3.3 Detecting the unit: what works and what cannot</h3>
+  <p>SASBDB serves both conventions and files rarely say which. <strong>No criterion based on the shape of the curve can settle it</strong>: under <code>q → 10q</code> every dimensionless product is invariant — <code>q·Rg</code>, <code>q·Dmax</code>, the oversampling ratio, the number of Shannon channels. An absolute scale has to come from elsewhere. Two sources were tested in <code>unit_detect.py</code>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Unit detection accuracy</caption>
+      <thead>
+        <tr><th>Test</th><th>real files</th><th>synthetic (14 cases × 2 conventions)</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hi"><td>magnitude of <code>q_max</code>, threshold 1.2</td><td class="num-good">4/4</td><td class="num-good">14/14</td></tr>
+        <tr><td>cross-check against the network</td><td>4/4</td><td>12/14</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The network cross-check — compare its <code>Rg</code> with the unit-covariant Guinier <code>Rg</code> under both hypotheses — does work, but fails exactly where the network leaves its domain (the 40 nm sphere), and its decision margin is not usable: 1.0× to 1.2× on the failures, but also 1.2× on a correct call. <strong>It adds nothing over the plain magnitude threshold.</strong></p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Ambiguity band, assuming credible ranges of 0.08–1.2 Å⁻¹ and 0.8–12 nm⁻¹</caption>
+      <thead>
+        <tr><th><code>q_max</code> as written in the file</th><th>verdict</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>≤ 0.5</td><td class="t-good">Å⁻¹, unambiguous</td></tr>
+        <tr><td>0.8 – 1.2</td><td class="t-bad">ambiguous</td></tr>
+        <tr><td>≥ 1.5</td><td class="t-good">nm⁻¹, unambiguous</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The uncertain band is narrow. Recommended resolution order:</p>
+  <ol>
+    <li><strong>Read the header</strong> when it declares the unit (SASBDB's <code>REMARK 265 q : defined in inverse Angstroms</code>) — authoritative, and currently ignored by <code>sasio.py</code>.</li>
+    <li>Otherwise apply the <strong><code>q_max</code> threshold</strong>.</li>
+    <li>Inside the ambiguous band, <strong>refuse to guess</strong> and require <code>-u/--unit</code>, which the CLIs already provide.</li>
+  </ol>
+  <p>The four datasets examined support step 1: only <code>SASDFX7.dat</code> carries the declaration; <code>SASDFN8.dat</code> and <code>SASDF52.dat</code> have no usable header.</p>
+</section>
+
+<section>
+  <h2 class="head">4. A direction that seemed to work: find the plateau onset</h2>
+  <p class="retracted"><strong>Section withdrawn.</strong> The measurements below are correct on analytical shapes, but the estimator <strong>fails on the 5416 experimental curves</strong> — it is the worst of the four against every one of the three references. See §6.6 for the diagnosis. The section is kept because the plateau mechanism it describes remains valid, and because the gap between its synthetic and experimental verdicts is itself informative.</p>
+  <p>The plateau is not a defect of the data but a physical property (§2.1). The information about <code>Dmax</code> therefore does not sit in the minimum of the residual but in <strong>the abscissa at which it drops to the noise floor</strong>. That quantity does not depend on the absolute level of the residual — which is to say, not on the accuracy of the Guinier anchor, exactly what ruins the published method.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Conditioning: spread of <code>Dmax</code> under a ±2 % perturbation of the <code>Rg</code> anchor</caption>
+      <thead>
+        <tr><th>Case</th><th>Shannon as published</th><th>plateau onset</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>sphere 8 nm</td><td class="num-bad">8.3 %</td><td class="num-good">1.2 %</td></tr>
+        <tr><td>sphere 14 nm</td><td class="num-bad">16.9 %</td><td class="num-good">0.9 %</td></tr>
+        <tr><td>spheroid ε = 0.5</td><td class="num-bad">28.2 %</td><td class="num-good">2.7 %</td></tr>
+        <tr><td>core–shell</td><td class="num-bad">12.2 %</td><td class="num-good">2.6 %</td></tr>
+        <tr><td>parabolic P(r)</td><td>4.2 %</td><td class="num-good">0.5 %</td></tr>
+        <tr><td>spheroid ε = 2</td><td>8.3 %</td><td>8.5 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The onset estimator carries a systematic −15 % bias, corrected by a multiplicative constant of <strong>1.1495</strong> fitted on a first set of 48 cases, then <strong>frozen</strong> and evaluated on the 52 independent cases of §1. A systematic bias can be calibrated; the chaos of the argmin cannot.</p>
+
+  <h3>Caveats, to be resolved before any integration</h3>
+  <ul>
+    <li><strong>The tail is still bad</strong>: p90 at 26 %, maximum at 55 %. The worst cases are strongly elongated objects (prolate spheroid ε = 3), where the onset blurs and the estimate falls short.</li>
+    <li>The calibration constant is empirical and was fitted on analytical shapes. It needs validation on real experimental data with a trusted reference <code>Dmax</code>.</li>
+    <li>The onset detection threshold (<code>factor</code> = 1.1) is a free parameter. A threshold-free definition — intersection of the two asymptotes, or maximum of curvature — would be cleaner and remains to be tried.</li>
+    <li>None of these measurements covers low signal-to-noise laboratory data, which is precisely the case the paper puts forward.</li>
+  </ul>
+</section>
+
+<section>
+  <h2 class="head">5. What this would give inside BIFT</h2>
+  <p>The original motivation was to save the <code>(Dmax, α)</code> scan. Measurements on a 10 nm sphere, <code>npt</code> = 100, <code>scan_size</code> = 27:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Cost of <code>auto_bift</code> depending on how the estimated <code>Dmax</code> is used</caption>
+      <thead>
+        <tr><th>Scenario</th><th>time</th><th>evidence evaluations</th><th>Dmax obtained</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>auto_bift</code> as-is</td><td>4.58 s</td><td>173</td><td>10.18</td></tr>
+        <tr><td><code>Dmax</code> frozen, α optimised alone</td><td class="num-good">0.77 s</td><td class="num-good">36</td><td>10.18</td></tr>
+        <tr><td><code>Dmax</code> seeded, still refined</td><td>1.1× median</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Freezing <code>Dmax</code> gives <strong>5.9×</strong>, but means living with the estimator's error — 5 % median, 26 % at p90 — where BIFT reaches 1.8 % on its own. Merely <em>seeding</em> the scan without freezing it yields only <strong>1.1×</strong> in the median: Powell redoes most of the work whatever the starting point.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Seeding detail — plateau-onset <code>Dmax</code> as seed, refinement kept</caption>
+      <thead>
+        <tr><th>Case</th><th>true Dmax</th><th>BIFT alone</th><th>t (s)</th><th>BIFT seeded</th><th>t (s)</th><th>speed-up</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>sphere 8</td><td>8.0</td><td>8.32</td><td>6.12</td><td>8.32</td><td>5.68</td><td>1.1×</td></tr>
+        <tr><td>sphere 14</td><td>14.0</td><td>13.81</td><td>8.34</td><td>14.19</td><td>2.38</td><td>3.5×</td></tr>
+        <tr><td>spheroid ε = 2</td><td>10.0</td><td>9.11</td><td>4.10</td><td>9.11</td><td>3.69</td><td>1.1×</td></tr>
+        <tr class="hi"><td>core–shell</td><td>10.0</td><td class="num-bad">12.74</td><td>4.73</td><td class="num-good">10.03</td><td>6.79</td><td>0.7×</td></tr>
+        <tr><td>parabolic</td><td>12.0</td><td>12.03</td><td>2.05</td><td>12.03</td><td>1.55</td><td>1.3×</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note"><strong>An unexpected benefit, unrelated to speed.</strong> On the core–shell curve, <code>auto_bift</code> alone converges to 12.74 nm (+27 %, a spurious local optimum) whereas seeded by the plateau onset it gives 10.03 nm (+0.3 %). Seeding may be worth more as a guard against local optima than as an accelerator — but this rests on a single case and needs quantifying.</p>
+</section>
+
+<section id="experimental">
+  <h2 class="head">6. Validation on 5416 experimental BM29 curves</h2>
+  <p>Sections 1 to 5 rest on analytical shapes. This section confronts them with <code>sandbox/2025/</code>: 5416 experimental curves from the same instrument, <code>q</code> fixed from 0.085 to 4.96 nm⁻¹ over 1000 points, recorded <strong>after</strong> the network's training set — so a genuinely blind test for it, which the synthetic bench could not provide.</p>
+  <p>Two independent references: <strong>BIFT</strong>, the <code>*.out</code> files shipped with the data by <code>free_bift</code>; and <strong>GNOM</strong>, produced for this evaluation with ATSAS 4.1.4 (<code>autorg</code> → <code>datgnom -r Rg</code>) into <code>sandbox/2025/atsas/*.out</code>. 4115 of 5469 curves succeed (75.2 %); the 1354 failures are <code>autorg</code> rejections (&ldquo;No Rg found&rdquo;, &ldquo;Data quality too low&rdquo;).</p>
+  <p class="note">Methodological caveat: the 5416 curves are not 5416 independent measurements — there are 2478 distinct sample prefixes, some represented up to 210 times.</p>
+
+  <h3>6.1 The central result: <code>Dmax</code> is not a well-determined quantity</h3>
+  <p>Before judging any estimator, the agreement between the references has to be measured. On the 4098 curves that have both:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>How far apart the two reference methods are</caption>
+      <thead>
+        <tr><th>Comparison</th><th>median |dev|</th><th>p90</th><th>agree within 10 %</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>BIFT vs GNOM on <code>Dmax</code>, all curves</td><td class="num-bad">27.40 %</td><td>95.8 %</td><td>20.7 %</td></tr>
+        <tr><td>BIFT vs GNOM on <code>Dmax</code>, curves both tools accept (n = 1417)</td><td class="num-bad">22.10 %</td><td>60.2 %</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>And the contrast with <code>Rg</code>, on exactly the same 1417 curves:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>The same tools agree on <code>Rg</code> and disagree on <code>Dmax</code></caption>
+      <thead>
+        <tr><th>Quantity and tool pair</th><th>median |dev|</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Rg</code>: freesas <code>auto_guinier</code> vs ATSAS <code>autorg</code></td><td class="num-good">1.27 %</td></tr>
+        <tr><td><code>Rg</code>: moments of BIFT's <code>P(r)</code> vs GNOM's</td><td class="num-good">4.96 %</td></tr>
+        <tr class="hi"><td><code>Dmax</code>: BIFT vs GNOM</td><td class="num-bad">22.10 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>Two established methods agree on <code>Rg</code> to 5 % and contradict each other on <code>Dmax</code> by 22 %.</strong> The implementations are not at fault — freesas and ATSAS return the same <code>Rg</code> to 1.3 %. It is <code>Dmax</code> that is intrinsically poorly constrained by SAXS data: it is the point where <code>P(r)</code> vanishes, hence a property of the chosen support and of the regularisation, where <code>Rg</code> is a robust integral moment.</p>
+
+  <p>The disagreement is moreover <strong>systematic</strong>: BIFT always returns a larger <code>Dmax</code> than GNOM, by +8.5 % to +28.6 % depending on size.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>BIFT is systematically larger than GNOM</caption>
+      <thead>
+        <tr><th>GNOM <code>Dmax</code></th><th>n</th><th>BIFT/GNOM bias</th><th>median |dev|</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0 – 5 nm</td><td>132</td><td>+21.1 %</td><td>22.8 %</td></tr>
+        <tr><td>5 – 10 nm</td><td>511</td><td>+28.6 %</td><td>28.7 %</td></tr>
+        <tr><td>10 – 20 nm</td><td>476</td><td>+19.1 %</td><td>20.5 %</td></tr>
+        <tr><td>20 – 37 nm</td><td>242</td><td>+8.5 %</td><td>12.2 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.2 The ranking depends on the reference — and that unmasks the network</h3>
+  <p>Valid domain (defined in §6.3), curves accepted by both tools, n = 1417:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Median |deviation| against each reference — the order reverses</caption>
+      <thead>
+        <tr><th>Estimator</th><th>vs GNOM</th><th>vs BIFT</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>3·Rg</code> (control)</td><td class="num-good">10.43 %</td><td>20.55 %</td></tr>
+        <tr><td>Shannon as published</td><td>11.28 %</td><td>16.49 %</td></tr>
+        <tr><td>plateau onset (mine)</td><td>15.99 %</td><td>28.80 %</td></tr>
+        <tr class="hi"><td>neural network</td><td class="num-bad">32.46 %</td><td class="num-good">14.21 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The network is the best against BIFT and the worst against GNOM. The arithmetic explains why:</p>
+  <pre>BIFT / GNOM  = 1.1849      (systematic bias measured in §6.1)
+DNN  / BIFT  = 1.1053
+product      = 1.3096   vs   DNN / GNOM measured = 1.3193</pre>
+
+  <p><strong>The network does not estimate <code>Dmax</code>: it estimates BIFT's <code>Dmax</code></strong>, having learned its convention and its bias, plus a further 10 %. It must therefore be read as a fast surrogate for BIFT rather than an independent measurement — and scoring it against BIFT is partly circular, while scoring it against GNOM penalises it for faithfully reproducing what it was trained on.</p>
+
+  <p>The least-biased judge is the subset where the two references agree to within 10 % (n = 328, i.e. 23 % of the valid domain):</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Consensus subset — the cleanest experimental judge available</caption>
+      <thead>
+        <tr><th>Estimator</th><th>median |dev|</th><th>p90</th><th>bias</th><th>&lt;10 %</th><th>&lt;20 %</th><th>beats control</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hi"><td><code>3·Rg</code> (control)</td><td class="num-good">11.03 %</td><td>32.0 %</td><td>−8.8 %</td><td>47.6 %</td><td>78.0 %</td><td>—</td></tr>
+        <tr class="hi"><td>Shannon as published</td><td>11.38 %</td><td>30.4 %</td><td>−8.0 %</td><td>46.6 %</td><td>80.2 %</td><td>50.6 %</td></tr>
+        <tr><td>neural network</td><td>15.13 %</td><td>54.5 %</td><td>+14.9 %</td><td>36.0 %</td><td>60.4 %</td><td>42.4 %</td></tr>
+        <tr><td>plateau onset (mine)</td><td class="num-bad">18.84 %</td><td>48.5 %</td><td>−18.0 %</td><td>19.8 %</td><td>53.0 %</td><td>27.4 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>On the cleanest judge, Shannon as published and <code>3·Rg</code> are tied</strong> (11.4 % against 11.0 %), and Shannon beats the control on only 50.6 % of curves — a coin flip. This is exactly the verdict of the synthetic bench (§1), recovered on real data by an independent route.</p>
+
+  <h3>6.3 A hard limit of the method: <code>Dmax ≤ π/q_min</code></h3>
+  <p>The first Shannon channel sits at <code>q₁ = π/Dmax</code>. If <code>q₁ &lt; q_min</code> it is <strong>not measured</strong> — and it is the dominant term of the alternating series. On this instrument <code>q_min</code> = 0.0852 nm⁻¹, so the limit is <strong>π/q_min = 36.9 nm</strong>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Median |deviation| vs BIFT, by number of unmeasured Shannon channels</caption>
+      <thead>
+        <tr><th>unmeasured channels</th><th>n</th><th>Shannon</th><th>onset</th><th>network</th><th><code>3·Rg</code></th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0 (<code>Dmax</code> &lt; 36.9 nm)</td><td>3251</td><td>20.2 %</td><td>33.4 %</td><td>20.6 %</td><td>23.6 %</td></tr>
+        <tr><td>1</td><td>601</td><td class="num-bad">32.7 %</td><td class="num-bad">62.1 %</td><td class="num-good">10.6 %</td><td>33.6 %</td></tr>
+        <tr><td>2</td><td>11</td><td class="num-bad">83.6 %</td><td class="num-bad">89.6 %</td><td>22.7 %</td><td>83.1 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>This is a property of the <strong>measurement</strong>, not of the implementation: no setting works around it. 84 % of this dataset falls inside the valid domain. The network is unaffected — it even improves with one channel missing. Practical corollary: <strong>the Shannon method requires <code>q_min ≤ π/Dmax</code></strong>, to be checked before any use and documented if it is ever implemented.</p>
+
+  <h3>6.4 The Guinier anchor remains the limiting factor</h3>
+  <p>The ablation of §1 reproduces on real data. On a 773-curve subsample, replacing <code>auto_guinier</code>'s <code>Rg</code> with BIFT's:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Median |deviation| vs BIFT, by choice of anchor</caption>
+      <thead><tr><th>Variant</th><th>median |dev|</th></tr></thead>
+      <tbody>
+        <tr><td>Shannon anchored on the Guinier <code>Rg</code></td><td>22.26 %</td></tr>
+        <tr class="hi"><td>Shannon anchored on BIFT's <code>Rg</code></td><td class="num-good">11.66 %</td></tr>
+        <tr><td>onset anchored on the Guinier <code>Rg</code></td><td>36.49 %</td></tr>
+        <tr><td>onset anchored on BIFT's <code>Rg</code></td><td>40.11 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Shannon's error is <strong>halved</strong> when the anchor is good: it is the anchor, not the formalism, that limits the method. This instrument's fixed <code>q_min</code> gives <code>q_min·Rg</code> &gt; 0.5 for a third of the curves and &gt; 1 for 407 of them, where no usable Guinier region exists at all. There, everything anchored collapses and the network — which needs no anchor — dominates:</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>The 407 curves with no usable Guinier region (<code>q_min·Rg</code> &gt; 1)</caption>
+      <thead><tr><th>Estimator</th><th>median |dev| vs BIFT</th></tr></thead>
+      <tbody>
+        <tr class="hi"><td>neural network</td><td class="num-good">12.54 %</td></tr>
+        <tr><td><code>3·Rg</code></td><td class="num-bad">43.47 %</td></tr>
+        <tr><td>Shannon as published</td><td class="num-bad">47.34 %</td></tr>
+        <tr><td>plateau onset (mine)</td><td class="num-bad">71.10 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>That the network needs no Guinier fit is its most solid structural advantage, and it shows up precisely where the data are least favourable.</p>
+
+  <h3>6.5 The search window excludes half the real data</h3>
+  <p>Across the usable curves, <code>Dmax/Rg</code> spans 2.11 to 4.53 (p5–p95), and <strong>only 51.8 % fall inside the <code>[2.5, 3.5]·Rg</code> window</strong> the paper prescribes. Outside it, the method degrades as predicted in §2.3: 25.08 % for <code>Dmax/Rg</code> &gt; 3.5 against 15.66 % inside. The criticism raised on synthetic data therefore holds in production, at scale.</p>
+
+  <h3>6.6 Withdrawal: the plateau-onset estimator does not transfer</h3>
+  <p><strong>My §4 proposal fails on real data and I withdraw it.</strong> It is the worst of the four estimators against each of the three references (15.99 % vs GNOM, 28.80 % vs BIFT, 18.84 % on the consensus subset) and beats the control on only 27.4 % of curves. The reason is diagnosed: its bias is not a constant but <strong>grows with object size</strong>.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Bias of the plateau-onset estimator against BIFT</caption>
+      <thead><tr><th>BIFT <code>Dmax</code></th><th>bias</th></tr></thead>
+      <tbody>
+        <tr><td>0 – 5 nm</td><td>−17.2 %</td></tr>
+        <tr><td>5 – 10 nm</td><td>−28.8 %</td></tr>
+        <tr><td>10 – 20 nm</td><td>−28.7 %</td></tr>
+        <tr><td>20 – 40 nm</td><td>−38.1 %</td></tr>
+        <tr><td>&gt; 40 nm</td><td class="num-bad">−64.4 %</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>No multiplicative constant can correct a size-dependent bias; even re-centred on its experimental median it retains 25.7 % scatter. The ×1.1495 calibration fitted in §4 on analytical shapes was a laboratory artefact: my synthetic noise model was too clean, and the real residual floor — higher and structured — trips the onset detection too early. The plateau mechanism (§2.1) remains exact; it is my way of detecting its onset that does not survive the data.</p>
+
+  <h3>6.7 What real data also corrects in §3.2</h3>
+  <p>The &ldquo;network domain limit above 40 nm&rdquo;, measured on synthetic spheres, <strong>does not exist on real data</strong>: in the <code>Dmax</code> &gt; 40 nm bin the network is the best of the four (10.04 % median deviation, 49.7 % of curves within 10 %). My monodisperse sharp-edged 60–100 nm spheres are outside its training distribution <em>and</em> physically unrepresentative of BioSAXS; real large objects are flexible and polydisperse, with smooth curves the network knows well.</p>
+  <p>The <strong>small</strong>-object defect, by contrast, is confirmed and worse: across the 476 curves with <code>Dmax</code> &lt; 5 nm the network returns a median of 7.48 nm against BIFT's 3.46 nm. It does not go below its training range — a floor, not noise. The reference is not at fault: in that bin <code>χ²</code> is 0.98 and <code>σ(Dmax)/Dmax</code> is 3.1 %, comparable to the other bins.</p>
+  <p class="note">Methodological lesson: the synthetic bench gives ground truth but with unrepresentative shapes; the experimental set gives representative shapes but no ground truth. <strong>Both were needed</strong>, and the gap between their verdicts is itself information.</p>
+</section>
+
+<section>
+  <h2 class="head">7. Recommendation</h2>
+  <ol>
+    <li><strong>Do not integrate the method as published.</strong> On the least-biased experimental judge it ties with <code>3·Rg</code>, already in place, and beats it on 50.6 % of curves — a coin flip — for 18 ms per curve.</li>
+    <li><strong>Handle the unit question upstream, in <code>sasio.py</code></strong>: read the SASBDB unit declaration when present, otherwise apply the <code>q_max</code> threshold, and refuse to guess inside the 0.8–1.2 band by requiring <code>-u/--unit</code>. This is the best value-for-effort fix in the whole evaluation: it benefits the entire chain, not just <code>Dmax</code>.</li>
+    <li><strong>Fix <code>dnn.py</code></strong>: the small-object floor (it does not go below ~7 nm, §6.7), validation of the sign and order of magnitude of the output, and a <code>q</code>-range check. Also document what the network actually predicts — BIFT's <code>Dmax</code>, bias included (§6.2) — so that nobody mistakes it for an independent measurement.</li>
+    <li><strong>Drop my plateau-onset variant.</strong> It does not transfer to real data (§6.6). To pursue the plateau idea, the onset detection must not depend on a threshold relative to a residual floor — the real floor is too high and too structured.</li>
+    <li><strong>Do not expect a decisive speed-up in BIFT.</strong> 1.1× from plain seeding, 5.9× only at the price of a frozen <code>Dmax</code>. The interesting lever is robustness against local optima, which needs quantifying.</li>
+    <li><strong>Reconsider the question itself.</strong> BIFT and GNOM contradict each other on <code>Dmax</code> by 22 % while agreeing on <code>Rg</code> to 5 %. Before investing in a fast <code>Dmax</code> estimator, it would be worth deciding <em>which</em> <code>Dmax</code> is to be estimated, and documenting that the quantity itself is not determined to better than ~20 % by this kind of data. An honest confidence interval would probably serve users better than a faster point value.</li>
+  </ol>
+  <p>The Shannon formalism remains a real contribution of the paper: equations 3 and 5 recover <code>I(0)</code> and <code>Rg</code> to within 0.01–0.5 % at the correct <code>Dmax</code>, and the truncation corrections cut the error fivefold at low <code>nmax</code>. It is the use made of it to <em>locate</em> <code>Dmax</code> that is ill-posed, not the formalism — and the difficulty lies less in the method than in the quantity being targeted.</p>
+</section>
+
+<footer>
+  <div><strong>Evaluation code</strong>, all under <code>shannon/</code> and deliberately outside <code>src/freesas</code>: numpy/scipy only, nothing promoted into the package until the results justify it.</div>
+  <div>
+    <code>nsdmax.py</code> — the published method (eq. 3, 5, 6, 7, 10–13, and the <code>q</code>-adaptive filter S31–S32) ·
+    <code>synthetic.py</code> — exact-ground-truth curves (sphere, spheroid, prolate core–shell per S19–S21, parabolic P(r)), self-tested against analytical <code>Rg</code> ·
+    <code>benchmark.py</code> — main benchmark, 455 curves, 4 estimators → <code>results.csv</code> ·
+    <code>sensitivity.py</code> — free-parameter sweep and conditioning test ·
+    <code>knee.py</code> — plateau-onset estimator ·
+    <code>holdout.py</code> — held-out validation, polydispersity, two populations ·
+    <code>qrange.py</code> — validity domains in <code>qmax</code> and <code>Dmax</code> ·
+    <code>unit_detect.py</code> — Å⁻¹ vs nm⁻¹ detection ·
+    <code>experimental.py</code> — the 5416 BM29 curves through all four estimators, BIFT reference → <code>experimental.csv</code> ·
+    <code>analyze_experimental.py</code> — slices by size, shape and Guinier-region availability ·
+    <code>run_atsas.py</code> — ATSAS <code>autorg</code> → <code>datgnom</code> driver, writes <code>sandbox/2025/atsas/*.out</code> → <code>atsas_gnom.csv</code> ·
+    <code>compare_references.py</code> — two-reference comparison and the BIFT ↔ GNOM noise floor
+  </div>
+  <div><strong>Reproduce:</strong></div>
+  <pre>cd shannon
+python synthetic.py            # self-test of the curve generator
+python benchmark.py            # synthetic bench, ~10 min
+python holdout.py              # held-out synthetic validation
+python unit_detect.py          # unit detection
+# experimental validation
+python experimental.py         # 5416 curves, BIFT reference, ~25 min
+python analyze_experimental.py
+python run_atsas.py            # generates the GNOM P(r), ~60 min, needs ATSAS
+python compare_references.py   # both references</pre>
+  <div>ATSAS 4.1.4 is expected in <code>/home/kieffer/ATSAS-4.1.4-1</code> (the <code>ATSAS</code> variable is set by <code>run_atsas.py</code>). Test data from <code>silx.org/pub/freesas/testdata</code> via <code>freesas.test.utilstest</code>. Apoferritin SASDFN8 from <code>sasbdb.org/media/intensities_files/SASDFN8.dat</code>. French original: <code>shannon/RAPPORT.md</code>.</div>
+</footer>
+
+</div>
+</body>
+</html>
