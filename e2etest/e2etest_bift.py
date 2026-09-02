@@ -2,11 +2,13 @@
 
 __authors__ = ["Martha Brennich"]
 __license__ = "MIT"
-__date__ = "29/11/2023"
+__date__ = "02/09/2026"
 
 import unittest
 import pathlib
 import logging
+import shutil
+import tempfile
 from platform import system
 from subprocess import run, PIPE, STDOUT
 from os import linesep
@@ -27,15 +29,28 @@ else:
 class TestBIFT(unittest.TestCase):
     """End to end tests for free_bift"""
 
-    cwd = pathlib.Path.cwd()
     test_location = pathlib.Path(__file__)
     test_data_location = pathlib.Path(test_location.parent, "e2etest_data")
     bsa_filename = pathlib.Path(get_datafile("bsa_005_sub.dat"))
     sas_curve2_filename = pathlib.Path(get_datafile("SASDF52.dat"))
     SASDFX7 = pathlib.Path(get_datafile("SASDFX7.dat"))
-    expected_outfile_name_bsa = pathlib.Path(
-        cwd, bsa_filename.name
-    ).with_suffix(".out")
+
+    @classmethod
+    def setUpClass(cls):
+        """Send the output to a directory of our own, so that neither the
+        current directory nor the directory holding the downloaded test data
+        gets polluted."""
+        super().setUpClass()
+        cls.output_dir = pathlib.Path(tempfile.mkdtemp(prefix="e2etest_bift_"))
+        cls.output_template = str(cls.output_dir / "{basename}.out")
+        cls.expected_outfile_name_bsa = pathlib.Path(
+            cls.output_dir, cls.bsa_filename.name
+        ).with_suffix(".out")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.output_dir, ignore_errors=True)
+        super().tearDownClass()
 
     def __init__(self, testName, **extra_kwargs):
         super().__init__(testName)
@@ -61,7 +76,12 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, normpath(str(self.bsa_filename))],
+            [
+                free_bift,
+                "--output",
+                self.output_template,
+                normpath(str(self.bsa_filename)),
+            ],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -80,7 +100,12 @@ class TestBIFT(unittest.TestCase):
         """
 
         _ = run(
-            [free_bift, normpath(str(self.bsa_filename))],
+            [
+                free_bift,
+                "--output",
+                self.output_template,
+                normpath(str(self.bsa_filename)),
+            ],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -153,7 +178,12 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app_ = run(
-            [free_bift, normpath(str(self.bsa_filename))],
+            [
+                free_bift,
+                "--output",
+                self.output_template,
+                normpath(str(self.bsa_filename)),
+            ],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -213,7 +243,12 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, normpath(str(self.bsa_filename))],
+            [
+                free_bift,
+                "--output",
+                self.output_template,
+                normpath(str(self.bsa_filename)),
+            ],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -224,7 +259,8 @@ class TestBIFT(unittest.TestCase):
         else:
             run_app_output = str(run_app.stdout, encoding="utf-8")[:-1]
         run_app_output_parsed = parse.parse(
-            "bsa_005_sub.out: Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
+            str(self.expected_outfile_name_bsa)
+            + ": Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
             run_app_output,
         )
         self.assertListEqual(
@@ -254,7 +290,12 @@ class TestBIFT(unittest.TestCase):
         """
 
         run_app = run(
-            [free_bift, normpath(str(self.bsa_filename))],
+            [
+                free_bift,
+                "--output",
+                self.output_template,
+                normpath(str(self.bsa_filename)),
+            ],
             stdout=PIPE,
             stderr=STDOUT,
             check=True,
@@ -265,7 +306,8 @@ class TestBIFT(unittest.TestCase):
         else:
             run_app_output = str(run_app.stdout, encoding="utf-8")[:-1]
         run_app_output_parsed = parse.parse(
-            "bsa_005_sub.out: Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
+            str(self.expected_outfile_name_bsa)
+            + ": Dmax= {Dmax}±{Dmax_err}; 𝛂= {alpha}±{alpha_err}; S₀= {S0}±{S0_err}; χ²= {chi_squared}±{chi_squared_err}; logP= {logP}±{logP_err}; Rg= {Rg}±{Rg_err}; I₀= {I0}±{I0_err}",
             run_app_output,
         )
         self.assertAlmostEqual(

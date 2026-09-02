@@ -25,10 +25,11 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
-__date__ = "01/09/2026"
+__date__ = "02/09/2026"
 
 import io
 import logging
+import pathlib
 import platform
 import sys
 import traceback
@@ -50,6 +51,8 @@ from freesas.sasio import (
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
+
+DEFAULT_OUTPUT_TEMPLATE = "{dirname}/{basename}.out"
 
 
 def build_parser() -> SASParser:
@@ -74,7 +77,16 @@ def build_parser() -> SASParser:
     """
     parser = SASParser(prog="free_bift", description=description, epilog=epilog)
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
-    parser.add_output_filename_argument()
+    parser.add_argument(
+        "-o",
+        "--output",
+        action="store",
+        default=DEFAULT_OUTPUT_TEMPLATE,
+        help="Template for the name of the output file. The fields {dirname} "
+        "(directory of the input file) and {basename} (name of the input file, "
+        "without its extension) are substituted for every processed file. "
+        f"Default: {DEFAULT_OUTPUT_TEMPLATE}",
+    )
     parser.add_q_unit_argument()
     parser.add_argument(
         "-n",
@@ -117,6 +129,10 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
     set_logging_level(args.verbose)
+    try:
+        args.output.format(dirname="", basename="")
+    except (KeyError, IndexError) as err:
+        sys.exit(f"Invalid output template {args.output!r}: unknown field {err}")
     files = collect_files(args.file)
 
     for afile in files:
@@ -150,7 +166,11 @@ def main():
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    dest = afile.with_suffix(".out")
+                    dest = pathlib.Path(
+                        args.output.format(
+                            dirname=afile.parent, basename=afile.stem
+                        )
+                    )
                     print(stats.save(dest, source=afile))
 
 
