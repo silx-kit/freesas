@@ -1,5 +1,3 @@
-#!usr/bin/env python
-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __date__ = "06/02/2026"

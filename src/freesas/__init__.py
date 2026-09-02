@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
-""" """
+"""Small angle scattering tools, free and written in Python."""
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"

@@ -52,7 +52,7 @@ def scatter_plot(
     intensity = data.T[1]
     try:
         err = data.T[2]
-    except Exception:
+    except IndexError:
         err = None
     if ax:
         fig = ax.figure
@@ -148,7 +148,7 @@ def scatter_plot(
     for lbl in [label_exp, label_guinier, label_ift]:
         try:
             idx = lab.index(lbl)
-        except Exception:
+        except ValueError:
             continue
         ordered_lab.append(lab[idx])
         ordered_crv.append(crv[idx])
@@ -192,7 +192,7 @@ def kratky_plot(
     intensity = data.T[1]
     try:
         err = data.T[2]
-    except Exception:
+    except IndexError:
         err = None
     if ax:
         fig = ax.figure
@@ -431,21 +431,10 @@ def plot_all(
 ):
     from . import autorg, bift
 
-    try:
-        guinier = autorg.autoRg(data)
-    except autorg.InsufficientDataError:
-        raise
+    guinier = autorg.autoRg(data)
     logger.debug(guinier)
-    try:
-        bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
-    except (
-        autorg.InsufficientDataError,
-        autorg.NoGuinierRegionError,
-        ValueError,
-    ):
-        raise
-    else:
-        ift = bo.calc_stats()
+    bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
+    ift = bo.calc_stats()
     logger.debug(ift)
     fig, ax = subplots(2, 2, figsize=(12, 10))
     scatter_plot(

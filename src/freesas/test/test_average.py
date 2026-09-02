@@ -1,11 +1,10 @@
-#!/usr/bin/python
-
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
 import logging
 import unittest
+from typing import ClassVar
 
 import numpy
 
@@ -20,7 +19,7 @@ logger = logging.getLogger("AlignModels_test")
 class TestAverage(unittest.TestCase):
     testfile1 = get_datafile("model-01.pdb")
     testfile2 = get_datafile("model-02.pdb")
-    inputfiles = [testfile1, testfile2]
+    inputfiles: ClassVar = [testfile1, testfile2]
     grid = Grid(inputfiles)
 
     def test_gridsize(self):

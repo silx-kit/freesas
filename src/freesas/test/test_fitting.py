@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """Test the functionality of fitting module."""
 
 __authors__ = ["Martha Brennich"]
@@ -15,10 +13,9 @@ import platform
 import sys
 import unittest
 from collections.abc import Callable
-from errno import ENOENT
 from io import StringIO
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 import numpy
 
@@ -32,12 +29,6 @@ from ..fitting import (
     set_logging_level,
 )
 from ..sas_argparser import GuinierParser
-
-if sys.version_info.minor > 6:
-    from unittest.mock import mock_open
-else:
-    from .mock_open_38 import mock_open
-
 
 logger = logging.getLogger(__name__)
 
@@ -237,12 +228,14 @@ class TestFitting(unittest.TestCase):
         """Test that by calling get_output_destination with a Path as input
         we obtain write access to the file of Path."""
         mocked_open = mock_open()
-        with patch("builtins.open", mocked_open):
-            with get_output_destination(pathlib.Path("test")) as destination:
-                self.assertTrue(
-                    destination.writable(),
-                    msg="file destination is writable",
-                )
+        with (
+            patch("builtins.open", mocked_open),
+            get_output_destination(pathlib.Path("test")) as destination,
+        ):
+            self.assertTrue(
+                destination.writable(),
+                msg="file destination is writable",
+            )
         mocked_open.assert_called_once_with(pathlib.Path("test"), "w")
 
     def test_get_output_destination_without_input_returns_stdout(
@@ -329,10 +322,7 @@ class TestFitting(unittest.TestCase):
             if "good" in pathlib.Path(path).name:
                 pass
             else:
-                if sys.version_info.minor > 7:
-                    raise ValueError
-                else:
-                    raise OSError(ENOENT, "dummy")
+                raise ValueError
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         with patch("os.stat", mocked_stat):
@@ -353,24 +343,23 @@ class TestFitting(unittest.TestCase):
         """Test that collect_files globs on Windows if no existent files provided."""
 
         def os_stat_mock(path):
-            if sys.version_info.minor > 7:
-                raise ValueError
-            else:
-                raise OSError(ENOENT, "dummy")
+            raise ValueError
 
         mocked_stat = MagicMock(side_effect=os_stat_mock)
         mocked_glob = MagicMock(
             side_effect=[(p for p in [pathlib.Path("pathA"), pathlib.Path("pathB")])]
         )
-        with patch("os.stat", mocked_stat):
-            with patch.object(pathlib.Path, "glob", mocked_glob):
-                fit = importlib.import_module("..fitting", "freesas.subpkg")
-                fit = importlib.reload(fit)
-                self.assertEqual(
-                    fit.collect_files(["testgood"]),
-                    [pathlib.Path("pathA"), pathlib.Path("pathB")],
-                    msg="collect_files on windows returns list if fiel argument does not exist",
-                )
+        with (
+            patch("os.stat", mocked_stat),
+            patch.object(pathlib.Path, "glob", mocked_glob),
+        ):
+            fit = importlib.import_module("..fitting", "freesas.subpkg")
+            fit = importlib.reload(fit)
+            self.assertEqual(
+                fit.collect_files(["testgood"]),
+                [pathlib.Path("pathA"), pathlib.Path("pathB")],
+                msg="collect_files on windows returns list if fiel argument does not exist",
+            )
         mocked_glob.assert_called_once()
 
         # Reload without the patch
@@ -579,13 +568,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )
@@ -635,13 +626,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )
@@ -695,13 +688,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )
@@ -753,13 +748,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )
@@ -811,13 +808,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )
@@ -869,13 +868,15 @@ class TestFitting(unittest.TestCase):
         )
         output_catcher_stdout = StringIO()
         output_catcher_stderr = StringIO()
-        with contextlib.redirect_stdout(output_catcher_stdout):
-            with contextlib.redirect_stderr(output_catcher_stderr):
-                run_guinier_fit(
-                    fit_function=dummy_fit_function,
-                    parser=dummy_parser,
-                    logger=logger,
-                )
+        with (
+            contextlib.redirect_stdout(output_catcher_stdout),
+            contextlib.redirect_stderr(output_catcher_stderr),
+        ):
+            run_guinier_fit(
+                fit_function=dummy_fit_function,
+                parser=dummy_parser,
+                logger=logger,
+            )
         expected_stdout_output = (
             "test2 Rg=3.1000(±0.1000) I0=103.0000(±2.5000) [13-207] 5010.00% linesep"
         )

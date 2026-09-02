@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -113,7 +112,7 @@ def main():
         logger.info(f"{args.file[0]} and {args.file[1]} aligned")
         logger.info(f"NSD after optimized alignment = {dist:.2f}")
     else:
-        align.outputfiles = ["model-%02i.pdb" % (i + 1) for i in range(input_len)]
+        align.outputfiles = [f"model-{i + 1:02d}.pdb" for i in range(input_len)]
         selection.inputfiles = args.file
         selection.models_selection()
         selection.rfactorplot(save=save)

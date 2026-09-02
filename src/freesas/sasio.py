@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 #    Project: FreeSAS
 #             https://github.com/kif/freesas
@@ -22,11 +21,10 @@ __docformat__ = "restructuredtext"
 
 import io
 from os import PathLike
-from typing import Union
 
 from numpy import array, loadtxt, ndarray
 
-PathType = Union[PathLike, str, bytes, io.StringIO, io.BytesIO]
+PathType = PathLike | str | bytes | io.StringIO | io.BytesIO
 
 
 def load_scattering_data(filename: PathType) -> ndarray:

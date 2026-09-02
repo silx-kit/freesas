@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -28,12 +27,17 @@ __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
 __date__ = "01/09/2026"
 
+import io
 import logging
 import platform
 import sys
 import traceback
 
 from freesas import bift
+from freesas.autorg import (
+    InsufficientDataError,
+    NoGuinierRegionError,
+)
 from freesas.fitting import (
     collect_files,
     set_logging_level,
@@ -106,7 +110,9 @@ def build_parser() -> SASParser:
 def main():
     """Entry point for bift app."""
     if platform.system() == "Windows":
-        sys.stdout = open(1, "w", encoding="utf-16", closefd=False)
+        sys.stdout = io.TextIOWrapper(
+            sys.stdout.buffer, encoding="utf-16", write_through=True
+        )
 
     parser = build_parser()
     args = parser.parse_args()
@@ -116,14 +122,21 @@ def main():
     for afile in files:
         try:
             data = load_scattering_data(afile)
-        except Exception:
+        except OSError:
+            logger.error("Unable to read file %s", afile)
+        except ValueError:
             logger.error("Unable to parse file %s", afile)
         else:
             if args.unit == "Å":
                 data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
-            except Exception as err:
+            except (
+                InsufficientDataError,
+                NoGuinierRegionError,
+                ValueError,
+                IndexError,
+            ) as err:
                 print(f"{afile}: {err.__class__.__name__} {err}")
                 if logging.root.level < logging.WARNING:
                     traceback.print_exc(file=sys.stdout)

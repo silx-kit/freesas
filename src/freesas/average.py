@@ -23,7 +23,7 @@ class Grid:
         self.coordknots = []
 
     def __repr__(self):
-        return "Grid with %i knots" % self.nbknots
+        return f"Grid with {self.nbknots} knots"
 
     def spatial_extent(self):
         """
@@ -172,7 +172,7 @@ class AverModels:
         self.grid = grid
 
     def __repr__(self):
-        return "Average SAS model with %i atoms" % len(self.atoms)
+        return f"Average SAS model with {len(self.atoms)} atoms"
 
     def read_files(self, reference=None):
         """
@@ -255,10 +255,10 @@ class AverModels:
         decade = 1
         for i in range(self.grid.shape[0]):
             line = "ATOM         CA  ASP    1                                    20.00   2 201\n"
-            line = line[:7] + "%4.i" % (i + 1) + line[11:]
+            line = line[:7] + f"{i + 1:4d}" + line[11:]
             if not (i + 1) % 10:
                 decade += 1
-            line = line[:21] + "%4.i" % decade + line[25:]
+            line = line[:21] + f"{decade:4d}" + line[25:]
             header.append(line)
         self.header = header
         return header

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -61,7 +59,7 @@ class SASModel:
         self._sem = threading.Semaphore()
 
     def __repr__(self):
-        return "SAS model with %i atoms" % len(self.atoms)
+        return f"SAS model with {len(self.atoms)} atoms"
 
     def read(self, filename):
         """

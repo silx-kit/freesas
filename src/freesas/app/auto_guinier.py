@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 #    Project: freesas
 #             https://github.com/kif/freesas

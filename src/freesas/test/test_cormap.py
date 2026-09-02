@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"

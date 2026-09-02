@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """Test the functionality of SASParser and GuinierParser"""
 
 __authors__ = ["Martha Brennich"]

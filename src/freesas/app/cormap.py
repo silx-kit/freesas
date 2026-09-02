@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
@@ -67,10 +65,12 @@ def compare(lstfiles):
         data.append(d)
     for a, b in combinations(data, 2):
         r = gof(a.data, b.data)
-        res.append("%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P))
+        res.append(
+            f"{a.index:6d} vs. {b.index:6d}          {r.c:6d}     {r.P:8.6f}"
+        )
     res.append("")
     for a in data:
-        res.append("%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename))
+        res.append(f"{a.index:6d}         {0.0:8f} + {1.0:8f} * {a.filename}")
     res.append("")
     print(os.linesep.join(res))
     return res

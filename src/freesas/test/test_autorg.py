@@ -29,6 +29,7 @@ __date__ = "06/02/2026"
 import logging
 import unittest
 from math import pi, sqrt
+from typing import ClassVar
 
 import numpy
 from scipy.stats import linregress
@@ -71,7 +72,7 @@ class TestAutoRg(unittest.TestCase):
         self.extra_arg = extra_kwargs
 
     # Reference implementation
-    atsas_autorg = {
+    atsas_autorg: ClassVar = {
         "Version": "Atsas 2.6.1",
         "Rg": 2.98016,
         "sigma_Rg": 0.156859,
