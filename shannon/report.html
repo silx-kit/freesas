@@ -466,7 +466,8 @@
 
   <p><strong>Faced with SASBDB's mixed units, this is a clear advantage for the Shannon route and a real risk for the network.</strong></p>
 
-  <h3>3.2 A genuine domain limit in object size</h3>
+  <h3>3.2 A domain limit in object size — partly overturned</h3>
+  <p class="retracted"><strong>The upper limit claimed below does not exist on real data</strong>: above 40 nm the network is in fact the best of the four estimators (§6.7). My monodisperse sharp-edged spheres are not representative of BioSAXS. The <strong>small-object floor</strong>, by contrast, is confirmed and made worse by the experimental data.</p>
   <p>Independently of units, measured on synthetic curves where the scale is unambiguous (spheres, <code>qmax</code> = 4 nm⁻¹, 5 % noise):</p>
 
   <div class="tbl-wrap">
@@ -486,7 +487,8 @@
     </table>
   </div>
 
-  <p>The usable domain is roughly <code>Dmax</code> ∈ [5, 40] nm at <code>qmax</code> = 4 nm⁻¹. The failure mechanism is <strong>the same</strong> as in §3.1: as soon as the informative structure of the curve is compressed into the low-<code>q</code> end of the grid — because the object is large, or because the unit is wrong — the network leaves its training distribution and returns nonsense. One cause, two triggers. It also returns negative <code>Dmax</code> values on some very low-contrast curves.</p>
+  <p>On those shapes the usable domain is <code>Dmax</code> ∈ [5, 40] nm at <code>qmax</code> = 4 nm⁻¹, and the failure mechanism is <strong>the same</strong> as in §3.1: as soon as the informative structure of the curve is compressed into the low-<code>q</code> end of the grid — because the object is large, or because the unit is wrong — the network leaves its training distribution. One cause, two triggers. It also returns negative <code>Dmax</code> values on some very low-contrast curves.</p>
+  <p>But the first half of that diagnosis does not survive the experimental data: real large objects do not look like sharp-edged spheres, and the network handles them very well (§6.7). What remains true is that the network fails when the curve leaves its training distribution — which is not the same thing as a limit in size.</p>
 
   <p>The other two test datasets in the repository, with no unit ambiguity, cause no trouble:</p>
 

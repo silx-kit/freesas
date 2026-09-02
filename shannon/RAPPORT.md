@@ -219,7 +219,12 @@ la vraie valeur (2,283 nm) qu'avec la bonne (1,975).
 **Face à la difficulté des unités mixtes du SASBDB, c'est un avantage net pour Shannon
 et un risque réel pour le réseau.**
 
-### 3.2 Un domaine de validité réel en taille d'objet
+### 3.2 Un domaine de validité en taille d'objet — partiellement infirmé
+
+> ⚠️ **La limite haute annoncée ci-dessous n'existe pas sur données réelles** : au-delà de
+> 40 nm le réseau est en fait le meilleur des quatre estimateurs (§6.7). Mes sphères
+> monodisperses à bords francs ne sont pas représentatives du BioSAXS. Le **plancher aux
+> petits objets**, en revanche, est confirmé et aggravé par les données expérimentales.
 
 Indépendamment des unités, mesuré sur des courbes synthétiques où l'échelle est connue
 sans ambiguïté (sphères, `qmax` = 4 nm⁻¹, bruit 5 %) :
@@ -233,12 +238,18 @@ sans ambiguïté (sphères, `qmax` = 4 nm⁻¹, bruit 5 %) :
 | **60,0** | 23,24 | **0,96** | **0,16** | **−99,7 %** |
 | **100,0** | 38,73 | **2,09** | **5,96** | **−94 %** |
 
-Le domaine utile est environ `Dmax` ∈ [5 ; 40] nm à `qmax` = 4 nm⁻¹. Le mécanisme de
-l'échec est **le même** que celui du §3.1 : dès que la structure informative de la
-courbe est comprimée dans le bas de la grille — parce que l'objet est gros, ou parce
-que l'unité est fausse — le réseau sort de sa distribution d'entraînement et répond
-n'importe quoi. Une seule cause, deux déclencheurs. Le réseau produit aussi des `Dmax`
-négatifs sur certaines courbes à très faible contraste.
+Sur ces formes-là, le domaine utile est `Dmax` ∈ [5 ; 40] nm à `qmax` = 4 nm⁻¹, et le
+mécanisme de l'échec est **le même** que celui du §3.1 : dès que la structure informative
+de la courbe est comprimée dans le bas de la grille — parce que l'objet est gros, ou
+parce que l'unité est fausse — le réseau sort de sa distribution d'entraînement. Une
+seule cause, deux déclencheurs. Le réseau produit aussi des `Dmax` négatifs sur
+certaines courbes à très faible contraste.
+
+Mais la première partie de ce diagnostic ne survit pas aux données expérimentales : les
+gros objets réels ne ressemblent pas à des sphères à bords francs, et le réseau les
+traite très bien (§6.7). Ce qui reste vrai, c'est que le réseau échoue quand la courbe
+sort de sa distribution d'entraînement — ce qui n'est pas la même chose qu'une limite en
+taille.
 
 Les deux autres jeux de test du dépôt, sans ambiguïté d'unité, ne posent pas de
 problème :

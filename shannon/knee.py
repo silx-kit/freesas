@@ -2,6 +2,25 @@
 # coding: utf-8
 """A plateau-onset ("knee") estimator built on the same Shannon formalism.
 
+    !! WITHDRAWN -- do not build on this without reading RAPPORT.md section 6.6.
+
+    This estimator reaches 5.2 % median error on synthetic analytical shapes but
+    FAILS on the 5416 experimental BM29 curves of sandbox/2025, where it is the
+    worst of the four estimators tested against every one of three references
+    (16.0 % vs GNOM, 28.8 % vs BIFT, 18.8 % on their consensus subset), and
+    beats the plain 3.Rg control on only 27 % of curves.
+
+    Cause: its bias is not a constant but grows with object size, from -17 % at
+    Dmax < 5 nm to -64 % above 40 nm, so the multiplicative KNEE_CALIBRATION
+    below cannot fix it. The synthetic noise model used to fit that constant was
+    too clean; the real residual floor is higher and structured, which trips the
+    onset detection too early.
+
+    The plateau mechanism described below remains correct and is worth keeping.
+    It is the threshold-based way of detecting the plateau onset that does not
+    survive real data. Any future attempt should avoid a threshold defined
+    relative to the residual floor.
+
 Measured behaviour of the residuals of De Caro et al. (2026):
 
     Rg_NS(Dmax) and I0_NS(Dmax) SATURATE. Under-estimating Dmax aliases the

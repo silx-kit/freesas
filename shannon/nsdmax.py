@@ -14,7 +14,16 @@ Equation numbers refer to the paper (n) and its supporting information (Sn).
 This is evaluation code: it lives outside src/freesas on purpose and depends
 only on numpy/scipy so it can be run without building the project.
 
-The unit of Dmax is the inverse of the unit of q (nm if q is in 1/nm).
+The unit of Dmax is the inverse of the unit of q (nm if q is in 1/nm), so this
+implementation is unit-covariant: feed it 1/A and Dmax comes out in A.
+
+Two limits established by the evaluation (see RAPPORT.md):
+
+  * the first Shannon channel must be measured, i.e. Dmax <= pi/q_min. Beyond
+    that the alternating series loses its dominant term and the estimate
+    degrades abruptly (section 6.3);
+  * the accuracy is set by the Rg anchor, not by the formalism: substituting a
+    better Rg halves the error on experimental data (section 6.4).
 """
 
 __authors__ = ["Jérôme Kieffer"]
