@@ -1,4 +1,3 @@
-# coding: utf-8
 # /*##########################################################################
 #
 # Copyright (c) 2015-2023 European Synchrotron Radiation Facility
@@ -22,14 +21,14 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
-""" """
+"""Small angle scattering tools, free and written in Python."""
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __date__ = "06/02/2026"
 
-import os as _os
 import logging as _logging
+import os as _os
 
 _logging.getLogger(__name__).addHandler(_logging.NullHandler())
 
@@ -48,5 +47,5 @@ try:
     )
 except ImportError:
     raise RuntimeError(
-        "Do NOT use %s from its sources: build it and use the built version" % project
+        f"Do NOT use {project} from its sources: build it and use the built version"
     )

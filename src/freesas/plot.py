@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Functions to generating graphs related to SAS.
 """
@@ -9,6 +8,7 @@ __copyright__ = "2020-2026, ESRF"
 __date__ = "09/03/2026"
 
 import logging
+
 import numpy
 from matplotlib.pyplot import subplots
 
@@ -52,7 +52,7 @@ def scatter_plot(
     intensity = data.T[1]
     try:
         err = data.T[2]
-    except Exception:
+    except IndexError:
         err = None
     if ax:
         fig = ax.figure
@@ -109,7 +109,7 @@ def scatter_plot(
             )
         else:
             ax.plot(q, intensity, label=label_exp, color=exp_color, alpha=0.5)
-        label_guinier += ": $R_g=$%.2f %s, $I_0=$%.2f" % (rg, unit, I0)
+        label_guinier += f": $R_g=${rg:.2f} {unit}, $I_0=${I0:.2f}"
         ax.plot(
             q_guinier,
             I_guinier,
@@ -132,17 +132,11 @@ def scatter_plot(
         T = numpy.outer(q_ext, r / numpy.pi)
         T = (4 * numpy.pi * (r[-1] - r[0]) / (len(r) - 1)) * numpy.sinc(T)
         p = stats.density_avg
-        label_ift += ": $D_{max}=$%.2f %s,\n    $R_g=$%.2f %s, $I_0=$%.2f" % (
-            stats.Dmax_avg,
-            unit,
-            stats.Rg_avg,
-            unit,
-            stats.I0_avg,
-        )
+        label_ift += f": $D_{{max}}=${stats.Dmax_avg:.2f} {unit},\n    $R_g=${stats.Rg_avg:.2f} {unit}, $I_0=${stats.I0_avg:.2f}"
         ax.plot(q_ext, T.dot(p), label=label_ift, color=ift_color)
 
     ax.set_ylabel("$I(q)$ (log scale)", fontsize=fontsize)
-    ax.set_xlabel("$q$ (%s$^{-1}$)" % unit, fontsize=fontsize)
+    ax.set_xlabel(f"$q$ ({unit}$^{{-1}}$)", fontsize=fontsize)
     ax.set_title(title)
     ax.set_yscale("log")
     #     ax.set_ylim(ymin=I.min() * 10, top=I.max() * 1.1)
@@ -154,7 +148,7 @@ def scatter_plot(
     for lbl in [label_exp, label_guinier, label_ift]:
         try:
             idx = lab.index(lbl)
-        except Exception:
+        except ValueError:
             continue
         ordered_lab.append(lab[idx])
         ordered_crv.append(crv[idx])
@@ -198,7 +192,7 @@ def kratky_plot(
     intensity = data.T[1]
     try:
         err = data.T[2]
-    except Exception:
+    except IndexError:
         err = None
     if ax:
         fig = ax.figure
@@ -353,12 +347,12 @@ def guinier_plot(
     ax.plot(
         q2[:end],
         intercept + slope * q2[:end],
-        label="ln[$I(q)$] = %.2f %.2f * $q^2$" % (intercept, slope),
+        label=f"ln[$I(q)$] = {intercept:.2f} {slope:.2f} * $q^2$",
         color="crimson",
     )
     ax.set_ylabel("ln[$I(q)$]", fontsize=fontsize)
-    ax.set_xlabel("$q^2$ (%s$^{-2}$)" % unit, fontsize=fontsize)
-    ax.set_title("Guinier plot: $R_{g}=$%.2f %s $I_{0}=$%.2f" % (Rg, unit, I0))
+    ax.set_xlabel(f"$q^2$ ({unit}$^{{-2}}$)", fontsize=fontsize)
+    ax.set_title(f"Guinier plot: $R_{{g}}=${Rg:.2f} {unit} $I_{{0}}=${I0:.2f}")
     ax.legend()
     ax.tick_params(axis="x", labelsize=labelsize)
     ax.tick_params(axis="y", labelsize=labelsize)
@@ -407,21 +401,13 @@ def density_plot(
         ift.radius,
         ift.density_avg,
         ift.density_std,
-        label="BIFT: χ$_{r}^{2}=$%.2f\n $D_{max}=$%.2f %s\n $R_{g}=$%.2f %s\n $I_{0}=$%.2f"
-        % (
-            stats.chi2r_avg,
-            stats.Dmax_avg,
-            unit,
-            stats.Rg_avg,
-            unit,
-            stats.I0_avg,
-        ),
+        label=f"BIFT: χ$_{{r}}^{{2}}=${stats.chi2r_avg:.2f}\n $D_{{max}}=${stats.Dmax_avg:.2f} {unit}\n $R_{{g}}=${stats.Rg_avg:.2f} {unit}\n $I_{{0}}=${stats.I0_avg:.2f}",
         capsize=0,
         color="blue",
         ecolor="lightblue",
     )
     ax.set_ylabel("$p(r)$", fontsize=fontsize)
-    ax.set_xlabel("$r$ (%s)" % unit, fontsize=fontsize)
+    ax.set_xlabel(f"$r$ ({unit})", fontsize=fontsize)
     ax.set_title("Pair distribution function")
     ax.legend()
     ax.tick_params(axis="x", labelsize=labelsize)
@@ -443,23 +429,12 @@ def plot_all(
     labelsize=None,
     fontsize=None,
 ):
-    from . import bift, autorg
+    from . import autorg, bift
 
-    try:
-        guinier = autorg.autoRg(data)
-    except autorg.InsufficientDataError:
-        raise
+    guinier = autorg.autoRg(data)
     logger.debug(guinier)
-    try:
-        bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
-    except (
-        autorg.InsufficientDataError,
-        autorg.NoGuinierRegionError,
-        ValueError,
-    ):
-        raise
-    else:
-        ift = bo.calc_stats()
+    bo = bift.auto_bift(data, npt=100, scan_size=11, Dmax_over_Rg=3)
+    ift = bo.calc_stats()
     logger.debug(ift)
     fig, ax = subplots(2, 2, figsize=(12, 10))
     scatter_plot(

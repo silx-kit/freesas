@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,22 +28,23 @@ __date__ = "06/02/2026"
 
 import logging
 import unittest
-from math import sqrt, pi
+from math import pi, sqrt
+from typing import ClassVar
 
 import numpy
 from scipy.stats import linregress
 
-from .utilstest import get_datafile
+from .._autorg import curate_data  # pylint: disable=E0401
+from .._bift import distribution_sphere  # pylint: disable=E0401
 from ..autorg import (
-    autoRg,
     RG_RESULT,
-    linear_fit,
     auto_gpa,
     auto_guinier,
+    autoRg,
+    linear_fit,
 )
-from .._autorg import curate_data  # pylint: disable=E0401
 from ..invariants import calc_Rambo_Tainer
-from .._bift import distribution_sphere  # pylint: disable=E0401
+from .utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class TestAutoRg(unittest.TestCase):
         self.extra_arg = extra_kwargs
 
     # Reference implementation
-    atsas_autorg = {
+    atsas_autorg: ClassVar = {
         "Version": "Atsas 2.6.1",
         "Rg": 2.98016,
         "sigma_Rg": 0.156859,
@@ -88,11 +88,11 @@ class TestAutoRg(unittest.TestCase):
         logger.info("test file: %s", self.testfile)
         data = numpy.loadtxt(self.testfile)
         atsas_result = self.atsas_autorg.copy()
-        logger.debug("Reference version: %s" % atsas_result.pop("Version"))
+        logger.debug("Reference version: {}".format(atsas_result.pop("Version")))
         atsas_result = RG_RESULT(**atsas_result)
         free_result = autoRg(data)
-        logger.debug("Ref: %s" % (atsas_result,))
-        logger.debug("Obt: %s" % (free_result,))
+        logger.debug(f"Ref: {atsas_result}")
+        logger.debug(f"Obt: {free_result}")
         self.assertAlmostEqual(
             atsas_result.Rg, free_result.Rg, 1, "RG fits within 2 digits"
         )

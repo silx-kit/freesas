@@ -74,3 +74,17 @@ free_dnn = 'freesas.app.dnn:main'
 [project.gui-scripts]
 freesas = 'freesas.app.plot_sas:main'
 
+
+[tool.cibuildwheel]
+# Skip 32-bit builds and PyPy
+skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"

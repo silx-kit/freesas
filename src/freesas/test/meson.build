@@ -1,6 +1,5 @@
 py.install_sources([
 '__init__.py',
-'mock_open_38.py',
 'test_align.py',
 'test_all.py',
 'test_autorg.py',

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -27,25 +25,37 @@
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
-__date__ = "06/02/2026"
+__date__ = "02/09/2026"
 
-import sys
+import io
 import logging
 import platform
+import sys
 import traceback
+
 from freesas import bift
-from freesas.sasio import (
-    load_scattering_data,
-    convert_inverse_angstrom_to_nanometer,
+from freesas.autorg import (
+    InsufficientDataError,
+    NoGuinierRegionError,
 )
-from freesas.sas_argparser import SASParser
 from freesas.fitting import (
-    set_logging_level,
     collect_files,
+    set_logging_level,
+)
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
+from freesas.sasio import (
+    convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
 )
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("bift")
+
+DEFAULT_OUTPUT_TEMPLATE = "{dirname}/{basename}.out"
 
 
 def build_parser() -> SASParser:
@@ -70,7 +80,7 @@ def build_parser() -> SASParser:
     """
     parser = SASParser(prog="free_bift", description=description, epilog=epilog)
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
-    parser.add_output_filename_argument()
+    parser.add_output_template_argument(DEFAULT_OUTPUT_TEMPLATE)
     parser.add_q_unit_argument()
     parser.add_argument(
         "-n",
@@ -106,25 +116,35 @@ def build_parser() -> SASParser:
 def main():
     """Entry point for bift app."""
     if platform.system() == "Windows":
-        sys.stdout = open(1, "w", encoding="utf-16", closefd=False)
+        sys.stdout = io.TextIOWrapper(
+            sys.stdout.buffer, encoding="utf-16", write_through=True
+        )
 
     parser = build_parser()
     args = parser.parse_args()
     set_logging_level(args.verbose)
+    check_output_template(args.output)
     files = collect_files(args.file)
 
     for afile in files:
         try:
             data = load_scattering_data(afile)
-        except Exception:
+        except OSError:
+            logger.error("Unable to read file %s", afile)
+        except ValueError:
             logger.error("Unable to parse file %s", afile)
         else:
             if args.unit == "Å":
                 data = convert_inverse_angstrom_to_nanometer(data)
             try:
                 bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
-            except Exception as err:
-                print("%s: %s %s" % (afile, err.__class__.__name__, err))
+            except (
+                InsufficientDataError,
+                NoGuinierRegionError,
+                ValueError,
+                IndexError,
+            ) as err:
+                print(f"{afile}: {err.__class__.__name__} {err}")
                 if logging.root.level < logging.WARNING:
                     traceback.print_exc(file=sys.stdout)
             else:
@@ -133,11 +153,11 @@ def main():
                         args.mc, args.threshold, npt=args.npt
                     )
                 except RuntimeError as err:
-                    print("%s: %s %s" % (afile, err.__class__.__name__, err))
+                    print(f"{afile}: {err.__class__.__name__} {err}")
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    dest = afile.stem + ".out"
+                    dest = format_output_filename(args.output, afile, mkdir=True)
                     print(stats.save(dest, source=afile))
 
 

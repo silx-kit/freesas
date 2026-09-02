@@ -1,13 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
 import os
-from math import sqrt
 import threading
+from math import sqrt
+
 import numpy
 
 try:
@@ -61,7 +59,7 @@ class SASModel:
         self._sem = threading.Semaphore()
 
     def __repr__(self):
-        return "SAS model with %i atoms" % len(self.atoms)
+        return f"SAS model with {len(self.atoms)} atoms"
 
     def read(self, filename):
         """
@@ -105,7 +103,7 @@ class SASModel:
                     if nr < self.atoms.shape[0]:
                         line = (
                             line[:30]
-                            + "%8.3f%8.3f%8.3f" % tuple(self.atoms[nr])
+                            + "{:8.3f}{:8.3f}{:8.3f}".format(*tuple(self.atoms[nr]))
                             + line[54:]
                         )
                     else:

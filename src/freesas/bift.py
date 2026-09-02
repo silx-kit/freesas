@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Bayesian Inverse Fourier Transform
 
@@ -18,10 +17,11 @@ __date__ = "06/02/2026"
 
 import logging
 from math import log
-from scipy.optimize import minimize
-from ._bift import BIFT
-from .autorg import auto_guinier, NoGuinierRegionError
 
+from scipy.optimize import minimize
+
+from ._bift import BIFT
+from .autorg import NoGuinierRegionError, auto_guinier
 
 logger = logging.getLogger(__name__)
 

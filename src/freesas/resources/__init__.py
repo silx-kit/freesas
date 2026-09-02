@@ -1,4 +1,3 @@
-# coding: utf-8
 # /*##########################################################################
 #
 # Copyright (C) 2016-2024 European Synchrotron Radiation Facility
@@ -59,24 +58,16 @@ __license__ = "MIT"
 __date__ = "07/03/2024"
 
 
+import logging
 import os
 import sys
-import logging
 
 logger = logging.getLogger(__name__)
 
 # importlib_resources is useful when this package is stored in a zip
 # When importlib.resources is not available, the resources dir defaults to the
 # directory containing this module.
-if sys.version_info >= (3, 9):
-    import importlib.resources as importlib_resources
-else:
-    try:
-        import importlib_resources
-    except ImportError:
-        logger.info("Unable to import importlib_resources")
-        logger.debug("Backtrace", exc_info=True)
-        importlib_resources = None
+import importlib.resources as importlib_resources
 
 if importlib_resources is not None:
     import atexit

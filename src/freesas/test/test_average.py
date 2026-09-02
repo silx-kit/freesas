@@ -1,17 +1,16 @@
-#!/usr/bin/python
-# coding: utf-8
-
 __author__ = "Guillaume"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
-import numpy
-import unittest
-from .utilstest import get_datafile
-from ..model import SASModel
-from ..average import Grid, AverModels
-
 import logging
+import unittest
+from typing import ClassVar
+
+import numpy
+
+from ..average import AverModels, Grid
+from ..model import SASModel
+from .utilstest import get_datafile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AlignModels_test")
@@ -20,7 +19,7 @@ logger = logging.getLogger("AlignModels_test")
 class TestAverage(unittest.TestCase):
     testfile1 = get_datafile("model-01.pdb")
     testfile2 = get_datafile("model-02.pdb")
-    inputfiles = [testfile1, testfile2]
+    inputfiles: ClassVar = [testfile1, testfile2]
     grid = Grid(inputfiles)
 
     def test_gridsize(self):
@@ -49,8 +48,7 @@ class TestAverage(unittest.TestCase):
         self.assertGreater(
             threshold,
             gap,
-            msg="final number of knots too different of wanted number: %s != %s"
-            % (nbknots, grid.nbknots),
+            msg=f"final number of knots too different of wanted number: {nbknots} != {grid.nbknots}",
         )
 
     def test_makegrid(self):

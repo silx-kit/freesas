@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -31,24 +29,30 @@ __license__ = "MIT"
 __copyright__ = "2020, ESRF"
 __date__ = "14/05/2020"
 
-import platform
 import logging
+import platform
 from pathlib import Path
-from matplotlib.pyplot import switch_backend
+
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.pyplot import switch_backend
+
 from freesas import plot
-from freesas.sasio import (
-    load_scattering_data,
-    convert_inverse_angstrom_to_nanometer,
-)
 from freesas.autorg import InsufficientDataError, NoGuinierRegionError
-from freesas.sas_argparser import SASParser
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
+from freesas.sasio import (
+    convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("plot_sas")
 
 
-def set_backend(output: Path = None, output_format: str = None):
+def set_backend(output: Path | None = None, output_format: str | None = None):
     """Explicitely set silent backend based on format or filename
     Needed on MacOS
     @param output: Name of the specified output file
@@ -78,7 +82,11 @@ def parse():
     small angle scattering algorithms. """
     parser = SASParser(prog="freesas.py", description=description, epilog=epilog)
     parser.add_file_argument(help_text="dat files to plot")
-    parser.add_output_filename_argument()
+    # a plain file name still means "one single output", a template means
+    # "one figure per input file"
+    parser.add_output_template_argument(
+        None, described_default="show the figures in a window"
+    )
     parser.add_output_data_format("jpeg", "svg", "png", "pdf")
     parser.add_q_unit_argument()
     return parser.parse_args()
@@ -110,11 +118,15 @@ def main():
     logger.debug("%s input files", input_len)
     figures = []
 
-    if args.output and len(files) > 1:
+    # a template produces one file per input file, a plain name a single output
+    use_template = bool(args.output) and "{" in args.output
+    if use_template:
+        check_output_template(args.output)
+    elif args.output and len(files) > 1:
         logger.warning("Only PDF export is possible in multi-frame mode")
     if args.output and platform.system() == "Darwin":
-        if len(files) == 1:
-            set_backend(args.output, args.format)
+        if use_template or len(files) == 1:
+            set_backend(Path(args.output), args.format)
         elif len(files) > 1:
             set_backend(output_format="pdf")
     for afile in files:
@@ -128,9 +140,13 @@ def main():
             figures.append(fig)
             if args.output is None:
                 fig.show()
+            elif use_template:
+                dest = format_output_filename(args.output, afile, mkdir=True)
+                fig.savefig(dest, format=args.format)
+                logger.debug("%s --> %s", afile, dest)
             elif len(files) == 1:
                 fig.savefig(args.output, format=args.format)
-    if len(figures) > 1 and args.output:
+    if len(figures) > 1 and args.output and not use_template:
         with PdfPages(args.output) as pdf_output_file:
             for fig in figures:
                 pdf_output_file.savefig(fig)

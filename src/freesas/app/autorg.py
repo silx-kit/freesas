@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,17 +27,15 @@ __license__ = "MIT"
 __copyright__ = "2021, ESRF"
 __date__ = "19/03/2021"
 
-import sys
 import logging
+
 from freesas.autorg import autoRg
-from freesas.sas_argparser import GuinierParser
 from freesas.fitting import run_guinier_fit
+from freesas.sas_argparser import GuinierParser
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("auto_gpa")
 
-if sys.version_info < (3, 6):
-    logger.error("This code uses F-strings and requires Python 3.6+")
 
 
 def build_parser() -> GuinierParser:
