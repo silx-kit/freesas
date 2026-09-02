@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Bootstrap helps you to test scripts without installing them
 by patching your PYTHONPATH on the fly
@@ -10,20 +9,21 @@ example: ./bootstrap.py ipython
 __authors__ = ["Frédéric-Emmanuel Picca", "Jérôme Kieffer"]
 __contact__ = "jerome.kieffer@esrf.eu"
 __license__ = "MIT"
-__date__ = "12/07/2024"
+__date__ = "02/09/2026"
 
-import sys
+import argparse
+import logging
 import os
 import subprocess
-import logging
-if sys.version_info[:2] < (3, 11):
-    import tomli
-else:
+import sys
+
+try:
     import tomllib as tomli
+except ImportError:
+    import tomli
 logging.basicConfig()
 logger = logging.getLogger("bootstrap")
 
-LIBPATH = ""
 
 def get_project_name(root_dir):
     """Retrieve project name by running python setup.py --name in root_dir.
@@ -50,9 +50,10 @@ def build_project(name, root_dir):
         libdir = "Lib"
         # extra = ["--buildtype", "plain"]
 
-    build = os.path.join(root_dir, "build")
+    build_dir = f"build_py{sys.version_info[0]}{sys.version_info[1]}"
+    build = os.path.join(root_dir, build_dir)
     if not(os.path.isdir(build) and os.path.isdir(os.path.join(build, name))):
-        p = subprocess.Popen(["meson", "setup", "build"],
+        p = subprocess.Popen(["meson", "setup", build_dir],
                          shell=False, cwd=root_dir, env=os.environ)
         p.wait()
     p = subprocess.Popen(["meson", "configure", "--prefix", "/"] + extra,
@@ -77,12 +78,14 @@ def build_project(name, root_dir):
                 home = os.path.join(build, libdir, python_version, "site-packages")
             home = os.path.abspath(home)
 
-    cnt = 0
+    tmp = []
     while not os.path.isdir(home):
-        cnt += 1
-        home = os.path.split(home)[0]
-    for _ in range(cnt):
-        n = os.listdir(home)[0]
+        home, last = os.path.split(home)
+        tmp.append(last)
+    for _ in tmp:
+        for n in os.listdir(home):
+            if os.path.isdir(os.path.join(home, n)):
+                break
         home = os.path.join(home, n)
 
     logger.warning("Building %s to %s", name, home)
@@ -98,7 +101,7 @@ def execfile(fullpath, globals=None, locals=None):
         except UnicodeDecodeError:
             raise SyntaxError("Not a Python script")
         code = compile(data, fullpath, 'exec')
-        exec(code, globals, locals)
+        exec(code, globals, locals)  # noqa: S102
 
 
 def run_file(filename, argv):
@@ -117,14 +120,14 @@ def run_file(filename, argv):
         # Providing globals() as locals will force to feed the file into
         # globals() (for examples imports).
         # Without this any function call from the executed file loses imports
-        old_argv = sys.argv
-        sys.argv = full_args
-        logger.info("Patch the sys.argv: %s", sys.argv)
-        logger.info("Executing %s.main()", filename)
-        print("########### EXECFILE ###########")
-        module_globals = globals().copy()
-        module_globals['__file__'] = filename
         try:
+            old_argv = sys.argv
+            sys.argv = full_args
+            logger.info("Patch the sys.argv: %s", sys.argv)
+            logger.info("Executing %s.main()", filename)
+            print("########### EXECFILE ###########")
+            module_globals = globals().copy()
+            module_globals['__file__'] = filename
             execfile(filename, module_globals, module_globals)
         finally:
             sys.argv = old_argv
@@ -155,10 +158,10 @@ def run_entry_point(target_name, entry_point, argv):
     logger.info("Execute target %s (function %s from module %s) using importlib", target_name, function_name, module_name)
     full_args = [target_name]
     full_args.extend(argv)
-    old_argv = sys.argv
-    sys.argv = full_args
-    print("########### IMPORTLIB ###########")
     try:
+        old_argv = sys.argv
+        sys.argv = full_args
+        print("########### IMPORTLIB ###########")
         module = importlib.import_module(module_name)
         if hasattr(module, function_name):
             func = getattr(module, function_name)
@@ -177,7 +180,7 @@ def find_executable(target):
     - Then search the script from the PATH environment variable.
 
     :param str target: Name of the script
-    :returns: Returns a tuple: kind, name.
+    :returns: Returns a tuple: (kind, name) or (kind, name, entry_point).
     """
     if os.path.isfile(target):
         return ("path", os.path.abspath(target))
@@ -192,50 +195,95 @@ def find_executable(target):
 
     for script, entry_point in scripts.items():
         if script == target:
-            print(script, entry_point)
+            #print(script, entry_point)
             return ("entry_point", target, entry_point)
     return None, None
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(
+        prog="bootstrap", usage="./bootstrap.py <script>", description=__doc__
+    )
+    parser.add_argument("script", nargs=argparse.REMAINDER)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-m",
+        nargs=argparse.REMAINDER,
+        dest="module",
+        help="run library module as a script (terminates option list)",
+    )
+    # group.add_argument(
+    #     "-j",
+    #     "--jupyter",
+    #     action="store_true",
+    #     help="Start jupyter notebook rather than IPython console",
+    # )
+    options = parser.parse_args()
+
+    # if options.jupyter:
+    #     if options.script:
+    #         logger.error("-j, --jupyter is mutually exclusive with other options")
+    #         parser.print_help()
+    #         return
+
+    #     logger.info("Start Jupyter notebook")
+    #     from notebook.notebookapp import main as notebook_main
+
+    #     os.environ["PYTHONPATH"] = (
+    #         LIBPATH + os.pathsep + os.environ.get("PYTHONPATH", "")
+    #     )
+    #     notebook_main(argv=[])
+
+    if options.script:
+        logger.info("Executing %s from source checkout", options.script)
+        script = options.script[0]
+        argv = options.script[1:]
+        res = find_executable(script)
+        kind = res[0]
+        # print(res)
+        if kind == "path":
+            run_file(res[1], argv)
+        elif kind == "entry_point":
+            run_entry_point(res[1], res[2], argv)
+        else:
+            logger.error("Script %s not found", options.script)
+
+    elif options.module:
+        logger.info("Running module %s", options.module)
+        import runpy
+
+        module = options.module[0]
+        try:
+            old = sys.argv
+            sys.argv = [None] + options.module[1:]
+            runpy.run_module(module, run_name="__main__", alter_sys=True)
+        finally:
+            sys.argv = old
+
+    else:
+        logger.info("Running IPython by default")
+        try:
+            from IPython import start_ipython
+        except ImportError as err:
+            logger.error("Unable to execute iPython, using normal Python")
+            logger.error(err)
+            import code
+            code.interact()
+        else:
+            start_ipython(argv=[])
 
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_NAME = get_project_name(PROJECT_DIR)
 logger.info("Project name: %s", PROJECT_NAME)
 
-if __name__ == "__main__":
-    LIBPATH = build_project(PROJECT_NAME, PROJECT_DIR)
-    if len(sys.argv) < 2:
-        logger.warning("usage: ./bootstrap.py <script>\n")
-        script = None
-    else:
-        script = sys.argv[1]
 
-    if script:
-        logger.info("Executing %s from source checkout", script)
-    else:
-        logging.info("Running iPython by default")
+if __name__ == "__main__":
+    home = os.path.dirname(os.path.abspath(__file__))
+    LIBPATH = build_project(PROJECT_NAME, PROJECT_DIR)
+
+
     sys.path.insert(0, LIBPATH)
     logger.info("Patched sys.path with %s", LIBPATH)
 
-    if script:
-        argv = sys.argv[2:]
-        res = find_executable(script)
-        if res[0] == "path":
-            run_file(res[1], argv)
-        elif res[0] == "entry_point":
-            run_entry_point(res[1], res[2], argv)
-        else:
-            logger.error("Script %s not found", script)
-    else:
-        logging.info("Running IPython by default")
-        logger.info("Patch the sys.argv: %s", sys.argv)
-        sys.path.insert(2, "")
-        try:
-            from IPython import embed
-        except Exception as err:
-            logger.error("Unable to execute iPython, using normal Python")
-            logger.error(err)
-            import code
-            code.interact()
-        else:
-            embed()
-
+    main(sys.argv)
