@@ -3,6 +3,7 @@ __license__ = "MIT"
 __date__ = "06/02/2026"
 __copyright__ = "2015-2026, ESRF"
 
+import atexit
 import logging
 import os
 
@@ -12,6 +13,16 @@ logger = logging.getLogger("utilstest")
 downloader = ExternalResources(
     "freesas", "http://www.silx.org/pub/freesas/testdata", "FREESAS_TESTDATA"
 )
+
+
+@atexit.register
+def _release_downloader_lock():
+    """Drop the filelock held by the downloader while the interpreter is still alive.
+
+    Left to the interpreter shutdown, `BaseFileLock.__del__` runs after the `os`
+    module globals have been cleared and reports an unraisable TypeError on stderr.
+    """
+    downloader.lock = None
 
 
 def get_datafile(name):
