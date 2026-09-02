@@ -29,7 +29,6 @@ __date__ = "02/09/2026"
 
 import io
 import logging
-import pathlib
 import platform
 import sys
 import traceback
@@ -43,7 +42,11 @@ from freesas.fitting import (
     collect_files,
     set_logging_level,
 )
-from freesas.sas_argparser import SASParser
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
 from freesas.sasio import (
     convert_inverse_angstrom_to_nanometer,
     load_scattering_data,
@@ -77,16 +80,7 @@ def build_parser() -> SASParser:
     """
     parser = SASParser(prog="free_bift", description=description, epilog=epilog)
     parser.add_file_argument(help_text="I(q) files to convert into p(r)")
-    parser.add_argument(
-        "-o",
-        "--output",
-        action="store",
-        default=DEFAULT_OUTPUT_TEMPLATE,
-        help="Template for the name of the output file. The fields {dirname} "
-        "(directory of the input file) and {basename} (name of the input file, "
-        "without its extension) are substituted for every processed file. "
-        f"Default: {DEFAULT_OUTPUT_TEMPLATE}",
-    )
+    parser.add_output_template_argument(DEFAULT_OUTPUT_TEMPLATE)
     parser.add_q_unit_argument()
     parser.add_argument(
         "-n",
@@ -129,10 +123,7 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
     set_logging_level(args.verbose)
-    try:
-        args.output.format(dirname="", basename="")
-    except (KeyError, IndexError) as err:
-        sys.exit(f"Invalid output template {args.output!r}: unknown field {err}")
+    check_output_template(args.output)
     files = collect_files(args.file)
 
     for afile in files:
@@ -166,11 +157,7 @@ def main():
                     if logging.root.level < logging.WARNING:
                         traceback.print_exc(file=sys.stdout)
                 else:
-                    dest = pathlib.Path(
-                        args.output.format(
-                            dirname=afile.parent, basename=afile.stem
-                        )
-                    )
+                    dest = format_output_filename(args.output, afile, mkdir=True)
                     print(stats.save(dest, source=afile))
 
 

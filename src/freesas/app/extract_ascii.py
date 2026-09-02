@@ -42,7 +42,11 @@ from collections import OrderedDict, namedtuple
 import pyFAI
 from pyFAI.io import Nexus
 
-from freesas.sas_argparser import SASParser
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("extract_ascii")
@@ -52,6 +56,19 @@ NexusJuice = namedtuple(
     "NexusJuice",
     "filename h5path npt unit q I poni mask energy polarization signal2d error2d buffer concentration",
 )
+
+class AnyIndex(str):
+    """String which accepts any format specification, used to display the
+    pattern of the generated file names, i.e. sample_*.dat"""
+
+    def __format__(self, format_spec):
+        return str(self)
+
+
+#: Default output templates, one per extraction mode
+DEFAULT_OUTPUT_TEMPLATE = "{dirname}/{basename}.dat"
+DEFAULT_ALL_OUTPUT_TEMPLATE = "{dirname}/{basename}_{index:04d}.dat"
+DEFAULT_ZIP_OUTPUT_TEMPLATE = "{dirname}/{basename}.zip"
 
 
 def parse():
@@ -63,7 +80,6 @@ def parse():
     """
     parser = SASParser(prog="extract-ascii.py", description=description, epilog=epilog)
     # Commented option need to be implemented
-    # parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
     # parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
     # parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
     parser.add_file_argument("HDF5 input data")
@@ -80,6 +96,15 @@ def parse():
         action="store_true",
         help="extract every individual frame into a zip-file",
         default=False,
+    )
+    # the actual default depends on the extraction mode, main() picks it
+    parser.add_output_template_argument(
+        None,
+        extra_fields={"index": "number of the frame, only used with --all"},
+        described_default=(
+            f"{DEFAULT_OUTPUT_TEMPLATE}, {DEFAULT_ALL_OUTPUT_TEMPLATE} with "
+            f"--all, {DEFAULT_ZIP_OUTPUT_TEMPLATE} with --zip"
+        ),
     )
     return parser.parse_args()
 
@@ -351,24 +376,40 @@ def main():
         files.sort()
     input_len = len(files)
     logger.debug("%s input files", input_len)
+
+    if args.output:
+        template = args.output
+    elif args.all:
+        template = DEFAULT_ALL_OUTPUT_TEMPLATE
+    elif args.zip:
+        template = DEFAULT_ZIP_OUTPUT_TEMPLATE
+    else:
+        template = DEFAULT_OUTPUT_TEMPLATE
+    check_output_template(template, index=0)
+    if args.all and "{index" not in template:
+        logger.warning(
+            "Output template %s has no {index} field: every frame of a given "
+            "file will be written to the same output file",
+            template,
+        )
+
     for src in files:
         print(f"{src} \t --> ", end="")
         if args.all:
-            dest = os.path.splitext(src)[0] + "_%04i.dat"
             for idx, frame in enumerate(extract_all(src)):
-                print(src, " --> ", dest % idx)
-                write_ascii(frame, dest % idx)
-            print(dest)
+                dest = format_output_filename(template, src, mkdir=True, index=idx)
+                print(src, " --> ", dest)
+                write_ascii(frame, dest)
+            print(format_output_filename(template, src, index=AnyIndex("*")))
         elif args.zip:
-            base = os.path.splitext(src)[0]
-            dest = base + ".zip"
-            destz = base + "_%04i.dat"
+            dest = format_output_filename(template, src, mkdir=True, index=0)
+            destz = os.path.splitext(src)[0] + "_%04i.dat"
             with zipfile.ZipFile(dest, "w") as z:
                 for idx, frame in enumerate(extract_all(src)):
                     z.writestr(destz % idx, write_ascii(frame))
             print(dest)
         else:
-            dest = os.path.splitext(src)[0] + ".dat"
+            dest = format_output_filename(template, src, mkdir=True, index=0)
             write_ascii(extract_averaged(src), dest)
             print(dest)
 
