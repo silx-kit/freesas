@@ -35,6 +35,7 @@ Usage
    bift
    dummy_atom_model
    quick_analysis
+   freesas_vs_atsas
 
 Project
 -------

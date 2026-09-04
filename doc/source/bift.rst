@@ -16,3 +16,8 @@ J. Appl. Cryst. (2000). 33, 1415-1421
 and on the work of Jesse Hopkins in BioXTAS-RAW.
 
 The result of `bift` is comparable but surely different from what `gnom` provides since the later is using Tikhonov regularization instead of bayesian inference.
+
+How different has been measured on the complete BM29 archive: the two agree on
+``Rg`` to about 1% but differ systematically by some 20% on ``Dmax``, and they
+respond very differently to the error bars on the intensities. See
+:doc:`freesas_vs_atsas`.
