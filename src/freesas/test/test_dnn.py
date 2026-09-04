@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -27,22 +26,23 @@ __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __date__ = "06/02/2026"
 
-import unittest
 import logging
+import unittest
+
 import numpy as np
-from .utilstest import get_datafile
-from ..sasio import load_scattering_data
+
 from ..dnn import (
     DNN,
     DenseLayer,
     forward_propagation,
+    linear,
     preprocess,
-    tanh,
     relu,
     sigmoid,
-    linear,
+    tanh,
 )
-
+from ..sasio import load_scattering_data
+from .utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class TestDNN(unittest.TestCase):
         """
         datfile = get_datafile("bsa_005_sub.dat")
         data = load_scattering_data(datfile)
-        q, intensity, sigma = data.T
+        q, intensity, _sigma = data.T
         Iprep = preprocess(q, intensity)
         self.assertEqual(Iprep.max(), 1, msg="range 0-1")
         self.assertEqual(Iprep.shape, (1024,), msg="size 1024")

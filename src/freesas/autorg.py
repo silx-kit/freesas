@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Functions for calculating the radius of gyration and forward scattering intensity."""
 
 __authors__ = ["Jérôme Kieffer"]
@@ -7,20 +6,21 @@ __copyright__ = "2020-2026, ESRF"
 __date__ = "06/02/2026"
 
 import logging
+
 import numpy
 from scipy.optimize import curve_fit
-from ._autorg import (  # noqa
-    RG_RESULT,
-    guinier,
-    NoGuinierRegionError,
-    DTYPE,
-    InsufficientDataError,
-    autoRg,
-    AutoGuinier,
-    linear_fit,
-    FIT_RESULT,
-)
 
+from ._autorg import (  # noqa
+    DTYPE,
+    FIT_RESULT,
+    RG_RESULT,
+    AutoGuinier,
+    InsufficientDataError,
+    NoGuinierRegionError,
+    autoRg,
+    guinier,
+    linear_fit,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
         data, q_ary, i_ary, sigma_ary, Rg_min, qRg_max, relax
     )
     if start0 < 0:
-        raise InsufficientDataError("Minimum region size is %s" % guinier.min_size)
+        raise InsufficientDataError(f"Minimum region size is {guinier.min_size}")
     guinier.guinier_space(
         start0, stop0, q_ary, i_ary, sigma_ary, q2_ary, lnI_ary, wg_ary
     )
@@ -161,7 +161,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
         q2_ary, lnI_ary, wg_ary, start0, stop0, Rg_min, qRg_max, relax
     )
 
-    cnt, relaxed, qRg_max, aslope_max = guinier.count_valid(fits, qRg_max, relax)
+    cnt, _relaxed, qRg_max, _aslope_max = guinier.count_valid(fits, qRg_max, relax)
     # valid_fits = fits[fits[:, 9] < qRg_max]
     if cnt == 0:
         raise NoGuinierRegionError(qRg_max)
@@ -170,7 +170,7 @@ def auto_guinier(data, Rg_min=1.0, qRg_max=1.3, relax=1.2):
     start, stop = guinier.find_region(fits, qRg_max)
 
     # Now average out the
-    Rg_avg, Rg_std, I0_avg, I0_std, good = guinier.average_values(fits, start, stop)
+    Rg_avg, Rg_std, I0_avg, I0_std, _good = guinier.average_values(fits, start, stop)
 
     aggregated = guinier.check_aggregation(
         q2_ary, lnI_ary, wg_ary, start0, stop, Rg=Rg_avg, threshold=False

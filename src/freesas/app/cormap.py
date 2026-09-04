@@ -1,20 +1,18 @@
-#!/usr/bin/python3
-# coding: utf-8
-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "06/02/2026"
 
-import os
-import logging
 import glob
+import logging
+import os
 import platform
-from itertools import combinations
 from collections import namedtuple
+from itertools import combinations
+
 from freesas.cormap import gof
-from freesas.sasio import load_scattering_data
 from freesas.sas_argparser import SASParser
+from freesas.sasio import load_scattering_data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cormap")
@@ -46,7 +44,7 @@ def parse():
         files = glob.glob(args.file[0])
         files.sort()
     input_len = len(files)
-    logger.debug("%s input files" % input_len)
+    logger.debug(f"{input_len} input files")
     return files
 
 
@@ -67,10 +65,12 @@ def compare(lstfiles):
         data.append(d)
     for a, b in combinations(data, 2):
         r = gof(a.data, b.data)
-        res.append("%6i vs. %6i          %6i     %8.6f" % (a.index, b.index, r.c, r.P))
+        res.append(
+            f"{a.index:6d} vs. {b.index:6d}          {r.c:6d}     {r.P:8.6f}"
+        )
     res.append("")
     for a in data:
-        res.append("%6i         %8f + %8f * %s" % (a.index, 0.0, 1.0, a.filename))
+        res.append(f"{a.index:6d}         {0.0:8f} + {1.0:8f} * {a.filename}")
     res.append("")
     print(os.linesep.join(res))
     return res

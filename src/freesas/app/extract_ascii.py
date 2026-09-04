@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# coding: utf-8
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -29,31 +27,48 @@ __license__ = "MIT"
 __copyright__ = "2020-2026, ESRF"
 __date__ = "06/02/2026"
 
-import io
-import os
-import sys
-import logging
+import copy
 import glob
+import io
+import json
+import logging
+import os
 import platform
 import posixpath
-from collections import namedtuple, OrderedDict
-import json
+import sys
 import zipfile
-import copy
+from collections import OrderedDict, namedtuple
+
 import pyFAI
 from pyFAI.io import Nexus
-from freesas.sas_argparser import SASParser
+
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("extract_ascii")
 
-if sys.version_info[0] < 3:
-    logger.error("This code requires Python 3.4+")
 
 NexusJuice = namedtuple(
     "NexusJuice",
     "filename h5path npt unit q I poni mask energy polarization signal2d error2d buffer concentration",
 )
+
+class AnyIndex(str):
+    """String which accepts any format specification, used to display the
+    pattern of the generated file names, i.e. sample_*.dat"""
+
+    def __format__(self, format_spec):
+        return str(self)
+
+
+#: Default output templates, one per extraction mode
+DEFAULT_OUTPUT_TEMPLATE = "{dirname}/{basename}.dat"
+DEFAULT_ALL_OUTPUT_TEMPLATE = "{dirname}/{basename}_{index:04d}.dat"
+DEFAULT_ZIP_OUTPUT_TEMPLATE = "{dirname}/{basename}.zip"
 
 
 def parse():
@@ -65,7 +80,6 @@ def parse():
     """
     parser = SASParser(prog="extract-ascii.py", description=description, epilog=epilog)
     # Commented option need to be implemented
-    # parser.add_argument("-o", "--output", action='store', help="Output filename, by default the same with .dat extension", default=None, type=str)
     # parser.add_argument("-u", "--unit", action='store', help="Unit for q: inverse nm or Angstrom?", default="nm", type=str)
     # parser.add_argument("-n", "--normalize", action='store', help="Re-normalize all intensities with this factor ", default=1.0, type=float)
     parser.add_file_argument("HDF5 input data")
@@ -82,6 +96,15 @@ def parse():
         action="store_true",
         help="extract every individual frame into a zip-file",
         default=False,
+    )
+    # the actual default depends on the extraction mode, main() picks it
+    parser.add_output_template_argument(
+        None,
+        extra_fields={"index": "number of the frame, only used with --all"},
+        described_default=(
+            f"{DEFAULT_OUTPUT_TEMPLATE}, {DEFAULT_ALL_OUTPUT_TEMPLATE} with "
+            f"--all, {DEFAULT_ZIP_OUTPUT_TEMPLATE} with --zip"
+        ),
     )
     return parser.parse_args()
 
@@ -267,23 +290,23 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
         headers.append(hdr + " " + results["comments"])
     else:
         headers.append(hdr)
-    headers.append(hdr + " Sample c= %s mg/ml" % results.get("concentration", -1))
+    headers.append(hdr + " Sample c= {} mg/ml".format(results.get("concentration", -1)))
     headers += [hdr, hdr + " Sample environment:"]
     if "geometry" in results:
-        headers.append(hdr + " Detector = %s" % results["geometry"]["detector"])
-        headers.append(hdr + " SampleDistance = %s" % results["geometry"]["dist"])
-        headers.append(hdr + " WaveLength = %s" % results["geometry"]["wavelength"])
+        headers.append(hdr + " Detector = {}".format(results["geometry"]["detector"]))
+        headers.append(hdr + " SampleDistance = {}".format(results["geometry"]["dist"]))
+        headers.append(hdr + " WaveLength = {}".format(results["geometry"]["wavelength"]))
     headers.append(hdr)
     if "comments" in results:
-        headers.append(hdr + " title = %s" % results["comment"])
+        headers.append(hdr + " title = {}".format(results["comment"]))
     if "to_merge" in results:
         headers.append(
             hdr + " Frames merged: " + " ".join([str(i) for i in results["to_merge"]])
         )
     if "normalization" in results:
-        headers.append(hdr + " Normalization = %s" % results["normalization"])
+        headers.append(hdr + " Normalization = {}".format(results["normalization"]))
     if "mask" in results:
-        headers.append(hdr + " Mask = %s" % results["mask"])
+        headers.append(hdr + " Mask = {}".format(results["mask"]))
     headers.append(hdr)
     headers.append(hdr + (" N 3" if "std" in results else " N 2"))
     line = hdr + " L "
@@ -302,19 +325,18 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
     if "storage temperature" in results:
         headers.append(
             hdr
-            + " Storage Temperature (degrees C): %s" % results["storage temperature"]
+            + " Storage Temperature (degrees C): {}".format(results["storage temperature"])
         )
     if "exposure temperature" in results:
         headers.append(
             hdr
-            + " Measurement Temperature (degrees C): %s"
-            % results["exposure temperature"]
+            + " Measurement Temperature (degrees C): {}".format(results["exposure temperature"])
         )
 
-    headers.append(hdr + " Concentration: %s" % results.get("concentration", -1))
+    headers.append(hdr + " Concentration: {}".format(results.get("concentration", -1)))
     if "buffer" in results:
-        headers.append(hdr + " Buffer: %s" % results["buffer"])
-    headers.append(hdr + " Code: %s" % results.get("sample", ""))
+        headers.append(hdr + " Buffer: {}".format(results["buffer"]))
+    headers.append(hdr + " Code: {}".format(results.get("sample", "")))
 
     def write(headers, file_):
 
@@ -323,12 +345,12 @@ def write_ascii(results, output=None, hdr="#", linesep=os.linesep):
 
         if "std" in results:
             data = [
-                "%14.6e\t%14.6e\t%14.6e" % (q, intensity, std)
+                f"{q:14.6e}\t{intensity:14.6e}\t{std:14.6e}"
                 for q, intensity, std in zip(results["q"], results["I"], results["std"])
             ]
         else:
             data = [
-                "%14.6e\t%14.6e\t" % (q, intensity)
+                f"{q:14.6e}\t{intensity:14.6e}\t"
                 for q, intensity in zip(results["q"], results["I"])
             ]
         data.append("")
@@ -354,24 +376,40 @@ def main():
         files.sort()
     input_len = len(files)
     logger.debug("%s input files", input_len)
+
+    if args.output:
+        template = args.output
+    elif args.all:
+        template = DEFAULT_ALL_OUTPUT_TEMPLATE
+    elif args.zip:
+        template = DEFAULT_ZIP_OUTPUT_TEMPLATE
+    else:
+        template = DEFAULT_OUTPUT_TEMPLATE
+    check_output_template(template, index=0)
+    if args.all and "{index" not in template:
+        logger.warning(
+            "Output template %s has no {index} field: every frame of a given "
+            "file will be written to the same output file",
+            template,
+        )
+
     for src in files:
         print(f"{src} \t --> ", end="")
         if args.all:
-            dest = os.path.splitext(src)[0] + "_%04i.dat"
             for idx, frame in enumerate(extract_all(src)):
-                print(src, " --> ", dest % idx)
-                write_ascii(frame, dest % idx)
-            print(dest)
+                dest = format_output_filename(template, src, mkdir=True, index=idx)
+                print(src, " --> ", dest)
+                write_ascii(frame, dest)
+            print(format_output_filename(template, src, index=AnyIndex("*")))
         elif args.zip:
-            base = os.path.splitext(src)[0]
-            dest = base + ".zip"
-            destz = base + "_%04i.dat"
+            dest = format_output_filename(template, src, mkdir=True, index=0)
+            destz = os.path.splitext(src)[0] + "_%04i.dat"
             with zipfile.ZipFile(dest, "w") as z:
                 for idx, frame in enumerate(extract_all(src)):
                     z.writestr(destz % idx, write_ascii(frame))
             print(dest)
         else:
-            dest = os.path.splitext(src)[0] + ".dat"
+            dest = format_output_filename(template, src, mkdir=True, index=0)
             write_ascii(extract_averaged(src), dest)
             print(dest)
 

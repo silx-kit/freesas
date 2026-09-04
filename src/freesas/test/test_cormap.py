@@ -1,15 +1,13 @@
-#!/usr/bin/python
-# coding: utf-8
-
 __author__ = "Jérôme Kieffer"
 __license__ = "MIT"
 __copyright__ = "2017-2026, ESRF"
 
-import numpy
-import unittest
 import logging
-from .. import cormap
+import unittest
 
+import numpy
+
+from .. import cormap
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("test_cormap")

@@ -3,6 +3,7 @@ __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
 import numpy
+
 from freesas.model import SASModel
 
 
@@ -22,7 +23,7 @@ class Grid:
         self.coordknots = []
 
     def __repr__(self):
-        return "Grid with %i knots" % self.nbknots
+        return f"Grid with {self.nbknots} knots"
 
     def spatial_extent(self):
         """
@@ -171,7 +172,7 @@ class AverModels:
         self.grid = grid
 
     def __repr__(self):
-        return "Average SAS model with %i atoms" % len(self.atoms)
+        return f"Average SAS model with {len(self.atoms)} atoms"
 
     def read_files(self, reference=None):
         """
@@ -246,18 +247,18 @@ class AverModels:
         Create the layout of the pdb file for the averaged model.
         """
         header = []
-        header.append("Number of files averaged : %s\n" % len(self.inputfiles))
+        header.append(f"Number of files averaged : {len(self.inputfiles)}\n")
         for i in self.inputfiles:
             header.append(i + "\n")
-        header.append("Total number of dots in the grid : %s\n" % self.grid.shape[0])
+        header.append(f"Total number of dots in the grid : {self.grid.shape[0]}\n")
 
         decade = 1
         for i in range(self.grid.shape[0]):
             line = "ATOM         CA  ASP    1                                    20.00   2 201\n"
-            line = line[:7] + "%4.i" % (i + 1) + line[11:]
+            line = line[:7] + f"{i + 1:4d}" + line[11:]
             if not (i + 1) % 10:
                 decade += 1
-            line = line[:21] + "%4.i" % decade + line[25:]
+            line = line[:21] + f"{decade:4d}" + line[25:]
             header.append(line)
         self.header = header
         return header
@@ -278,9 +279,9 @@ class AverModels:
             for line in self.header:
                 if line.startswith("ATOM"):
                     if nr < self.grid.shape[0] and self.grid[nr, 4] != 0:
-                        coord = "%8.3f%8.3f%8.3f" % tuple(self.grid[nr, 0:3])
-                        occ = "%6.2f" % self.grid[nr, 3]
-                        contrib = "%2.f" % self.grid[nr, 4]
+                        coord = "{:8.3f}{:8.3f}{:8.3f}".format(*tuple(self.grid[nr, 0:3]))
+                        occ = f"{self.grid[nr, 3]:6.2f}"
+                        contrib = f"{self.grid[nr, 4]:2.0f}"
                         line = (
                             line[:30] + coord + occ + line[60:66] + contrib + line[68:]
                         )

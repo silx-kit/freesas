@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -27,14 +26,16 @@ __authors__ = ["Martha Brennich", "Jérôme Kieffer"]
 __license__ = "MIT"
 __date__ = "16/09/2022"
 
-import unittest
-import logging
 import io
-from numpy import array, allclose
+import logging
+import unittest
+
+from numpy import allclose, array
+
 from ..sasio import (
-    parse_ascii_data,
-    load_scattering_data,
     convert_inverse_angstrom_to_nanometer,
+    load_scattering_data,
+    parse_ascii_data,
 )
 
 logger = logging.getLogger(__name__)

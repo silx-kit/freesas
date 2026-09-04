@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 #    Project: Free SAS tools
 #             https://github.com/kif/freesas
@@ -34,9 +33,9 @@ __date__ = "27/04/2020"
 __status__ = "development"
 __docformat__ = "restructuredtext"
 
+import logging
 import sys
 import time
-import logging
 
 timelog = logging.getLogger("freesas.timeit")
 

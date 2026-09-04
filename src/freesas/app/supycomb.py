@@ -1,18 +1,26 @@
-#!/usr/bin/python3
 __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 __date__ = "09/07/2020"
 
 import logging
-from os.path import dirname, abspath
-from freesas.align import InputModels, AlignModels
-from freesas.sas_argparser import SASParser
+from os.path import abspath, dirname
+
+from freesas.align import AlignModels, InputModels
+from freesas.sas_argparser import (
+    SASParser,
+    check_output_template,
+    format_output_filename,
+)
 
 base = dirname(dirname(abspath(__file__)))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("supycomb")
+
+#: Default output templates, for two models and for more
+DEFAULT_OUTPUT_TEMPLATE = "aligned.pdb"
+DEFAULT_MULTI_OUTPUT_TEMPLATE = "model-{index:02d}.pdb"
 
 
 def parse():
@@ -61,12 +69,14 @@ def parse():
         default="YES",
         help="Use GUI for figures or not, default: %(default)s",
     )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        default="aligned.pdb",
-        help="output filename, default: %(default)s",
+    # the default depends on the number of input models, main() picks it
+    parser.add_output_template_argument(
+        None,
+        extra_fields={"index": "number of the model, starting at 1"},
+        described_default=(
+            f"{DEFAULT_OUTPUT_TEMPLATE} for two models, "
+            f"{DEFAULT_MULTI_OUTPUT_TEMPLATE} for more"
+        ),
     )
     return parser.parse_args()
 
@@ -76,7 +86,7 @@ def main():
 
     args = parse()
     input_len = len(args.file)
-    logger.info("%s input files" % input_len)
+    logger.info(f"{input_len} input files")
     selection = InputModels()
 
     if args.mode == "SLOW":
@@ -106,13 +116,29 @@ def main():
 
     align = AlignModels(args.file, slow=slow, enantiomorphs=enantiomorphs)
     if input_len == 2:
-        align.outputfiles = args.output
+        template = args.output or DEFAULT_OUTPUT_TEMPLATE
+        check_output_template(template, index=0)
+        # only the second model gets aligned onto the first one and saved
+        align.outputfiles = str(
+            format_output_filename(template, args.file[1], mkdir=True, index=2)
+        )
         align.assign_models()
         dist = align.alignment_2models()
-        logger.info("%s and %s aligned" % (args.file[0], args.file[1]))
-        logger.info("NSD after optimized alignment = %.2f" % dist)
+        logger.info(f"{args.file[0]} and {args.file[1]} aligned")
+        logger.info(f"NSD after optimized alignment = {dist:.2f}")
     else:
-        align.outputfiles = ["model-%02i.pdb" % (i + 1) for i in range(input_len)]
+        template = args.output or DEFAULT_MULTI_OUTPUT_TEMPLATE
+        check_output_template(template, index=0)
+        if "{index" not in template and "{basename" not in template:
+            logger.warning(
+                "Output template %s has neither {index} nor {basename} field: "
+                "every aligned model will be written to the same file",
+                template,
+            )
+        align.outputfiles = [
+            str(format_output_filename(template, afile, mkdir=True, index=idx + 1))
+            for idx, afile in enumerate(args.file)
+        ]
         selection.inputfiles = args.file
         selection.models_selection()
         selection.rfactorplot(save=save)

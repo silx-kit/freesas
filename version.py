@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# coding: utf-8
-# /*##########################################################################
 #
-# Copyright (c) 2015-2023 European Synchrotron Radiation Facility
+# Copyright (c) 2015-2026 European Synchrotron Radiation Facility
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-# ###########################################################################*/
 """Unique place where the version number is defined.
 
 provides:
@@ -52,15 +49,20 @@ Thus 2.1.0a3 is hexversion 0x020100a3.
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "11/09/2024"
+__date__ = "02/09/2026"
 __status__ = "production"
 __docformat__ = 'restructuredtext'
-__all__ = ["date", "version_info", "strictversion", "hexversion", "debianversion",
-           "calc_hexversion", "citation"]
+__all__ = [
+    "calc_hexversion",
+    "citation",
+    "date",
+    "debianversion",
+    "hexversion",
+    "strictversion",
+    "version_info",
+]
 
-
-from collections import namedtuple
-
+from typing import NamedTuple
 
 RELEASE_LEVEL_VALUE = {"dev": 0,
                        "alpha": 10,
@@ -73,26 +75,37 @@ PRERELEASE_NORMALIZED_NAME = {"dev": "a",
                               "beta": "b",
                               "candidate": "rc"}
 MAJOR = 2026
-MINOR = 3
+MINOR = 9
 MICRO = 0
-RELEV = "final"  # <16
-SERIAL = 0  # <16
-
+RELEV = "dev"  # <16
+SERIAL = 0     # <16
 date = __date__
 
-_version_info = namedtuple("version_info", ["major", "minor", "micro", "releaselevel", "serial"])
+class _VersionInfo(NamedTuple):
+    major: int
+    minor: int
+    micro: int
+    releaselevel: str
+    serial: int
 
-version_info = _version_info(MAJOR, MINOR, MICRO, RELEV, SERIAL)
+class _DatedVersion(NamedTuple):
+    version: str
+    date: str
 
-strictversion = version = debianversion = "%d.%d.%d" % version_info[:3]
+version_info = _VersionInfo(MAJOR, MINOR, MICRO, RELEV, SERIAL)
 
-_dated_version = namedtuple("dated_version", ["version", "date"])
-dated_version = _dated_version(version=version, date=date)
 
+strictversion = version = debianversion = f"{version_info[0]}.{version_info[1]}.{version_info[2]}"
 if version_info.releaselevel != "final":
-    version += "-%s%s" % version_info[-2:]
-    debianversion += "~adev%i" % version_info[-1] if RELEV == "dev" else "~%s%i" % version_info[-2:]
-    strictversion += PRERELEASE_NORMALIZED_NAME[version_info[3]] + str(version_info[-1])
+    _prerelease = PRERELEASE_NORMALIZED_NAME[version_info[3]]
+    version += f"-{_prerelease}{version_info[-1]}"
+    debianversion += (
+        f"~adev{version_info[-1]}"
+        if RELEV == "dev"
+        else f"~{_prerelease}{version_info[-1]}"
+    )
+    strictversion += _prerelease + str(version_info[-1])
+dated_version = _DatedVersion(version=version, date=date)
 
 
 
@@ -114,7 +127,7 @@ def calc_hexversion(major=0, minor=0, micro=0, releaselevel="dev", serial=0, str
             _PATTERN = re.compile(r"(\d+)\.(\d+)\.(\d+)(\w+)?$")
         result = _PATTERN.match(string)
         if result is None:
-            raise ValueError("'%s' is not a valid version" % string)
+            raise ValueError(f"'{string}' is not a valid version")
         result = result.groups()
         major, minor, micro = int(result[0]), int(result[1]), int(result[2])
         releaselevel = result[3]
@@ -135,7 +148,6 @@ def calc_hexversion(major=0, minor=0, micro=0, releaselevel="dev", serial=0, str
 
 
 hexversion = calc_hexversion(*version_info)
-
 citation = "doi:10.1107/S1600577522007238"
 
 if __name__ == "__main__":

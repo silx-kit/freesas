@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -27,9 +26,10 @@ __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __date__ = "28/06/2024"
 
-import unittest
 import logging
 import os
+import unittest
+
 from ..resources import resource_filename
 
 logger = logging.getLogger(__name__)

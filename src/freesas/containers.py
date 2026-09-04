@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #    Project: freesas
 #             https://github.com/kif/freesas
@@ -30,11 +29,13 @@ Set of namedtuples/dataclasses defined a bit everywhere
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "2020-2026 ESRF"
-__date__ = "09/03/2026"
+__date__ = "01/09/2026"
 
 from collections import namedtuple
 from typing import NamedTuple
+
 import numpy
+
 
 # Used in AutoRg
 class RG_RESULT(NamedTuple):
@@ -133,17 +134,15 @@ class StatsResult(NamedTuple):
             f"I₀= {self.I0_avg:.2f}±{self.I0_std:.2f}",
         ]
         with open(filename, "wt", encoding="utf-8") as out:
-            out.write("# %s %s" % (source or filename, "\n"))
-            for txt in res:
-                out.write(f"# {txt} \n")
+            out.write("# {} {}".format(source or filename, "\n"))
+            out.writelines(f"# {txt} \n" for txt in res)
             out.write("\n# r\tp(r)\tsigma_p(r)\n")
-            for r, p, s in zip(
+            out.writelines("{}\t{}\t{}{}".format(r, p, s, "\n") for r, p, s in zip(
                 self.radius.astype(numpy.float32),
                 self.density_avg.astype(numpy.float32),
                 self.density_std.astype(numpy.float32),
-            ):
-                out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
-        return filename + ": " + "; ".join(res)
+            ))
+        return f"{filename}: " + "; ".join(res)
 
 
 # Used in Cormap

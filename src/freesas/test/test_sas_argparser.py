@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# coding: utf-8
-
 """Test the functionality of SASParser and GuinierParser"""
 
 __authors__ = ["Martha Brennich"]
@@ -8,14 +5,14 @@ __license__ = "MIT"
 __date__ = "06/02/2026"
 
 
-import unittest
-import logging
-import io
 import contextlib
+import io
+import logging
+import unittest
 from pathlib import Path
-from .. import dated_version as freesas_version
-from ..sas_argparser import SASParser, GuinierParser
 
+from .. import dated_version as freesas_version
+from ..sas_argparser import GuinierParser, SASParser
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,12 @@
-import numpy as np
-import json
-import h5py
-import zipfile
-from .resources import resource_filename
 import io
+import json
 import os
+import zipfile
+
+import h5py
+import numpy as np
+
+from .resources import resource_filename
 
 
 # Activation functions

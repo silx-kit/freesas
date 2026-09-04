@@ -2,17 +2,19 @@ __author__ = "Guillaume Bonamis"
 __license__ = "MIT"
 __copyright__ = "2015, ESRF"
 
+import itertools
+import logging
 import os
 import sys
-import numpy
+
 import matplotlib
 
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from freesas.model import SASModel
-import itertools
+import numpy
 from scipy.optimize import fmin
-import logging
+
+from freesas.model import SASModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("log_freesas")
@@ -27,7 +29,7 @@ class InputModels:
         self.validmodels = []
 
     def __repr_(self):
-        return "Preparation of %s models for alignment" % len(self.inputfiles)
+        return f"Preparation of {len(self.inputfiles)} models for alignment"
 
     def assign_models(self, molecule=None):
         """
@@ -50,8 +52,7 @@ class InputModels:
                 self.sasmodels.append(model)
             if len(self.inputfiles) != len(self.sasmodels):
                 logger.error(
-                    "Problem of assignment\n%s models for %s files"
-                    % (len(self.sasmodels), len(self.inputfiles))
+                    f"Problem of assignment\n{len(self.sasmodels)} models for {len(self.inputfiles)} files"
                 )
 
         elif len(molecule) != 0:
@@ -140,14 +141,14 @@ class InputModels:
             [0.5, dammif_files + 0.5],
             [Rmax, Rmax],
             "-r",
-            label="R$_{max}$ = %.3f" % Rmax,
+            label=f"R$_{{max}}$ = {Rmax:.3f}",
         )
         ax2.set_ylabel("R factor in percent")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
         ax2.legend(loc=8)
 
-        bbox_props = dict(fc="pink", ec="r", lw=1)
+        bbox_props = {"fc": "pink", "ec": "r", "lw": 1}
         for i in range(dammif_files):
             if not self.validmodels[i]:
                 ax2.text(
@@ -160,7 +161,7 @@ class InputModels:
                     size=10,
                     bbox=bbox_props,
                 )
-                logger.info("model %s discarded, Rfactor > Rmax" % self.inputfiles[i])
+                logger.info(f"model {self.inputfiles[i]} discarded, Rfactor > Rmax")
 
         if save:
             fig.savefig(filename)
@@ -191,7 +192,7 @@ class AlignModels:
         self.reference = None
 
     def __repr__(self):
-        return "alignment process for %s models" % len(self.models)
+        return f"alignment process for {len(self.models)} models"
 
     def assign_models(self):
         """
@@ -209,8 +210,7 @@ class AlignModels:
             self.models.append(model)
         if len(self.inputfiles) != len(self.models):
             logger.error(
-                "Problem of assignment\n%s models for %s files"
-                % (len(self.models), len(self.inputfiles))
+                f"Problem of assignment\n{len(self.models)} models for {len(self.inputfiles)} files"
             )
 
         return self.models
@@ -225,7 +225,7 @@ class AlignModels:
         :return p: transformation parameters optimized
         :return dist: NSD after optimization
         """
-        p, dist, niter, nfuncalls, warmflag = fmin(
+        p, dist, niter, _nfuncalls, _warmflag = fmin(
             reference.dist_after_movement,
             molecule.can_param,
             args=(molecule, symmetry),
@@ -237,7 +237,7 @@ class AlignModels:
         if niter == 200:
             logger.debug("convergence not reached")
         else:
-            logger.debug("convergence reach after %s iterations" % niter)
+            logger.debug(f"convergence reach after {niter} iterations")
         return p, dist
 
     def alignment_sym(self, reference, molecule):
@@ -365,7 +365,7 @@ class AlignModels:
                     ax1.text(
                         i,
                         j,
-                        "%.2f" % nsd,
+                        f"{nsd:.2f}",
                         ha="center",
                         va="center",
                         size=12 * 8 // dammif_files,
@@ -373,7 +373,7 @@ class AlignModels:
                     ax1.text(
                         j,
                         i,
-                        "%.2f" % nsd,
+                        f"{nsd:.2f}",
                         ha="center",
                         va="center",
                         size=12 * 8 // dammif_files,
@@ -405,13 +405,13 @@ class AlignModels:
             [0.5, dammif_files + 0.5],
             [nsd_max, nsd_max],
             "-r",
-            label="NSD$_{max}$ = %.2f" % nsd_max,
+            label=f"NSD$_{{max}}$ = {nsd_max:.2f}",
         )
         ax2.set_title("NSD between any model and all others")
         ax2.set_ylabel("Normalized Spatial Discrepancy")
         ax2.set_xticks(xticks)
         ax2.set_xticklabels(labels, rotation=90)
-        bbox_props = dict(fc="cyan", ec="b", lw=1)
+        bbox_props = {"fc": "cyan", "ec": "b", "lw": 1}
         ax2.text(
             self.reference + 0.95,
             data[self.reference] / 2,
@@ -424,7 +424,7 @@ class AlignModels:
         )
         ax2.legend(loc=8)
 
-        bbox_props = dict(fc="pink", ec="r", lw=1)
+        bbox_props = {"fc": "pink", "ec": "r", "lw": 1}
         valid_number = 0
         for i in range(dammif_files):
             if data[i] > nsd_max:
@@ -438,14 +438,13 @@ class AlignModels:
                     size=10,
                     bbox=bbox_props,
                 )
-                logger.debug("model %s discarded, nsd > nsd_max" % self.inputfiles[i])
+                logger.debug(f"model {self.inputfiles[i]} discarded, nsd > nsd_max")
             elif not valid_models[i]:
                 if rmax:
                     ax2.text(
                         i + 0.95,
                         data[self.reference] / 2,
-                        "Discarded, Rfactor = %s > Rmax = %s"
-                        % (100.0 * self.models[i].rfactor, rmax),
+                        f"Discarded, Rfactor = {100.0 * self.models[i].rfactor} > Rmax = {rmax}",
                         ha="center",
                         va="center",
                         rotation=90,
@@ -467,7 +466,7 @@ class AlignModels:
                 if valid_models[i] == 1.0:
                     valid_number += 1
 
-        logger.debug("%s valid models" % valid_number)
+        logger.debug(f"{valid_number} valid models")
 
         if save:
             fig.savefig(filename)
@@ -515,7 +514,7 @@ class AlignModels:
                 molecule = models[i]
                 symmetry, p = self.alignment_sym(reference, molecule)
                 if not self.slow:
-                    p, dist = self.optimize(reference, molecule, symmetry)
+                    p, _dist = self.optimize(reference, molecule, symmetry)
                 molecule.atoms = molecule.transform(
                     p, symmetry
                 )  # molecule sent on its canonical position

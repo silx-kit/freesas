@@ -35,7 +35,8 @@ dependencies = [
    'numpy',
    'scipy',
    'matplotlib',
-   'silx'
+   'silx',
+   'pyFAI'
 ]
 [build-system]
 build-backend = 'mesonpy'
@@ -70,7 +71,20 @@ supycomb = 'freesas.app.supycomb:main'
 free_bift = 'freesas.app.bift:main'
 extract_ascii = 'freesas.app.extract_ascii:main'
 free_dnn = 'freesas.app.dnn:main'
-
-[project.gui-scripts]
+#[project.gui-scripts] #  Issue on windows where it prevents the help to be displayed
 freesas = 'freesas.app.plot_sas:main'
 
+
+[tool.cibuildwheel]
+# Skip 32-bit builds and PyPy
+skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"
