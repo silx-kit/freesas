@@ -33,7 +33,7 @@ import re
 import logging
 from subprocess import run, Popen, PIPE, STDOUT
 from os import linesep
-import PyPDF2
+import pypdf
 from freesas.test.utilstest import get_datafile
 
 logger = logging.getLogger(__name__)
@@ -187,22 +187,32 @@ class TestFreeSAS(unittest.TestCase):
         self.assertTrue(self.TEST_PDF_NAME.exists(), msg="Found output file")
 
         with open(self.TEST_PDF_NAME, "rb") as file:
-            output_pdf = PyPDF2.PdfFileReader(file)
+            output_pdf = pypdf.PdfReader(file)
             self.assertEqual(
-                output_pdf.numPages, 2, msg="correct number of pages in pdf"
+                len(output_pdf.pages), 2, msg="correct number of pages in pdf"
             )
-            page_1_text = output_pdf.getPage(0).extractText()
-            page_2_text = output_pdf.getPage(1).extractText()
+            page_1_text = output_pdf.pages[0].extract_text()
+            page_2_text = output_pdf.pages[1].extract_text()
 
+        # Match on the file name only, not on the full path. The figure title is
+        # rendered by matplotlib, which turns the letter pairs ff, fi, fl, ffi
+        # and ffl into single ligature glyphs; extracting them back to
+        # characters depends on the PDF library. PyPDF2 could not do it, so any
+        # directory whose name contained one of those pairs broke this test --
+        # on macOS the temporary directory is a random string such as
+        # /var/folders/d8/hvxvltxn0fl4rmnd.../T, which made the outcome depend
+        # on the letters drawn. pypdf handles the ligatures correctly, but
+        # matching the file name alone keeps the test independent of both the
+        # extraction quality and the name of the temporary directory.
+        bsa_name = self.bsa_filename.name
+        curve2_name = self.sas_curve2_filename.name
         self.assertTrue(
-            (str(self.bsa_filename) in page_1_text)
-            ^ (str(self.bsa_filename) in page_2_text),
-            msg=str(self.bsa_filename) + " found on one of the pages",
+            (bsa_name in page_1_text) ^ (bsa_name in page_2_text),
+            msg=bsa_name + " found on one of the pages",
         )
         self.assertTrue(
-            (str(self.sas_curve2_filename) in page_1_text)
-            ^ (str(self.sas_curve2_filename) in page_2_text),
-            msg=str(self.sas_curve2_filename) + " found on one of the pages",
+            (curve2_name in page_1_text) ^ (curve2_name in page_2_text),
+            msg=curve2_name + " found on one of the pages",
         )
         # Clean up
         try:
