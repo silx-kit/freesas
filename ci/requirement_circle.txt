@@ -6,7 +6,7 @@ numpy
 cython
 matplotlib
 scipy
-PyPDF2
+pypdf
 h5py
 silx
 pyFAI

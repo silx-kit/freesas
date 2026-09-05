@@ -1,2 +1,2 @@
-pyPDF2==1.27.9
+pypdf>=4.0
 parse
