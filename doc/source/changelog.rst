@@ -1,6 +1,14 @@
 Change-log
 ##########
 
+FreeSAS v2026.10.0 02/10/2026
+=============================
+- Drops Python 3.10, supports Python 3.11-3.14
+- Template-based output for all command line tools
+- Switch to ruff for linting, pathlib compatibility
+- e2e tests: replace PyPDF2 by pypdf
+- AGENTS.md: guidance for AI-assisted development
+
 FreeSAS v2026.2.0 06/02/2026
 ============================
 - Fix some tests
