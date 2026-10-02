@@ -262,19 +262,13 @@ class SASModel:
             mol1 = molecule1[:, 0:3]
             mol2 = molecule2[:, 0:3]
 
-            mol1x = mol1[:, 0]
-            mol1y = mol1[:, 1]
-            mol1z = mol1[:, 2]
-            mol1x.shape = mol1.shape[0], 1
-            mol1y.shape = mol1.shape[0], 1
-            mol1z.shape = mol1.shape[0], 1
+            mol1x = mol1[:, 0].reshape(-1, 1)
+            mol1y = mol1[:, 1].reshape(-1, 1)
+            mol1z = mol1[:, 2].reshape(-1, 1)
 
-            mol2x = mol2[:, 0]
-            mol2y = mol2[:, 1]
-            mol2z = mol2[:, 2]
-            mol2x.shape = mol2.shape[0], 1
-            mol2y.shape = mol2.shape[0], 1
-            mol2z.shape = mol2.shape[0], 1
+            mol2x = mol2[:, 0].reshape(-1, 1)
+            mol2y = mol2[:, 1].reshape(-1, 1)
+            mol2z = mol2[:, 2].reshape(-1, 1)
 
             d2 = (
                 delta_expand(mol1x, mol2x) ** 2

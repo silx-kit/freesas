@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020-2026, ESRF"
-__date__ = "09/03/2026"
+__date__ = "02/10/2026"
 
 import time
 import cython
@@ -292,7 +292,7 @@ cdef class BIFT:
     :param I_std: error on the intensity estimation    """
     cdef:
         readonly int size, high_start, high_stop
-        readonly double I0_guess, delta_q, Dmax_guess, alpha_max
+        readonly double I0_guess, Dmax_guess, alpha_max
         readonly double[::1] q, intensity, variance, wisdom
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
 
@@ -308,7 +308,6 @@ cdef class BIFT:
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
-        self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
         self.wisdom = None
         #We define a region of high signal where the noise is expected to be minimal:
         self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit
@@ -594,11 +593,11 @@ cdef class BIFT:
         #Simple checks: Dmax and alpha need to be positive
         if Dmax<=0:
             logger.info("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
         if alpha<=0:
             logger.info("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
 
         # Here we perform all memory allocation for the complete function
@@ -667,7 +666,7 @@ cdef class BIFT:
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
 
     cdef double calc_chi2(self,
