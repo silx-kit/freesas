@@ -49,7 +49,7 @@ Thus 2.1.0a3 is hexversion 0x020100a3.
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
 __copyright__ = "European Synchrotron Radiation Facility, Grenoble, France"
-__date__ = "02/09/2026"
+__date__ = "02/10/2026"
 __status__ = "production"
 __docformat__ = 'restructuredtext'
 __all__ = [
@@ -77,7 +77,7 @@ PRERELEASE_NORMALIZED_NAME = {"dev": "a",
 MAJOR = 2026
 MINOR = 10
 MICRO = 0
-RELEV = "dev"  # <16
+RELEV = "final"  # <16
 SERIAL = 0     # <16
 date = __date__
 
