@@ -79,6 +79,7 @@ class RT_RESULT(NamedTuple):
 class RadiusKey(NamedTuple):
     Dmax: float|None=None
     npt: int|None=None
+    fit_background: bool=False
 
 class PriorKey(NamedTuple):
     type: str=""
@@ -88,6 +89,9 @@ class TransfoValue(NamedTuple):
     transfo: numpy.ndarray
     B: numpy.ndarray
     sum_dia: numpy.ndarray
+    t_w: numpy.ndarray|None = None   # Tᵀ.W.1, used to profile out a flat background
+    sum_w: float = 0.0               # 1ᵀ.W.1
+    sum_wi: float = 0.0              # 1ᵀ.W.I
 
 
 class EvidenceKey(NamedTuple):
@@ -102,6 +106,7 @@ class EvidenceResult(NamedTuple):
     radius: float
     density: float
     converged: bool
+    background: float = 0.0
 
 class StatsResult(NamedTuple):
     radius: numpy.ndarray|None = None
@@ -121,6 +126,8 @@ class StatsResult(NamedTuple):
     Rg_std: float|None = None
     I0_avg: float|None = None
     I0_std: float|None = None
+    background_avg: float|None = None
+    background_std: float|None = None
 
     def save(self, filename, source=None):
         "Save the results of the fit to the file"
@@ -133,6 +140,8 @@ class StatsResult(NamedTuple):
             f"Rg= {self.Rg_avg:.2f}±{self.Rg_std:.2f}",
             f"I₀= {self.I0_avg:.2f}±{self.I0_std:.2f}",
         ]
+        if self.background_avg is not None:
+            res.append(f"Bg= {self.background_avg:.4g}±{self.background_std:.4g}")
         with open(filename, "wt", encoding="utf-8") as out:
             out.write("# {} {}".format(source or filename, "\n"))
             out.writelines(f"# {txt} \n" for txt in res)

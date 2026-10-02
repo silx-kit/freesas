@@ -104,6 +104,12 @@ def build_parser() -> SASParser:
         help="Number of Monte-Carlo samples in post-refinement",
     )
     parser.add_argument(
+        "-b",
+        "--background",
+        action="store_true",
+        help="Adjust a flat background together with p(r). Recommended when data extend to large q.",
+    )
+    parser.add_argument(
         "-t",
         "--threshold",
         default=2.0,
@@ -137,7 +143,10 @@ def main():
             if args.unit == "Å":
                 data = convert_inverse_angstrom_to_nanometer(data)
             try:
-                bo = bift.auto_bift(data, npt=args.npt, scan_size=args.scan)
+                bo = bift.auto_bift(
+                    data, npt=args.npt, scan_size=args.scan,
+                    fit_background=args.background,
+                )
             except (
                 InsufficientDataError,
                 NoGuinierRegionError,
