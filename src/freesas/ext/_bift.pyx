@@ -292,7 +292,7 @@ cdef class BIFT:
     :param I_std: error on the intensity estimation    """
     cdef:
         readonly int size, high_start, high_stop
-        readonly double I0_guess, delta_q, Dmax_guess, alpha_max
+        readonly double I0_guess, Dmax_guess, alpha_max
         readonly double[::1] q, intensity, variance, wisdom
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
 
@@ -308,7 +308,6 @@ cdef class BIFT:
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
-        self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
         self.wisdom = None
         #We define a region of high signal where the noise is expected to be minimal:
         self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit
