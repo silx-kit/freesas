@@ -311,7 +311,6 @@ cdef class BIFT:
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
-        self.delta_q = (q[self.size-1]-q[0]) / (q.size-1)
         self.fit_background = fit_background
         # Those two sums depend only on the data, not on Dmax nor npt: 1ᵀ.W.1 and 1ᵀ.W.I
         self.sum_w = numpy.sum(1.0/numpy.asarray(self.variance))
