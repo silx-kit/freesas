@@ -24,7 +24,7 @@
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__date__ = "06/02/2026"
+__date__ = "02/10/2026"
 
 import logging
 import time
@@ -101,6 +101,27 @@ class TestBIFT(unittest.TestCase):
         # print("res is ", res)
         self.assertAlmostEqual(self.DMAX / res.Dmax_avg, 1, 4, "DMax is correct")
 
+    def test_background(self):
+        """A flat background added to the data must be recovered by fit_background."""
+        bg = 0.05 * numpy.median(numpy.abs(self.I[self.q > 0.7 * self.q.max()]))
+        npt = 64
+        ref = numpy.vstack((self.q, self.I, self.err)).T
+        data = numpy.vstack((self.q, self.I + bg, self.err)).T
+
+        # without the option, the background is simply not fitted
+        stats = auto_bift(data, npt=npt, fit_background=False).calc_stats()
+        self.assertIsNone(stats.background_avg, "no background reported by default")
+
+        # The absolute level also soaks up the model error (p(r) sampled on npt points),
+        # so the check is differential: the shift of the fitted background has to match
+        # the level which was added to the data.
+        b_ref = auto_bift(ref, npt=npt, fit_background=True).calc_stats().background_avg
+        stats = auto_bift(data, npt=npt, fit_background=True).calc_stats()
+        self.assertIsNotNone(stats.background_avg, "background is reported")
+        self.assertAlmostEqual(
+            (stats.background_avg - b_ref) / bg, 1, 3, "flat background is recovered"
+        )
+
     def test_disributions(self):
         pp = numpy.asarray(distribution_parabola(self.I0, self.DMAX, self.NPT))
         ps = numpy.asarray(distribution_sphere(self.I0, self.DMAX, self.NPT))
@@ -171,6 +192,7 @@ def suite():
     testSuite = unittest.TestSuite()
     testSuite.addTest(TestBIFT("test_disributions"))
     testSuite.addTest(TestBIFT("test_autobift"))
+    testSuite.addTest(TestBIFT("test_background"))
     testSuite.addTest(TestBIFT("test_fixEdges"))
     testSuite.addTest(TestBIFT("test_smoothing"))
     return testSuite

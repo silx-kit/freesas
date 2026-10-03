@@ -35,6 +35,7 @@ def auto_bift(
     end_point=None,
     scan_size=11,
     Dmax_over_Rg=3,
+    fit_background=False,
 ):
     """Calculates the inverse Fourier tranform of the data using an optimisation of the evidence
 
@@ -46,6 +47,13 @@ def auto_bift(
     :param end_point: Last useable point in the I(q) curve
     :param scan_size: size of the initial geometrical scan for alpha values.
     :param Dmax_over_Rg: In average, protein's Dmax is 3x Rg, use this to adjust
+    :param fit_background: adjust a flat background B0 together with p(r). Recommended when
+                           the data extend to large q, where a residual incoherent background
+                           dominates the form factor. B0 is degenerate with a p(r) peaked at
+                           r->0, so it is only well constrained when q_max*Dmax/npt >> 1.
+                           Being a nuisance parameter, B0 also soaks up any model error
+                           (finite npt, truncated p(r)): its absolute value is not the
+                           physical background, only differences between datasets are.
     :return: BIFT object. Call the get_best to retrieve the optimal solution
     """
     assert data.ndim == 2
@@ -54,7 +62,7 @@ def auto_bift(
     data = data[slice(start_point, end_point)]
     q, intenisty, err = data.T
     npt = min(npt, q.size)  # no chance for oversampling !
-    bo = BIFT(q, intenisty, err)  # this is the bift object
+    bo = BIFT(q, intenisty, err, fit_background)  # this is the bift object
     if Dmax is None:
         # Try to get a reasonable guess from Rg
         try:
