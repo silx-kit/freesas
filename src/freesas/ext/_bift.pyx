@@ -21,7 +21,7 @@ cdef:
 __authors__ = ["Jérôme Kieffer", "Jesse Hopkins"]
 __license__ = "MIT"
 __copyright__ = "2020-2026, ESRF"
-__date__ = "09/03/2026"
+__date__ = "02/10/2026"
 
 import time
 import cython
@@ -293,7 +293,7 @@ cdef class BIFT:
     cdef:
         readonly int size, high_start, high_stop
         readonly bint fit_background
-        readonly double I0_guess, delta_q, Dmax_guess, alpha_max, sum_w, sum_wi
+        readonly double I0_guess, Dmax_guess, alpha_max, sum_w, sum_wi
         readonly double[::1] q, intensity, variance, wisdom
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
 
@@ -651,11 +651,11 @@ cdef class BIFT:
         #Simple checks: Dmax and alpha need to be positive
         if Dmax<=0:
             logger.info("Dmax negative: alpha=%s Dmax=%s", alpha, Dmax)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
         if alpha<=0:
             logger.info("alpha negative: alpha=%s Dmax=%s", alpha, Dmax)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
 
         # Here we perform all memory allocation for the complete function
@@ -732,7 +732,7 @@ cdef class BIFT:
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
-            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.NaN, numpy.NaN, numpy.NaN, numpy.NaN, False)
+            self.evidence_cache[key] = EvidenceResult(-numpy.inf, numpy.nan, numpy.nan, numpy.nan, numpy.nan, False)
             return -numpy.inf
 
     cdef double calc_chi2(self,
