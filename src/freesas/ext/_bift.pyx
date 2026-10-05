@@ -292,15 +292,18 @@ cdef class BIFT:
     :param I_std: error on the intensity estimation    """
     cdef:
         readonly int size, high_start, high_stop
-        readonly double I0_guess, Dmax_guess, alpha_max
+        readonly bint fit_background
+        readonly double I0_guess, Dmax_guess, alpha_max, sum_w, sum_wi
         readonly double[::1] q, intensity, variance, wisdom
         readonly dict prior_cache, evidence_cache, radius_cache, transfo_cache, lapack_cache
 
-    def __cinit__(self, q, I, I_std):
+    def __cinit__(self, q, I, I_std, bint fit_background=False):
         """Constructor of the Cython class
         :param q: scattering vector in 1/nm or 1A, the unit of q imposes the one on Dmax, r, ...
         :param I: Scattering intensity I(q)
         :param I_std: error on the intensity estimation
+        :param fit_background: when set, a flat background B0 is adjusted together with p(r).
+                               B0 is profiled out analytically, see initialize_arrays.
         """
         self.size = q.shape[0]
         assert self.size == I.shape[0], "Intensity array matches in size"
@@ -308,6 +311,10 @@ cdef class BIFT:
         self.q = numpy.ascontiguousarray(q, dtype=numpy.float64)
         self.intensity = numpy.ascontiguousarray(I, dtype=numpy.float64)
         self.variance = numpy.ascontiguousarray(I_std**2, dtype=numpy.float64)
+        self.fit_background = fit_background
+        # Those two sums depend only on the data, not on Dmax nor npt: 1ᵀ.W.1 and 1ᵀ.W.I
+        self.sum_w = numpy.sum(1.0/numpy.asarray(self.variance))
+        self.sum_wi = numpy.sum(numpy.asarray(self.intensity)/numpy.asarray(self.variance))
         self.wisdom = None
         #We define a region of high signal where the noise is expected to be minimal:
         self.I0_guess = numpy.max(I)  # might be replaced with replaced with data from the Guinier fit
@@ -364,9 +371,9 @@ cdef class BIFT:
         :param npt: number of points in the real space (-1)
         """
         cdef:
-            double[::1] density, smooth
+            double[::1] density, smooth, t_w
             double[:, ::1] transfo
-            double regularization, chi2
+            double regularization, chi2, background
         if self.Dmax_guess<=0.0:
             raise RuntimeError("Please initialize with Guinier fit data using set_Guinier")
         density = self.prior_distribution(self.I0_guess, self.Dmax_guess, npt)
@@ -374,8 +381,11 @@ cdef class BIFT:
         smooth = numpy.zeros(npt+1, numpy.float64)
         smooth_density(density, smooth)
         regularization = calc_regularization(density, smooth, density) # eq19
-        transfo = self.get_transformation_matrix(self.Dmax_guess, npt)
-        chi2 = self.calc_chi2(transfo, density, npt)
+        value = self.get_transformation_matrix(self.Dmax_guess, npt, all_=True)
+        transfo = value.transfo
+        t_w = value.t_w
+        background = self.calc_background(t_w, density, npt)
+        chi2 = self.calc_chi2(transfo, density, npt, background)
         return 0.5*chi2/regularization
 
     def get_best(self):
@@ -478,9 +488,9 @@ cdef class BIFT:
         :return: the T matrix as: T.dot.p(r) = I(q)
         """
         cdef:
-            double[::1] sum_dia
+            double[::1] sum_dia, t_w
             double[:, ::1] B, transpo_mtx, transfo_mtx
-        key = RadiusKey(Dmax, npt)
+        key = RadiusKey(Dmax, npt, self.fit_background)
         if key in self.transfo_cache:
             value = self.transfo_cache[key]
         else:
@@ -488,9 +498,12 @@ cdef class BIFT:
             transpo_mtx  = cvarray(shape=(npt+1, self.size), itemsize=sizeof(double), format="d")
             B = cvarray(shape=(npt+1, npt+1), itemsize=sizeof(double), format="d")
             sum_dia = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
+            t_w = cvarray(shape=(npt+1,), itemsize=sizeof(double), format="d")
             with nogil:
-                self.initialize_arrays(Dmax, npt, transfo_mtx, transpo_mtx, B, sum_dia)
-            value = self.transfo_cache[key] = TransfoValue(numpy.asarray(transfo_mtx), numpy.asarray(B), numpy.asarray(sum_dia))
+                self.initialize_arrays(Dmax, npt, transfo_mtx, transpo_mtx, B, sum_dia, t_w)
+            value = self.transfo_cache[key] = TransfoValue(numpy.asarray(transfo_mtx), numpy.asarray(B),
+                                                           numpy.asarray(sum_dia), numpy.asarray(t_w),
+                                                           self.sum_w, self.sum_wi)
         if all_:
             return value
         else:
@@ -511,16 +524,31 @@ cdef class BIFT:
                             double[:, ::1] transf_matrix,
                             double[:, ::1] transp_matrix,
                             double[:, ::1] B,
-                            double[::1] sum_dia
+                            double[::1] sum_dia,
+                            double[::1] t_w
                             ) noexcept nogil:
+        """Build the transformation matrix T, its weighted transpose, B = TᵀWT and sum_dia = TᵀWI
+
+        :param t_w: output vector TᵀW1 used to profile out the flat background
+
+        When self.fit_background is set, the model becomes I(q) = T.p(r) + B0.
+        Since B0 enters linearly, its optimum is analytic:
+
+            B0 = (1ᵀWI - t_wᵀ.f) / sum_w
+
+        Substituting it back into χ² amounts to replacing W by the projector
+        W' = W - w.wᵀ/sum_w (w = W.1), i.e. a rank-1 downdate of both B and sum_dia.
+        The inner loop, the regularization and the determinant are left untouched.
+        """
 
         cdef:
-            double tmp, ql, prefactor, delta_r, il, varl
-            int l, c, res
+            double tmp, ql, prefactor, delta_r, il, varl, inv_w
+            int l, c, c2, res
 
         delta_r = Dmax / npt
         prefactor = 4.0 * pi * delta_r
         sum_dia[:] = 0.0
+        t_w[:] = 0.0
         for l in range(self.size):
             ql = self.q[l] * delta_r
             il = self.intensity[l]
@@ -531,15 +559,44 @@ cdef class BIFT:
                 transf_matrix[l, c] = tmp
                 sum_dia[c] += tmp * il / varl
                 transp_matrix[c, l] = tmp / varl
+                t_w[c] += tmp / varl
         sum_dia[0] = 0.0
 
         res = blas_dgemm(transp_matrix, transf_matrix, B)
         if res:
             return -1
         #B = numpy.dot(TnT, T)
+        if self.fit_background and self.sum_w > 0.0:
+            # Rank-1 downdate: projects out the constant vector, i.e. profiles out B0
+            inv_w = 1.0 / self.sum_w
+            for c in range(npt+1):
+                sum_dia[c] -= t_w[c] * self.sum_wi * inv_w
+                for c2 in range(npt+1):
+                    B[c, c2] -= t_w[c] * t_w[c2] * inv_w
+            sum_dia[0] = 0.0
         B[0, :] = 0.0
         B[:, 0] = 0.0
         return 0
+
+    cdef inline double calc_background(self,
+                                       double[::1] t_w,
+                                       double[::1] f_r,
+                                       int npt) noexcept nogil:
+        """Optimal flat background for the current density, B0 = (1ᵀWI - t_wᵀ.f)/sum_w
+
+        :param t_w: TᵀW1 as built by initialize_arrays
+        :param f_r: the density p(r)
+        :return: the background level, 0 when not fitting it
+        """
+        cdef:
+            int c
+            double acc
+        if not self.fit_background or self.sum_w <= 0.0:
+            return 0.0
+        acc = 0.0
+        for c in range(1, npt):
+            acc += t_w[c] * f_r[c]
+        return (self.sum_wi - acc) / self.sum_w
 
     def opti_evidence(self, param,
                       int npt, bint prior=0):
@@ -582,10 +639,10 @@ cdef class BIFT:
         J. Appl. Cryst. (2000). 33, 1415-1421
         """
         cdef:
-            double[::1] radius, p_r, f_r, sigma2, sum_dia, workspace, eigen
+            double[::1] radius, p_r, f_r, sigma2, sum_dia, workspace, eigen, t_w
             double[:, ::1] B, transfo_mtx, U
-            double chi2, regularization, xprec, dotsp, rlogdet, evidence
-            int j
+            double chi2, regularization, xprec, dotsp, rlogdet, evidence, background
+            int j, dof
             bint is_valid, converged
 
         xprec = 0.999
@@ -616,7 +673,11 @@ cdef class BIFT:
         eigen = cvarray(shape=(npt-1,), itemsize=sizeof(double), format="d")
         workspace = cvarray(shape=(self.get_workspace_size(npt-1),), itemsize=sizeof(double), format="d")
 
-        transfo_mtx, B, sum_dia = self.get_transformation_matrix(Dmax, npt, all_=True)
+        value = self.get_transformation_matrix(Dmax, npt, all_=True)
+        transfo_mtx = value.transfo
+        B = value.B
+        sum_dia = value.sum_dia
+        t_w = value.t_w
 
         # At this stage, all buffers have been allocated ...
         with nogil:
@@ -632,7 +693,8 @@ cdef class BIFT:
 
             regularization = calc_regularization(p_r, f_r, sigma2) # eq19
             #chi2 =numpy.sum((numpy.asarray(self.intensity)[1:-1]-numpy.dot(transfo_mtx[1:-1,1:-1], (f_r)[1:-1]))**2/numpy.asarray(self.variance)[1:-1])/self.size
-            chi2 = self.calc_chi2(transfo_mtx, f_r, npt) #  eq.6
+            background = self.calc_background(t_w, f_r, npt)
+            chi2 = self.calc_chi2(transfo_mtx, f_r, npt, background) #  eq.6
             rlogdet = calc_rlogdet(f_r, B, alpha, U, eigen, workspace) # part of eq.20
 
             # The probablility is described in eq. 17, the evidence is apparently log(P)
@@ -652,17 +714,20 @@ cdef class BIFT:
                     evidence /= 30.0
 
             #Check if those data are valid
-            is_valid = isfinite(evidence)
+            is_valid = isfinite(evidence) & isfinite(background)
             for j in range(npt+1):
                 is_valid &= isfinite(f_r[j])
+            # one more degree of freedom is spent when the background is adjusted
+            dof = self.size - npt - (1 if self.fit_background else 0)
         # Store the results into the cache with the GIL
         if is_valid:
             self.evidence_cache[key] = EvidenceResult(evidence,
-                                                      chi2/(self.size - npt),
+                                                      chi2/dof,
                                                       regularization,
                                                       numpy.asarray(radius),
                                                       numpy.asarray(f_r),
-                                                      converged)
+                                                      converged,
+                                                      background)
             return evidence
         else:
             logger.info("Invalid evidence: Dmax: %s alpha: %s S: %s chi2: %s rlogdet:%s", Dmax, alpha, regularization, chi2, rlogdet)
@@ -672,7 +737,8 @@ cdef class BIFT:
     cdef double calc_chi2(self,
                            double[:, ::1] transfo,
                            double[::1] density,
-                           int npt
+                           int npt,
+                           double background=0.0
                            )noexcept nogil:
         """Calculate chi²
 
@@ -684,6 +750,7 @@ cdef class BIFT:
 
         :param transfo: the tranformation matrix T
         :param density: the densty p(r)
+        :param background: flat background added to the model, see calc_background
         :return: chi²/size
 
         Former implementation:
@@ -700,7 +767,7 @@ cdef class BIFT:
             Im = 0.0
             for idx_r in range(1, npt):
                 Im += transfo[idx_q, idx_r] * density[idx_r]
-            chi2 += ((Im - self.intensity[idx_q])**2/self.variance[idx_q])
+            chi2 += ((Im + background - self.intensity[idx_q])**2/self.variance[idx_q])
         return chi2
 
 
@@ -937,6 +1004,7 @@ cdef class BIFT:
             double area, ev_max, evidence_avg, evidence_std,
             double Dmax_avg, Dmax_std, alpha_avg, alpha_std, chi2_avg, chi2_std,
             double regularization_avg, regularization_std, Rg_std, Rg_avg, I0_avg, I0_std
+            double background_avg, background_std
             #2d densities,
             # 1d radius, evidences, Dmaxs, alphas, chi2s, regularizations, proba, density_avg, density_std, areas, area2s, Rgs
 
@@ -952,6 +1020,7 @@ cdef class BIFT:
         alphas = numpy.zeros(nvalid, dtype=numpy.float64)
         chi2s = numpy.zeros(nvalid, dtype=numpy.float64)
         regularizations = numpy.zeros(nvalid, dtype=numpy.float64)
+        backgrounds = numpy.zeros(nvalid, dtype=numpy.float64)
 
         idx = 0
         for key in self.evidence_cache:
@@ -962,6 +1031,7 @@ cdef class BIFT:
                 evidences[idx] = value.evidence
                 chi2s[idx] =  value.chi2r
                 regularizations[idx] = value.regularization
+                backgrounds[idx] = value.background
                 densities[idx] = numpy.interp(radius, value.radius, value.density, 0,0)
                 idx+=1
 
@@ -991,6 +1061,9 @@ cdef class BIFT:
         regularization_avg = numpy.dot(regularizations, proba)
         regularization_std = numpy.sqrt(numpy.dot((regularizations - regularization_avg)**2, proba))
 
+        background_avg = numpy.dot(backgrounds, proba)
+        background_std = numpy.sqrt(numpy.dot((backgrounds - background_avg)**2, proba))
+
         areas = trapezoid(densities, radius, axis=1)
         area2s = trapezoid(densities*radius**2, radius, axis=1)
 
@@ -1012,4 +1085,6 @@ cdef class BIFT:
                            chi2_avg, chi2_std,
                            regularization_avg, regularization_std,
                            Rg_avg, Rg_std,
-                           I0_avg, I0_std)
+                           I0_avg, I0_std,
+                           background_avg if self.fit_background else None,
+                           background_std if self.fit_background else None)
