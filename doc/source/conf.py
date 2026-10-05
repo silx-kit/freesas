@@ -103,28 +103,24 @@ extensions = [
     'sphinx.ext.doctest',
     # 'sphinxext-archive',
     'sphinxcontrib.programoutput',
-    'nbsphinx'
-
+    'sphinx.ext.mathjax',
+#    'nbsphinx',
+    'pydata_sphinx_theme',
+    'myst_nb',
+    #'myst_parser'
 ]
 
 if sphinx.__version__ < "1.4":
     extensions.append('sphinx.ext.pngmath')
 
-# Set the theme to sphinx_rtd_theme when *not* building on Read The Docs.
-# The theme is set to default otherwise as Read The Docs uses its own theme anyway.
-if not on_rtd:
-    import sphinx_rtd_theme
-
-    extensions.append('sphinx_rtd_theme')
-
-autodoc_member_order = 'bysource'
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
-
+source_suffix = {".rst": "restructuredtext",
+                 ".md": "myst-nb",
+                 ".ipynb": "myst-nb",
+                }
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
@@ -134,7 +130,7 @@ master_doc = 'index'
 # General information about the project.
 from freesas import strictversion, version, date as _date
 year = _date.split("/")[-1]
-copyright = u'2015-%s, Data analysis unit, European Synchrotron Radiation Facility, Grenoble' % year
+copyright = f'2015-{year}, Algorithms & Data Analysis, European Synchrotron Radiation Facility, Grenoble'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -157,7 +153,7 @@ release = strictversion
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = []
+exclude_patterns = ['.DS_Store', '**.ipynb_checkpoints']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 # default_role = None
@@ -186,15 +182,14 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default' if on_rtd else 'sphinx_rtd_theme'
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
-
+html_theme_options = {}
 # Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = []
+#html_theme_path = [pydata_sphinx_theme.get_html_theme_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -215,11 +210,11 @@ html_logo = "img/image.png"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = []
+html_static_path = ["img"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-# html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = f'pyFAI {strictversion} built %d %b %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -261,21 +256,23 @@ html_logo = "img/image.png"
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'FreeSASdoc'
 
-# -- Options for LaTeX output ---------------------------------------------
+# -- Options for LaTeX output --------------------------------------------------
 
-latex_elements = {'papersize': 'a4paper',
-                  'pointsize': '10pt'}
+latex_elements = {
+    'papersize': 'a4paper',
+    'pointsize': '10pt',
+}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('FreeSAS', 'FreeSAS.tex', u'FreeSAS Documentation',
-   u'Guillaume Bonamis', 'manual'),
+   'Guillaume Bonamis, Jérôme Kieffer', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-# latex_logo = None
+latex_logo = "img/image.png"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -293,7 +290,8 @@ latex_documents = [
 # If false, no module index is generated.
 # latex_domain_indices = True
 
-# -- Options for manual page output ---------------------------------------
+
+# -- Options for manual page output --------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
@@ -325,5 +323,38 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 # texinfo_show_urls = 'footnote'
 
-# Do not test code in >>> by default
-doctest_test_doctest_blocks = ''
+## myst configuration
+myst_enable_extensions = [
+    "amsmath",          # $$...$$ and LaTeX environments like \begin{align}
+    "colon_fence",      # ::: for admonitions / directives
+    "deflist",          # Definition lists
+    "dollarmath",       # $...$ and $$...$$ maths, as in Jupyter
+    "html_admonition",  # Use HTML admonition syntax
+    "html_image",       # Inline HTML <img> tags
+    #"linkify",          # Auto‑link URLs
+    "replacements",    # Smart quotes, dashes, etc.
+    "substitution",    # .. |sub| replace syntax
+    "tasklist",        # GitHub‑style task lists
+]
+# Let MyST configure MathJax so that only the maths it produced gets typeset
+myst_update_mathjax = True
+nb_execution_mode = "off"
+# text/markdown outputs (IPython.display.Markdown) are parsed as strict CommonMark
+# by default, which knows neither tables nor $maths$: use the MyST parser configured
+# above instead.
+nb_render_markdown_format = "myst"
+
+## Nbsphix configuration:
+
+#nbsphinx_allow_errors = True          # Continue building even if a notebook errors
+#nbsphinx_execute = 'never'           # Execute notebooks on each build
+#nbsphinx_prompt_width = '0'           # Hide the >>> prompts
+
+def skip(app, what, name, obj, skip, options):
+    if name == "__init__":
+        return False
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)

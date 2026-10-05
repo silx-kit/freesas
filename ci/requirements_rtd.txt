@@ -1,4 +1,11 @@
 sphinx
 sphinxcontrib-programoutput
-nbsphinx
-sphinx_rtd_theme
+silx >= 2
+#nbsphinx
+docutils<0.24
+ipython_genutils
+pydata-sphinx-theme !=0.17.0
+importlib_resources; python_version < '3.9'
+#m2r2
+lxml_html_clean
+myst-nb
