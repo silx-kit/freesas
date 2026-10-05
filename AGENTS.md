@@ -71,9 +71,9 @@ The test data are **not in the repository**: `src/freesas/test/utilstest.py` dow
 
 ### Compatibility
 
-`requires-python = '>=3.10'` (`pyproject.toml`). The GitHub Actions CI tests **3.10 → 3.14** on Ubuntu (`python-package-ubuntu.yml`) and on macOS (`python-package-mac.yml`); `pylint.yml` and `release.yml` run on 3.12.
+`requires-python = '>=3.11'` (`pyproject.toml`). The GitHub Actions CI tests **3.11 → 3.14** on Ubuntu (`python-package-ubuntu.yml`) and on macOS (`python-package-mac.yml`); `pylint.yml` and `release.yml` run on 3.12.
 
-Python 3.10 syntax is therefore available: `match`, `X | Y` in runtime annotations, unions in `isinstance`. Do not go beyond 3.10 (no `type` statement from 3.12, no `class C[T]` generics), or the 3.10 jobs break.
+Python 3.11 syntax is therefore available: `match`, `X | Y` in runtime annotations, unions in `isinstance`, `tomllib`, `Self`. Do not go beyond 3.11 (no `type` statement from 3.12, no `class C[T]` generics), or the 3.11 jobs break.
 
 The `ci/requirement_*.txt`, `.travis.yml` and `ci/appveyor.yml` configurations are legacy and no longer match the active CI; only `e2etest/requirements_e2e.txt` is still consumed by the GitHub workflows.
 
