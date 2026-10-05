@@ -11,6 +11,9 @@ rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 ALL_PYX := $(call rwildcard,src,*.pyx)
 #NOTA: No space before *
 
+# bootstrap.build_project() builds into a Python-version specific directory                                                                                                         
+SPHINX_DIR := build_py$(shell python3 -c 'import sys; print("%d%d" % sys.version_info[:2])')/sphinx
+
 %:
 	dh $@ --with python3,sphinxdoc --buildsystem=pybuild
 
@@ -22,6 +25,7 @@ override_dh_clean:
 	rm -f $(patsubst %.pyx,%.html,${ALL_PYX})
 	rm -rf build/html
 	rm -rf build/man
+	rm -rf build_py*
 	rm -rf *.egg-info
 
 override_dh_install:
@@ -37,5 +41,5 @@ override_dh_auto_test:
 
 override_dh_installdocs:
 	python3 build-doc.py
-	dh_installdocs "build/sphinx" -p freesas-doc
+	dh_installdocs "$(SPHINX_DIR)" -p freesas-doc
 	dh_installdocs
