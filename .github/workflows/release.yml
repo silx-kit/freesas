@@ -129,8 +129,8 @@ jobs:
           CIBW_BUILD_VERBOSITY: 1
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
           CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv"
-          # On force CC, CXX et le Linker (link) pour éviter que Git ne prenne le dessus
-          CIBW_ENVIRONMENT_WINDOWS: "CC=cl CXX=cl LD=link"
+          CIBW_ENVIRONMENT_WINDOWS: >
+            PATH=C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Tools\\MSVC\\*\\bin\\Hostx64\\x64;%PATH%
           # Do not build for pypy and muslinux
           CIBW_SKIP: pp* *-musllinux_*
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
