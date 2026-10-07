@@ -1,23 +1,18 @@
 Change-log
 ##########
 
-FreeSAS v2026.10.0 02/10/2026
+FreeSAS v2026.10.0 07/10/2026
 =============================
-- Compatibility with numpy 2.5: ``numpy.NaN`` replaced by ``numpy.nan``, assignments to
-  ``.shape`` and ``.strides`` replaced by ``reshape()`` and ``atleast_2d()``, and
-  ``numpy.array(..., copy=False)`` replaced by ``numpy.asarray(...)`` in
-  ``transformations``, where it used to raise ``ValueError`` on non-array input
-- Drops Python 3.10, supports Python 3.11-3.14
+- BIFT: extra parameter to fit a constant background
+- Compatibility with numpy 2.5
 - Template-based output for all command line tools
-- Numerical stability fixes in BIFT and in distance calculation, memory alignment no
-  longer enforced
-- API change: the unused ``BIFT.delta_q`` attribute has been removed
+- Numerical stability fixes in BIFT and in distance calculation
 - Richer containers and improved plots, for BM29 among others
 - Code quality: ruff linting, pathlib compatibility
 - Release workflow: newer cibuildwheel, updated runners and GitHub actions
 - e2e tests: replace PyPDF2 by pypdf
-- Documentation: FreeSAS compared to ATSAS, contributor guidelines, and AGENTS.md for
-  AI-assisted development
+- Documentation: FreeSAS compared to ATSAS, contributor guidelines, and AGENTS.md
+- Drops Python 3.10, supports Python 3.11-3.14
 
 FreeSAS v2026.2.0 06/02/2026
 ============================
