@@ -112,6 +112,15 @@ jobs:
       #   run: |
       #     sudo apt-get update
       #     sudo apt-get install -y libopenblas-dev libatlas-base-dev liblapack-dev gfortran libgmp-dev libmpfr-dev libhdf5-dev ccache
+      - name: Remove link.exe from git from the PATH
+        if: runner.os == 'Windows'
+        run: |
+           # On filtre le PATH actuel pour exclure le dossier 'Git\usr\bin'
+           $cleanPath = ($env:PATH -split ';' | Where-Object { $_ -notlike '*Git\usr\bin*' }) -join ';'
+           # On applique ce PATH nettoyé pour le reste de l'exécution du workflow
+           echo "PATH=$cleanPath" >> $env:GITHUB_ENV
+        shell: powershell
+
       - uses: pypa/cibuildwheel@v3.3.1
         env:
           # Use silx wheelhouse: needed for ppc64le
