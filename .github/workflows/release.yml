@@ -107,21 +107,23 @@ jobs:
         if: runner.os == 'Linux'
         with:
           platforms: all
-      - name: Configurer l'environnement MSVC
+      - name: Neutralise Git's link.exe so MSVC's one wins
         if: runner.os == 'Windows'
-        uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-           arch: x64
+        shell: pwsh
+        run: |
+          $git_link = "C:\Program Files\Git\usr\bin\link.exe"
+          if (Test-Path $git_link) { Rename-Item -LiteralPath $git_link -NewName "link.exe.disabled" }
+      #  uses: TheMrMilchmann/setup-msvc-dev@v3
+      #  with:
+      #     arch: x64
       #- uses: ilammy/msvc-dev-cmd@v1
       - uses: pypa/cibuildwheel@v3.3.1
         env:
           # Use silx wheelhouse: needed for ppc64le
           CIBW_ENVIRONMENT_LINUX: "PIP_FIND_LINKS=https://www.silx.org/pub/wheelhouse/ PIP_TRUSTED_HOST=www.silx.org"
-          CIBW_BUILD_FRONTEND_WINDOWS: "build; args: -C setup-args=-Duse_openmp=disabled"
           CIBW_BUILD_VERBOSITY: 1
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
           CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv"
-          CIBW_ENVIRONMENT_WINDOWS: "CC=cl CXX=cl"
           # Do not build for pypy and muslinux
           CIBW_SKIP: pp* *-musllinux_*
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
