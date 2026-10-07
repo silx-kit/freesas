@@ -105,7 +105,7 @@ extensions = [
     'sphinxcontrib.programoutput',
     'sphinx.ext.mathjax',
 #    'nbsphinx',
-    'pydata_sphinx_theme',
+#    'pydata_sphinx_theme',
     'myst_nb',
     #'myst_parser'
 ]

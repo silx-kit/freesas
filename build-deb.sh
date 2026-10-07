@@ -3,7 +3,7 @@
 #    Project: FreeSaS
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2015-2023 European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2015-2026 European Synchrotron Radiation Facility, Grenoble, France
 #
 #    Principal author:       Jérôme Kieffer (Jerome.Kieffer@ESRF.eu)
 #
@@ -66,6 +66,9 @@ then
                 debian_version=12
                 ;;
 	    trixie)
+		debian_version=13
+		;;
+	    sid)
 		debian_version=13
 		;;
         esac
@@ -179,6 +182,7 @@ clean_up()
 }
 
 build_deb() {
+    echo "Build for debian 9 or newer using actual packaging"
     tarname=${project}_${debianversion}.orig.tar.gz
     clean_up
     if [ $debian_version -le 11 ]
