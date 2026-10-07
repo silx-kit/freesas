@@ -119,6 +119,9 @@ jobs:
           CIBW_BUILD_FRONTEND_WINDOWS: "build; args: -C setup-args=-Duse_openmp=disabled"
           CIBW_BUILD_VERBOSITY: 1
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-*
+          CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv"
+          # On force CC, CXX et le Linker (link) pour éviter que Git ne prenne le dessus
+          CIBW_ENVIRONMENT_WINDOWS: "CC=cl CXX=cl LD=link"
           # Do not build for pypy and muslinux
           CIBW_SKIP: pp* *-musllinux_*
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
