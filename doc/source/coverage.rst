@@ -1,22 +1,24 @@
 Test coverage report for freesas
 ================================
 
-Measured on *freesas* version 0.9.0, 16/07/2021
+Measured on *freesas* version 2026.10.0, 07/10/2026
 
 .. csv-table:: Test suite coverage
    :header: "Name", "Stmts", "Exec", "Cover"
    :widths: 35, 8, 8, 8
 
-   "align.py", "284", "89", "31.3 %"
-   "autorg.py", "78", "60", "76.9 %"
-   "bift.py", "42", "25", "59.5 %"
-   "collections.py", "35", "1", "2.9 %"
+   "align.py", "285", "90", "31.6 %"
+   "autorg.py", "77", "59", "76.6 %"
+   "bift.py", "40", "25", "62.5 %"
+   "containers.py", "118", "1", "0.8 %"
    "cormap.py", "58", "13", "22.4 %"
-   "fitting.py", "74", "73", "98.6 %"
-   "invariants.py", "47", "20", "42.6 %"
-   "model.py", "182", "137", "75.3 %"
-   "sas_argparser.py", "47", "24", "51.1 %"
-   "sasio.py", "45", "26", "57.8 %"
-   "transformations.py", "705", "43", "6.1 %"
+   "dnn.py", "108", "33", "30.6 %"
+   "fitting.py", "112", "73", "65.2 %"
+   "invariants.py", "50", "20", "40.0 %"
+   "model.py", "174", "127", "73.0 %"
+   "sas_argparser.py", "66", "24", "36.4 %"
+   "sasio.py", "49", "28", "57.1 %"
+   "transformations.py", "704", "43", "6.1 %"
+   "resources/__init__.py", "33", "5", "15.2 %"
 
-   "freesas total", "1597", "511", "32.0 %"
+   "freesas total", "1874", "541", "28.9 %"

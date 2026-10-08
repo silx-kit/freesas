@@ -7,7 +7,7 @@ readme = 'README.md'
 description = 'Small angle scattering tools ... but unlike most others, free and written in Python'
 
 authors = [
-  { name = 'Guillaume Bonamis'}, 
+  { name = 'Guillaume Bonamis'},
   { name = 'Martha Brennich'},
   { name = 'Jérôme Kieffer', email = 'jerome.kieffer@esrf.fr'},
 ]
@@ -83,11 +83,14 @@ freesas = 'freesas.app.plot_sas:main'
 # Skip 32-bit builds and PyPy
 skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
 
+[tool.cibuildwheel.windows]
+# Enforce the usage of MSVC on windows to build the package
+config-settings = { "setup-args" = "--vsenv" }
+
 [tool.coverage.run]
 branch = true
 
 [tool.coverage.report]
-
 ignore_errors = true
 
 [tool.coverage.html]
