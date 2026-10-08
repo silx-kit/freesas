@@ -77,8 +77,8 @@ PRERELEASE_NORMALIZED_NAME = {"dev": "a",
 MAJOR = 2026
 MINOR = 10
 MICRO = 0
-RELEV = "final"  # <16
-SERIAL = 0     # <16
+RELEV = "dev"  # <16
+SERIAL = 1     # <16
 date = __date__
 
 class _VersionInfo(NamedTuple):
